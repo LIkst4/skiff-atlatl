@@ -52,24 +52,24 @@ async function editorMock() {
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
   ok(info.nengines === 15 && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "SLICE" && info.engines[14] === "DRUM-X"
- && info.engines[5] === "VOICE" && info.engines[6] === "TRIO" && info.engines[7] === "WHEEL" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.pcount === 146 && info.pe0 === 138 && info.engines[4] === "SAMPLE",
-    "editor: INFO ((2.1) P_COUNT 146, P_E0 138 from its wide-ids tag)");
+ && info.engines[5] === "VOICE" && info.engines[6] === "TRIO" && info.engines[7] === "WHEEL" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.pcount === 151 && info.pe0 === 143 && info.engines[4] === "SAMPLE",
+    "editor: INFO ((custom) P_COUNT 151, P_E0 143 from its wide-ids tag)");
   {
     /* (Skiff 1.3) wide ids: a track id from 128 on ((2.0) E0..E7 since P_E0 135, after the lane pans 127..134; (2.1) P_E0
        138, after the chord follow 135..137) goes as scope 2 and comes back whole (GET, SET, DESC), in TRACK_PARAM's track
        byte (bit 6) and in a MOTION record's step byte (bit 6); 127 (a lane's PAN) is still scope 0 */
-    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 141))).value;
-    const a = E.req.set(0, 141, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 141)));
-    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 145)));
-    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 140)));
+    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 146))).value;
+    const a = E.req.set(0, 146, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 146)));
+    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 150)));
+    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 145)));
     const e0 = E.req.get(0, 127);
-    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 142, value: 9 }, info.ntrk)));
-    ok(a[1][0] === 2 && a[1][1] === 13 && s.scope === 0 && s.id === 141 && s.value === 10 && g.id === 141 && g.value === 10 &&
-       d.scope === 0 && d.id === 145 && d.label === "KEYTRK" && tp.track === 3 && tp.id === 140 && e0[1][0] === 0 && e0[1][1] === 127 &&
-       mo.events.some((e) => e.step === 5 && e.param === 142 && e.value === 9),
-       "editor: wide ids: SET / GET 141 and DESC 145 as scope 2, TRACK_PARAM 140 (bit 6), a motion record of 142; 127 scope 0");
+    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 147, value: 9 }, info.ntrk)));
+    ok(a[1][0] === 2 && a[1][1] === 18 && s.scope === 0 && s.id === 146 && s.value === 10 && g.id === 146 && g.value === 10 &&
+       d.scope === 0 && d.id === 150 && d.label === "KEYTRK" && tp.track === 3 && tp.id === 145 && e0[1][0] === 0 && e0[1][1] === 127 &&
+       mo.events.some((e) => e.step === 5 && e.param === 147 && e.value === 9),
+       "editor: wide ids: SET / GET 146 and DESC 150 as scope 2, TRACK_PARAM 145 (bit 6), a motion record of 147; 127 scope 0");
     await rq(E.req.motion(0, 2, {}, info.ntrk));
-    await rq(E.req.set(0, 141, v0));
+    await rq(E.req.set(0, 146, v0));
   }
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -95,9 +95,9 @@ async function editorMock() {
     const md = [];
     for (let i = 49; i < 61; i++) md.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
     ok(md.map((d) => d.label).join() === "SRC1,DEST1,AMT1,SRC2,DEST2,AMT2,SRC3,DEST3,AMT3,SRC4,DEST4,AMT4"
-      && md[0].names.join() === "OFF,LFO,ENV,VEL,KEY,RAND,MODW,AT,EXPR,ENV2,S&H,SLEW" && md[1].names.length === 23
+      && md[0].names.join() === "OFF,LFO,ENV,VEL,KEY,RAND,MODW,AT,EXPR,ENV2,S&H,SLEW" && md[1].names.length === 24 && md[1].names[23] === "FCUT"
       && md[1].names[11] === "VIB" && md[1].names[19] === "E8" && md[1].names[22] === "TIME" && md[2].min === -64 && md[2].max === 63 && md.every((d) => d.def === 0),
-      "editor: matrix parameters 49..60 over DESC (23 DST names: (1.3) DEPTH VEL TIME)");
+      "editor: matrix parameters 49..60 over DESC (24 DST names: (1.3) DEPTH VEL TIME, (custom) FCUT)");
     await rq(E.req.set(0, 52, 1));
     await rq(E.req.set(0, 53, 12));
     await rq(E.req.set(0, 54, -30));
@@ -1222,7 +1222,7 @@ async function editorLive() {
   const dump = E.parse[C.DUMP](await pend, info);
   const ch = ev.pushes.find((f) => f.cmd === C.CHANGED);
   const cv = ch && E.parse[C.CHANGED](ch.a);
-  ok(dump.p.length === 146 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
+  ok(dump.p.length === 151 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
     "live: CHANGED while DUMP waits -> push handler, reply still matched");
   const rl = m.sim.reload();
   m.sim.step(3);

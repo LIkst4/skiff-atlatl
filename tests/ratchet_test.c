@@ -265,7 +265,7 @@ static int presets(void)
                  !up_parse(a, n, &r, &slot) && r.ver == UP_VER_SID && !up_pat(&r));
     up_store(4, "SOUND");
     bad += check("  (Skiff) SAVE > USER stores the sound only: no pattern, no grid", up_used(4) && !up_grid(up_rec(4)) &&
-                 !up_rec(4)->note[2] && !up_rec(4)->flags[2]);
+                 !up_pat(up_rec(4)));   /* ((custom) SIDs past 144 fill the old pattern's bytes: a v6 has none) */
     return bad;
 }
 

@@ -8659,16 +8659,16 @@ static int test_select_pages(void)
     ok &= str_eq(cur_page()->title, "ENV") && song.g[G_BPM] == b0 && !ui.msg_t;
     bad += check("SELECT: ENV 2, back to ENV, the ends where they are (no wrap), no tempo, no message", ok);
     go_title("FX"); frame();
-    turn(EN_SELECT, 5);
+    turn(EN_SELECT, 7);
     ok = str_eq(cur_page()->title, "DUCK");                          /* ((U3) FX (phase 9: DRIVE; 1.3: INSERT, INSERT 2)
                                                                       * SLICER DUCK: the buses are GLO's) */
     press(B_FX);
     ok &= str_eq(cur_page()->title, "FX");                           /* (FX's button steps on from there: round) */
-    turn(EN_SELECT, 5);
+    turn(EN_SELECT, 7);
     ok &= str_eq(cur_page()->title, "DUCK");
-    turn(EN_SELECT, -6);
+    turn(EN_SELECT, -8);
     ok &= str_eq(cur_page()->title, "FX");
-    bad += check("SELECT: five FX pages on (DUCK), the FX button round (FX), SELECT on and six back (FX)", ok);
+    bad += check("SELECT: seven FX pages on (DUCK; (custom) FILTER, FILTER 2), the FX button round (FX), SELECT on and eight back (FX)", ok);
     press(B_GLO);
     ok = cur_page()->fam == FAM_TRK;                                 /* (MIXER) */
     turn(EN_SELECT, 1);

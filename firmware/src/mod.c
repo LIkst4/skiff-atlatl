@@ -49,7 +49,9 @@
 enum { MS_OFF, MS_LFO, MS_ENV, MS_VEL, MS_KEY, MS_RAND, MS_MODW, MS_AT, MS_EXPR, MS_ENV2, MS_SH, MS_SLEW,
        MS_N };   /* (append only) */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_DEPTH = MD_E1 + 8, MD_VEL, MD_TIME, MD_N };   /* (append only: the stored values keep their meaning) */
+       MD_DEPTH = MD_E1 + 8, MD_VEL, MD_TIME,
+       MD_FCUT,   /* (custom) the track FILTER's CUTOFF: per block */
+       MD_N };   /* (append only: the stored values keep their meaning) */
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11 && P_M4AMT + 1 == P_FM1_ATK, "matrix slots: 3 ids each");
 #define NMSLOT 4u
@@ -63,7 +65,7 @@ static uint32_t mod_param(uint32_t d)
 {
     static const uint8_t ID[MD_E1] = {[MD_PAN] = P_PAN, [MD_DIST] = P_DIST, [MD_CHO] = P_CHOR, [MD_DLY] = P_DLY,
                                       [MD_REV] = P_REV, [MD_RATE] = P_LRATE, [MD_VIB] = P_LD_PIT};
-    return MD_ENGINE(d) ? P_E0 + d - MD_E1 : ID[d];
+    return d == MD_FCUT ? P_FCUT : MD_ENGINE(d) ? P_E0 + d - MD_E1 : ID[d];
 }
 
 typedef struct {                 /* a track's, while mix_part renders it ((Skiff 1.3) one per track: two cores render at once,
@@ -177,7 +179,8 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
     uint32_t k, j;
     mw->on = 0;
     for (k = 0; k < NMSLOT; k++)                        /* ((1.3) VEL and TIME: at the notes, not here) */
-        if (p[P_M1SRC + 3u * k] && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k] && p[P_M1DST + 3u * k] < MD_VEL)
+        if (p[P_M1SRC + 3u * k] && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k] &&
+            (p[P_M1DST + 3u * k] < MD_VEL || p[P_M1DST + 3u * k] == MD_FCUT))
             break;
     if (k == NMSLOT)
         return 0;
@@ -195,7 +198,7 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
     for (; k < NMSLOT; k++) {
         uint32_t s = (uint32_t)p[P_M1SRC + 3u * k], d = (uint32_t)p[P_M1DST + 3u * k];
         int32_t a = p[P_M1AMT + 3u * k], x;
-        if (!s || !d || !a || s >= MS_N || d >= MD_DEPTH)
+        if (!s || !d || !a || s >= MS_N || (d >= MD_DEPTH && d != MD_FCUT))
             continue;
         if (d <= MD_AMP) {                              /* per voice */
             mw->amp |= d == MD_AMP;

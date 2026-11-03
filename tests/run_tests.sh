@@ -280,6 +280,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "1.3: Felucca's features (LFO 2, SEQ TOOLS, FOLLOW, MOMENTARY, LANE MUTES, STEP PREVIEW, PROGRAM CHANGE)" "$OUT/feat13_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/insert_test" tests/insert_test.c -lm
     run "1.3: the INSERT (bit for bit off, every type bounded with no DC, MIX's glide, automation, stored)" "$OUT/insert_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/flt_test" tests/flt_test.c -lm
+    run "(custom) FLT: the filter library (OFF bit for bit, every type bounded, responses, self-oscillation, cost)" "$OUT/flt_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/ratchet_test" tests/ratchet_test.c -lm
     run "RATCH: x1..x4 in a step (notes, chords, drum hits), gates, chance, swing, projects (the converter's build), user presets, CHANCE page; FLAM" "$OUT/ratchet_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/ties_test" tests/ties_test.c -lm

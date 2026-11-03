@@ -23,7 +23,7 @@
 
 enum { FT_OFF, FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID, FT_COMB, FT_VOWEL, FT_N };
 
-#define FLT_LINE 1024u            /* COMB's delay line (int16): down to 43 Hz */
+#define FLT_LINE 512u             /* COMB's delay line (int16): down to 87 Hz */
 #define FLT_SMAX 65000
 
 typedef struct {
@@ -128,12 +128,12 @@ static void fl_sk(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, int32_
 static void fl_comb(flt_t *f, int16_t *line, int32_t *b, uint32_t n, int32_t ci, int32_t fb, uint32_t damp)
 {
     /* the period in samples, Q8, from the cutoff index: fs / f, f = 20 * 2^(ci * 9.8 / 1024); limited 2..1020 */
-    int32_t e = clamp(ci, 230, 1024);           /* (230: ~ 43 Hz, the line's end) */
+    int32_t e = clamp(ci, 225, 1024);           /* (225: ~ 87 Hz, the line's end) */
     uint32_t oct = (uint32_t)(e * 98) / 10240u, fr = (uint32_t)(e * 98) % 10240u;   /* octaves above 20 Hz */
     uint32_t per = (uint32_t)((2205u << 8) >> oct);
     uint32_t i;
     per = ((per >> 4) * (10240u - fr * 6u / 10u) / 10240u) << 4;   /* ~ 2^-fr (linear, within 4 %) */
-    per = per < (2u << 8) ? (2u << 8) : per > (1020u << 8) ? (1020u << 8) : per;
+    per = per < (2u << 8) ? (2u << 8) : per > (508u << 8) ? (508u << 8) : per;
     for (i = 0; i < n; i++) {
         int32_t x = clamp(b[i] >> 2, -32000, 32000), r0, r1, d, y;
         uint32_t rp = (uint32_t)f->wp + FLT_LINE * 4u - (per >> 8);

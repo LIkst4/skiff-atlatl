@@ -1700,6 +1700,7 @@ const P_LTUNE = Array.from({ length: 8 }, (_, i) => 101 + i), P_LDECAY = Array.f
 const P_LFO2 = [117, 118, 119], P_SPRD = 120, P_INSERT = [121, 122, 123, 124], P_IMIX = 125, P_ESYNC = 126;
 const P_LPAN = Array.from({ length: 8 }, (_, i) => 127 + i);   /* (2.0, #36, P_COUNT 143, P_E0 135) core.h P_LPAN0..7: the
                                                    DRUM lanes' PAN, sound parameters as the lane levels */
+const P_FILTER = [138, 139, 140, 141], P_FDRV = 142;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
 const P_FOLLOW = [135, 136, 137];   /* (2.1, P_COUNT 146, P_E0 138) core.h P_FOLLOW P_FMODE P_FNOTE: the chord follow, the
                                      track's */
 const trackOwn = (i, pe0) => TRACK_OWN.has(i) || (pe0 >= 83 && P_CHORD.includes(i)) || (pe0 >= 92 && i === P_DIR) ||
@@ -2128,7 +2129,7 @@ function makeMockDevice(opt = {}) {
   const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "ENV2", "S&H", "SLEW"];   /* ((Skiff phase 9) ENV2;
                                                        (1.3) S&H SLEW) */
   const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-    "DEPTH", "VEL", "TIME"];                       /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
+    "DEPTH", "VEL", "TIME", "FCUT"];   /* ((custom) FCUT: the track FILTER's CUTOFF) */                       /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
   const TP = [
     D("LEVEL", F.DB, 0, 127, 104),
     D("ATTACK", F.TIME, 0, 127, 10), D("DECAY", F.TIME, 0, 127, 70), D("SUSTAIN", F.PCT, 0, 127, 90), D("RELEASE", F.TIME, 0, 127, 60),
@@ -2393,7 +2394,10 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 8; k++) TP.push(D("PAN", F.BIPCT, -64, 63, 0));   /* 127..134: (2.0, #36) the DRUM lanes' PAN */
   TP.push(E("FOLLOW", ["OFF", "T1", "T2", "T3", "T4", "T5", "T6"], 0), E("MODE", ["KEY", "SCALE", "FIT"], 0),
     E("NOTE", ["ROOT", "LOW", "HIGH", "LAST"], 0));   /* 135..137: (2.1) the chord follow */
-  const P_COUNT = 146, G_COUNT = 27, NSTEP = 64, P_E0 = 138, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(E("TYPE", ["OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB", "VOWEL"], 0),   /* 138..142: (custom) */
+    D("CUTOFF", F.PCT, 0, 127, 127), D("RESO", F.PCT, 0, 127, 0), D("CHAR", F.PCT, 0, 127, 0),    /* the track FILTER */
+    D("DRIVE", F.PCT, 0, 127, 0));
+  const P_COUNT = 151, G_COUNT = 27, NSTEP = 64, P_E0 = 143, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -3997,7 +4001,7 @@ const EXPECT = { pcount: 91, gcount: 27, pe0: 83 };
 /* the same layout without the chord keys (P_COUNT 89, P_E0 81), the FM operator ENVs too (69, 61) or the matrix
    (firmware 1.0: 57, 49) */
 const knownLayout = (info) => info.gcount === EXPECT.gcount &&
-  [[146, 138], [143, 135], [135, 127], [125, 117], [103, 95], [100, 92], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
+  [[151, 143], [146, 138], [143, 135], [135, 127], [125, 117], [103, 95], [100, 92], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
 const P = { LEVEL: 0, SLEN: 29 };
 const LAYOUT = (pe0) => [
   { t: "ENV", pages: [["ENV", 0, [1, 2, 3, 4]], ["ENV DEST", 0, pe0 >= 127 ? [5, 6, 7, P_ESYNC] : [5, 6, 7]],   /* ((Skiff W5) P_ED_FX,
@@ -4017,6 +4021,7 @@ const LAYOUT = (pe0) => [
   { t: "VOICE", pages: [["LEVEL", 0, [0]], ["VOICE", 0, [37, 38, 41, 42]], ["VOICE 2", 0, [43, 44, 39, 40]],
     ...(pe0 >= 127 ? [["SPREAD", 0, [P_SPRD]]] : [])] },   /* ((1.3) the voices left and right of PAN) */
   { t: "FX", pages: [["FX", 0, [33, 34, 35, 36]], ...(pe0 >= 117 ? [["DRIVE", 0, [33, ...P_DRIVE]]] : []),
+    ...(pe0 >= 143 ? [["FILTER", 0, P_FILTER], ["FILTER 2", 0, [P_FDRV]]] : []),   /* ((custom) the track FILTER) */
     ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["INSERT 2", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT) */
     ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]]] },   /* G_RTYPE 24: ROOM / SPRING */
   { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]], ...(pe0 >= 83 ? [["CHORD", 0, P_CHORD]] : []),   /* CHRD VOIC 81, 82 */

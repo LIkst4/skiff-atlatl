@@ -922,6 +922,32 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
     }
 }
 
+/* (custom) the track FILTER (flt.c): after the engine, before DIST. b the mono sum; d, e (SPREAD's side, a panned kit's
+ * losses) through instances of their own, so the stereo keeps the same tone; COMB's line is b's only (d, e: mono) */
+#include "flt.c"
+static flt_t tflt[NTRK][3];
+static int16_t tflt_line[NTRK][FLT_LINE];
+static __attribute__((noinline)) void track_filter(track_t *t, int32_t *b, int32_t *d, int32_t *e, uint32_t n)
+{
+    uint32_t k = (uint32_t)(t - trk) % NTRK, ty = (uint32_t)clamp(t->p[P_FTYPE], 0, FT_N - 1), i;
+    const int16_t *p = t->p;
+    flt_run(&tflt[k][0], tflt_line[k], b, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+    if (d) {
+        if (ty == FT_COMB)
+            for (i = 0; i < n; i++)
+                d[i] = 0;
+        else
+            flt_run(&tflt[k][1], 0, d, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+    }
+    if (e) {
+        if (ty == FT_COMB)
+            for (i = 0; i < n; i++)
+                e[i] = 0;
+        else
+            flt_run(&tflt[k][2], 0, e, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+    }
+}
+
 /* the INSERT at rest at once (mix_part: TYPE turned OFF while the part was silent, its fade never ran) */
 static __attribute__((noinline)) void ins_rest(track_t *t)
 {
@@ -1006,6 +1032,8 @@ static __attribute__((noinline)) void mix_spread(track_t *t, int32_t *b, uint32_
     if (!e)
         for (i = 0; i < n; i++)
             d[i] = (d[i] << 1) - b[i];                  /* left - right */
+    if (t->p[P_FTYPE])
+        track_filter(t, b, d, e, n);                    /* (custom) */
     track_dist(t, b, n);
     if (t->p[P_ITYPE] | t->ins_run)
         track_insert(t, b, n);                          /* (the mono sum, as DRIVE) */
@@ -1112,9 +1140,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
 #else
     if (track_render(t, b, n))
 #endif
-        t->tail = t->p[P_ITYPE] ? 64 : 16;              /* blocks of DIST / INSERT state to run out after the last
+        t->tail = t->p[P_ITYPE] | t->p[P_FTYPE] ? 64 : 16;   /* ((custom) the FILTER's ring too) */              /* blocks of DIST / INSERT state to run out after the last
                                                          * voice ((1.3) the INSERT's: 46 ms, a flanger's feedback) */
-    else if ((!t->tail || !(t->p[P_DIST] | t->p[P_ITYPE]) || !--t->tail) && !slicer_busy(t)) {
+    else if ((!t->tail || !(t->p[P_DIST] | t->p[P_ITYPE] | t->p[P_FTYPE]) || !--t->tail) && !slicer_busy(t)) {
         slicer_track(t, 0, n);                          /* (the SLICER's step clock runs on) */
         if (t->ins_run && !t->p[P_ITYPE])
             ins_rest(t);                                /* ((1.3) TYPE OFF while silent: no fade-out left for the next
@@ -1135,6 +1163,8 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
         int32_t c = t->p[P_CHOR] * 258, d = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
         int32_t xmax = c > d ? c : d;
         xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
+        if (t->p[P_FTYPE])
+            track_filter(t, b, 0, 0, n);                /* (custom) the FILTER: OFF, nothing */
         track_dist(t, b, n);
         if (t->p[P_ITYPE] | t->ins_run)
             track_insert(t, b, n);                      /* ((1.3) the INSERT: off, nothing) */

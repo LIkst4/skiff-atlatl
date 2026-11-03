@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Build the firmware package (.fwsc) and run the host tests on every push; the package is an artifact of the run.
+name: build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Python packages
+        run: pip install Pillow fonttools mido
+      - name: JieLi toolchain (pi32v2 clang 4.0.1)
+        run: |
+          sh tools/get_toolchain.sh "$HOME/.jieli"
+          echo "JIELI_TOOLCHAIN=$HOME/.jieli/toolchain" >> "$GITHUB_ENV"
+      - name: JieLi AC79 SDK (Apache-2.0: three files of it go into the package)
+        run: |
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+          echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
+      - name: Build
+        run: ./build.sh
+      - name: Host tests
+        run: SANITIZE=0 sh tests/run_tests.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firmware
+          path: |
+            build/felucca.fwsc
+            build/felucca.bin
+            build/flt_demo/*.wav
+          if-no-files-found: warn

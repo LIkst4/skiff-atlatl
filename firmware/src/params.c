@@ -38,6 +38,8 @@ static const char *const N_ORDER[] = {"NOTE", "PLAYED"};
 static const char *const N_LSYNC[] = {"OFF", "4BAR", "2BAR", "1/1", "1/2", "1/4", "1/8", "8T", "1/16", "16T", "1/32"};
 static const char *const N_LTRIG[] = {"NOTE", "FREE"};
 static const char *const N_LPOL[] = {"BI", "UNI"};
+static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
+                                     "VOWEL"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR"};
 /* the INSERT's CRUSH: BITS 1..16 and RATE (the held sample's rate, fx.c INS_HOLD) over the range in 16 even parts */
 /* (Skiff 1.3, from Felucca 1.5's #175) ENV SYNC (voice.c esync_coef): ATK DEC REL as note values of the tempo, shortest
@@ -79,7 +81,7 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
                                     "S&H", "SLEW"};   /* ((phase 9) ENV2; (1.3) S&H SLEW) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-                                     "DEPTH", "VEL", "TIME"};   /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
+                                     "DEPTH", "VEL", "TIME", "FCUT"};   /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
 static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL", "GRAIN", "PHYS",
                                              "DRUM", "NOISE", "FM6",
 #if FELUCCA_SLICE
@@ -196,6 +198,11 @@ static const param_desc_t TP[P_COUNT] = {
     [P_FOLLOW] = PE("FOLLOW", N_DKSRC, 0),         /* (2.1) chord follow (follow.c): OFF, as before */
     [P_FMODE] = PE("MODE", N_FMODE, 0),
     [P_FNOTE] = PE("NOTE", N_FNOTE, 0),
+    [P_FTYPE] = PE("TYPE", N_FTYPE, 0),            /* (custom) FX > FILTER: OFF, the track as before */
+    [P_FCUT] = PD("CUTOFF", F_PCT, 0, 127, 127),
+    [P_FRES] = PD("RESO", F_PCT, 0, 127, 0),
+    [P_FCHR] = PD("CHAR", F_PCT, 0, 127, 0),
+    [P_FDRV] = PD("DRIVE", F_PCT, 0, 127, 0),
 };
 
 static const param_desc_t GP[G_COUNT] = {
@@ -247,8 +254,15 @@ static const param_desc_t *ins_desc(int32_t type, uint32_t k)
     return &INS_DESC[type < 5 ? 0 : type == 5 ? 1 : 2][k];   /* (IT_SOFT .. IT_FUZZ, IT_CRUSH, the swept ones) */
 }
 
+/* (custom) the FILTER's CHAR as its TYPE means it (flt.c's table): TP's range and default, another label */
+#define PU(l) {l, 0, 0, 127, 0, F_PCT, 0}
+static const param_desc_t FCHR_DESC[] = {PU("CHAR"), PU("TONE"), PU("SLOPE"), PU("MORPH"), PU("MODE"), PU("MORPH"),
+                                         PU("SAT"), PU("SQUELCH"), PU("POLAR"), PU("VOWEL")};
+#undef PU
 static const param_desc_t *track_desc(const track_t *t, uint32_t id)
 {
+    if (id == P_FCHR)                                 /* ((custom) the FILTER's CHAR) */
+        return &FCHR_DESC[(uint32_t)clamp(t->p[P_FTYPE], 0, (int32_t)NELEM(FCHR_DESC) - 1)];
     if (id >= P_IA && id <= P_IC)                     /* ((1.3) the INSERT's values as its TYPE names them) */
         return ins_desc(t->p[P_ITYPE], id - P_IA);
     if (t->p[P_ESYNC] && (id == P_ATK || id == P_DEC || id == P_REL))   /* ((1.3) ENV SYNC: note values) */
@@ -519,6 +533,8 @@ static const page_t PAGES[] = {
                                                                          * D 1A) LFO DEST and ENV DEST are its first 7) */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"DRIVE", FAM_FX, SC_TRACK, GR_DRIVE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* (Skiff phase 9) DIST's TYPE, TONE */
+    {"FILTER", FAM_FX, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_FCHR}},   /* (custom) the track FILTER (flt.c) */
+    {"FILTER 2", FAM_FX, SC_TRACK, GR_NONE, {P_FDRV, 0xFF, 0xFF, 0xFF}},       /* .. its DRIVE */
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* (1.3, from Felucca 1.5) the track's INSERT */
     {"INSERT 2", FAM_FX, SC_TRACK, GR_INS, {P_IMIX, 0xFF, 0xFF, 0xFF}},  /* .. its dry / wet */
     {"SLICER", FAM_FX, SC_TRACK, GR_SLCR, {P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH}},
