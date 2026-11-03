@@ -1394,12 +1394,17 @@ static void retired(void)
             bad += v != DK_USR1 + i;
             v = param_turn(d, v, 1);
         }
-        bad += v != DK_PERC + SMP_SHOWN || param_turn(d, DK_80, -1) != DK_STD || param_turn(d, DK_STD, -1) != DK_STD;
+        if (SMP_SHOWN == SMP_USER_SLOTS)                /* ((custom) then the MD kits, held at the last) */
+            for (i = 0; i < MD_NKIT; i++) {
+                bad += v != DK_MD808 + i;
+                v = param_turn(d, v, 1);
+            }
+        bad += v != d->max || param_turn(d, DK_80, -1) != DK_STD || param_turn(d, DK_STD, -1) != DK_STD;
     }
     for (r = 1; r < 4u; r++)
         bad += strcmp(d->names[r], d->names[MAP[r]]) != 0 || enum_orig(d, (int32_t)r) != MAP[r] ||
                param_fit(d, (int32_t)r) != MAP[r];
-    bad += param_fit(d, 99) != DK_PERC + SMP_SHOWN || param_fit(d, -5) != DK_STD || enum_orig(d, DK_55) != DK_55;
+    bad += param_fit(d, 99) != d->max || param_fit(d, -5) != DK_STD || enum_orig(d, DK_55) != DK_55;
     bad += param_fit(&TP[P_LEVEL], 77) != 77;
     {   /* a motion event of KIT 2 (CYM): stored and played as 10 */
         host_tracks_init();

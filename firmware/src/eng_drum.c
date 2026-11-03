@@ -36,18 +36,30 @@
  * State: 8 lanes per part in the part's shared engine area (engines.c eng_mem: the parameters, coefficients, voice
  * and metal source of each lane). */
 #include "drum_voice.c"
+#include "md/md.c"            /* (custom) Hortator's drum models: the MD kits (808 909 TRX EFM TRX-P MI) */
 
 /* 1.5.6 (Discussion #216): DEEP TIGHT PERC (9..11), kits put together from the five's pieces (drum_voice.c DV_KIT),
  * appended. Firmware before (Skiff 1.2, Felucca before 1.5.6) clamps 9..11 to 8 (77) when it loads them (param_fit) */
 /* (2.0, #35, the user's pick A of design/mockups/v2_kits.png) USR1..USR3 (12..14): a user sample slot as the kit
  * (drum_user), appended; the SMK-37 offers USR1 only (SMP_SHOWN) */
 enum { DK_STD, DK_HAND, DK_CYM, DK_HCYM, DK_80, DK_10, DK_66, DK_55, DK_77, DK_DEEP, DK_TIGHT, DK_PERC, DK_USR1, DK_USR2,
-       DK_USR3, DK_COUNT };   /* (stored values) */
+       DK_USR3,
+       DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI,   /* (custom) the MD kits (md/md.c MD_KIT), appended */
+       DK_COUNT };   /* (stored values) */
 /* the kit a stored KIT value plays: HAND CYM H+CYM (retired after 1.0.4) -> 66 (a conga on TOM), 10 (a cymbal on
  * BELL), 77 (claves on RIM, a cymbal on BELL) */
 static const uint8_t DK_PLAYS[DK_COUNT] = {DK_STD, DK_66, DK_10, DK_77, DK_80, DK_10, DK_66, DK_55, DK_77, DK_DEEP,
-                                           DK_TIGHT, DK_PERC, DK_USR1, DK_USR2, DK_USR3};
+                                           DK_TIGHT, DK_PERC, DK_USR1, DK_USR2, DK_USR3,
+                                           DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI};
+_Static_assert(DK_COUNT - DK_MD808 == MD_NKIT, "the MD kits: one KIT value each");
+
 static uint32_t drum_kit_plays(int32_t v) { return DK_PLAYS[clamp(v, 0, DK_COUNT - 1)]; }
+/* (custom) an MD kit's number + 1 (md/md.c MD_KIT), 0 a kit of DRUM's own or a user's */
+static uint32_t drum_md(const int16_t *p)
+{
+    uint32_t k = drum_kit_plays(p[P_E0]);
+    return k >= DK_MD808 && k < DK_COUNT ? k - DK_MD808 + 1u : 0u;
+}
 /* the model kits' pieces where a lane plays another than its own (the lane's name): 1 TOM -> CONGA, 2 RIM -> CLAVE,
  * 4 BELL -> CYM */
 static const uint8_t DK_SWAP[DV_NKIT] = {0, 4, 1, 0, 2 | 4, 4, 0, 1 | 2};
@@ -59,25 +71,30 @@ static const uint8_t DV_TYPE_LANE[DVT_COUNT] = {
 static uint32_t drum_user(const int16_t *p)
 {
     uint32_t k = drum_kit_plays(p[P_E0]);
-    return k >= DK_USR1 ? k - DK_USR1 + 1u : 0u;
+    return k >= DK_USR1 && k <= DK_USR3 ? k - DK_USR1 + 1u : 0u;   /* ((custom) the MD kits after them) */
 }
 
 typedef struct {
-    dv_param_t key;              /* the parameters the coefficients were set up with */
-    dv_coef_t c;
-    dv_voice_t v;
-    dv_metal_t mb;
+    union {
+        struct {
+            dv_param_t key;      /* the parameters the coefficients were set up with */
+            dv_coef_t c;
+            dv_voice_t v;
+            dv_metal_t mb;
+        };
+        md_lane_t md;            /* (custom) an MD kit's lane: Hortator's model (pad 1) */
+    };
     uint8_t owner;               /* the voice playing the lane: index + 1, 0 = none */
     uint8_t role;                /* the drum struck (DVT_*) */
     int8_t st;                   /* its semitones from the designed pitch (the GM map) */
-    uint8_t pad;
+    uint8_t pad;                 /* (custom) 1: the union holds an MD lane (md), 0: DRUM's own (key c v mb) */
     int16_t dk[2];               /* (2.1.1) the declick (drum_declick): its last sample and the step falling away, halved */
 } drum_lane_t;
 
 
 /* 1..3 named as the kit they play: aliases, never shown or offered (EDITOR_PROTOCOL.md: retired values) */
 static const char *const N_DRUM_KIT[] = {"STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC",
-                                         "USR1", "USR2", "USR3"};
+                                         "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI"};
 static const char *const N_DRUM_KICK[] = {"PUNCH", "ROUND"};
 
 /* General MIDI notes 35..81 -> the drum (DVT_*; DVT_PUNCH: the kick KICK picks) and semitones from its
@@ -265,6 +282,33 @@ static void drum_note_on(track_t *t, voice_t *v)
     if (L->owner == i + 1u)                              /* this voice played another lane: it stops there */
         L->owner = 0;
     L = &K[lane];
+    if (drum_md(t->p)) {                                 /* (custom) an MD kit: the lane's model, struck */
+        uint32_t model = MD_KIT[drum_md(t->p) - 1u][lane];
+        md_lane_t *M = &L->md;
+        if (!L->pad || M->model != model + 1u) {         /* another model (or DRUM's own) on this lane: from rest */
+            memset(M, 0, sizeof *M);
+            M->model = (uint8_t)(model + 1u);
+            L->pad = 1;
+            L->dk[0] = L->dk[1] = 0;
+        }
+        L->st = (int8_t)st;
+        L->owner = (uint8_t)(i + 1u);
+        v->s[0] = (int32_t)lane;
+        v->env_out = v->vel * 258;
+        v->env = 1 << 24;
+        M->again = M->v.active;                          /* (struck again while it rings: the declick) */
+        M->choke = 0;
+        md_knobs(&M->trk, model, t->p, lane, st);
+        md_hit(M, model);
+        if (lane == DV_HATC && K[DV_HATO].pad && K[DV_HATO].md.v.active)
+            K[DV_HATO].md.choke = 1;                     /* a closed hat chokes the open one */
+        return;
+    }
+    if (L->pad) {                                        /* (custom) an MD lane before: DRUM's own from rest */
+        L->pad = 0;
+        L->role = 0xFF;
+        L->v.type = 0xFF;
+    }
     if (u) {                                             /* ((2.0, #35) a user kit: the lane's sample, from its start */
         L->st = (int8_t)st;
         L->owner = (uint8_t)(i + 1u);
@@ -306,7 +350,7 @@ static int32_t drum_amp(track_t *t, voice_t *v, int32_t adsr)
     (void)adsr;
     if (!v->active)                                      /* (taken for another part: env_tick ended it) */
         return 0;
-    if (!L || (drum_user(t->p) ? v->s[6] == 1 : !L->v.live && !L->v.trig)) {   /* ((#35) a user kit's: its sample over) */
+    if (!L || (L->pad ? !L->md.v.active : drum_user(t->p) ? v->s[6] == 1 : !L->v.live && !L->v.trig)) {   /* ((#35) a user kit's: its sample over) */
         v->active = v->gate = 0;
         v->stage = 0;
         v->env = 0;
@@ -418,10 +462,30 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     m = vmod_level(m, &ml, clamp(p[P_LN0 + ln], 0, 127));   /* the lane's LEVEL (dsp.c); 100 %: the ramp as it was */
     if (n > CTL)
         n = CTL;
-    if (drum_user(p)) {                                  /* ((2.0, #35) a user kit: the lane's sample) */
+    if (L->pad || drum_md(p)) {                          /* (custom) an MD lane */
+        md_lane_t *M = &L->md;
+        if (!L->pad || !drum_md(p) || !M->model) {       /* (the kit changed under it: it ends) */
+            if (L->pad)
+                M->v.active = 0;
+            return;
+        }
+        for (i = 0; i < n; i++)
+            y[i] = 0;
+        md_knobs(&M->trk, M->model - 1u, p, ln, L->st);   /* (the knobs move it while it rings) */
+        if (M->v.active)
+            MD_MODELS[M->model - 1u].render(&M->trk, &M->v, y, n);
+        if (M->choke) {                                  /* choked: out over this block */
+            for (i = 0; i < n; i++)
+                y[i] = (int32_t)(((int64_t)y[i] * (int32_t)(n - i)) / (int32_t)n);
+            M->v.active = 0;
+            M->choke = 0;
+        }
+        again = M->again;
+        M->again = 0;
+    } else if (drum_user(p)) {                           /* ((2.0, #35) a user kit: the lane's sample) */
         drum_smp(t, v, out, n, m, ln, L->st);
         return;
-    }
+    } else {
     r = L->role;
     dv_default(&k, r);                                   /* the knobs move every lane from its design (64) */
     k.decay = (uint8_t)clamp(k.decay + p[P_E3] - 64 + p[P_LDECAY0 + ln], 0, 127);   /* ((Skiff phase 9) and the */
@@ -440,6 +504,7 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
         dv_metal_run(&L->mb, mb, n);
     again = L->v.trig && L->v.live;                      /* (2.1.1) struck again while it rings */
     dv_run(&L->c, &L->v, mb, y, n);
+    }
     drum_declick(L, y, n, again);
     if ((drum_mute[(uint32_t)(t - trk) % NTRK] >> ln) & 1u)
         return;                                          /* ((1.3) a muted lane rings on unheard) */
@@ -480,13 +545,23 @@ static const preset_t DRUM_PRESETS[] = {
     {"DEEP DRUMS", {DK_DEEP, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 28), TAG(PT_DRUM)},
     {"SNAP KIT", {DK_TIGHT, 64, 64, 56, 64, 100, 0, 16}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 8), TAG(PT_DRUM)},
     {"PERC KIT", {DK_PERC, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 24), TAG(PT_DRUM)},
+#if !BOARD_SMK37
+    /* (custom) the MD kits (md/md.c, Hortator's models), each a preset (appended) */
+    {"808 KIT", {DK_MD808, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 18), TAG(PT_DRUM)},
+    {"909 KIT", {DK_MD909, 64, 64, 64, 64, 100, 0, 10}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 14), TAG(PT_DRUM)},
+    {"TRX KIT", {DK_MDTRX, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 16), TAG(PT_DRUM)},
+    {"EFM KIT", {DK_MDEFM, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 16), TAG(PT_DRUM)},
+    {"TRX PERC", {DK_MDTRXP, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 22), TAG(PT_DRUM)},
+    {"MI DRUMS", {DK_MDMI, 64, 64, 64, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 22), TAG(PT_DRUM)},
+#endif
 };
 
 static const engine_t ENG_DRUM = {
     .name = "DRUM",
     .page_title = {"KIT", "HIT"},
     .edit = {
-        {"KIT", N_DRUM_KIT, 0, DK_PERC + SMP_SHOWN, DK_STD, F_ENUM, 0},   /* ((2.0, #35) .. USR1..3; SMK: USR1) */
+        {"KIT", N_DRUM_KIT, 0, SMP_SHOWN == SMP_USER_SLOTS ? DK_COUNT - 1 : DK_PERC + SMP_SHOWN, DK_STD, F_ENUM, 0},   /* ((custom)
+                                                         * the MD kits after USR3; the SMK, USR1 only: none) */   /* ((2.0, #35) .. USR1..3; SMK: USR1) */
         {"PITCH", 0, 0, 127, 64, F_ST16, 0},
         {"TONE", 0, 0, 127, 64, F_PCT, 0},
         {"DECAY", 0, 0, 127, 64, F_PCT, 0},

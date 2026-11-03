@@ -1273,6 +1273,7 @@ static void mix_block(int32_t *out, uint32_t n)
     if (thr_out)
         throw_on(n);                                    /* (Skiff) the throws on for the block, its events too */
     events_block(n);
+    dblock++;                                           /* (custom) the MD kits' metal bank: once a block (md/dm_metal.c) */
     duck_block(n);                                      /* (Skiff) the ducking's gains (duck.c) */
     perf = AUDIO_FAR(perf_begin)(n);                    /* the FX hold layer at work (perform.c; its code in RAM) */
 #if FELUCCA_CPU2

@@ -52,7 +52,7 @@ e1a0530bde3278db CRYPT_drive_fuzz
 f2a5929aadf4e5f6 CRYPT_drum
 ed523ce365835d89 CRYPT_drum_cym
 37c27665d9a8e9c5 CRYPT_drum_hand
-b2ab9afd76edec00 CRYPT_drum_kit_usr
+8de7306ac950de7b CRYPT_drum_kit_usr
 28902ff138517732 CRYPT_drum_lock_held
 d9b88323dd0391dd CRYPT_drum_locks
 a3f2fd74dc264f0d CRYPT_dx_sound
@@ -154,7 +154,7 @@ c820ff78b7ea4259 CRYPT_mock_dialog
 b8ed6118e9a6df48 CRYPT_mock_home
 14591f4d73a62c78 CRYPT_mock_menu
 aa42e95bb20c532b CRYPT_mock_mixer
-c551cece8e35813e CRYPT_mock_presets
+a80cc1e0529291b6 CRYPT_mock_presets
 6eb66641fd26762c CRYPT_mock_seq
 6112303bc5f38bcb CRYPT_mod
 8439b25f33b702e5 CRYPT_mod_env
@@ -185,7 +185,7 @@ b732118ca9b65a87 CRYPT_play_dir
 ff501e0f2a03031c CRYPT_pool
 6a734dfcd7cf67b4 CRYPT_pool_empty
 efbedadad95e9d94 CRYPT_pool_unused
-1d8a1278b2539a0d CRYPT_presets
+052151da167a4cdd CRYPT_presets
 d23ab5379eb81e35 CRYPT_presets_bass
 3eb8e3b5818a8f58 CRYPT_presets_nofav
 9c9621794547353c CRYPT_project
@@ -301,7 +301,7 @@ abcfef261d03e25d CUSTOM_CRYPT_drive_fold
 0b9758f071ded226 CUSTOM_CRYPT_drum
 a96000bac39f5adc CUSTOM_CRYPT_drum_cym
 38b633fa881f2d75 CUSTOM_CRYPT_drum_hand
-1740aca8afcafe92 CUSTOM_CRYPT_drum_kit_usr
+ce4ad32794681809 CUSTOM_CRYPT_drum_kit_usr
 7d25738d1f3dfa8e CUSTOM_CRYPT_drum_lock_held
 105a4c3573074d49 CUSTOM_CRYPT_drum_locks
 5d03473ba3f65e94 CUSTOM_CRYPT_dx_sound
@@ -403,7 +403,7 @@ d19cc5077f21d099 CUSTOM_CRYPT_mock_drum
 716b19b73266eb06 CUSTOM_CRYPT_mock_home
 f56d7734f186200f CUSTOM_CRYPT_mock_menu
 736aa90972cfc1b2 CUSTOM_CRYPT_mock_mixer
-227dfe2d61bd5eec CUSTOM_CRYPT_mock_presets
+1729fdfbf9c080bc CUSTOM_CRYPT_mock_presets
 71db11c5ffc7b34b CUSTOM_CRYPT_mock_seq
 05252e743f0880ae CUSTOM_CRYPT_mod
 d86ad6e30ef9d91c CUSTOM_CRYPT_mod_env
@@ -434,7 +434,7 @@ bc675a6e57622ffb CUSTOM_CRYPT_perform_held
 f9fde09e504c14fb CUSTOM_CRYPT_pool
 2d28b7d1363e44bc CUSTOM_CRYPT_pool_empty
 2947234925fe1c43 CUSTOM_CRYPT_pool_unused
-ca5a1f52922f1368 CUSTOM_CRYPT_presets
+887c8d878cf88948 CUSTOM_CRYPT_presets
 40dc98cf86b99765 CUSTOM_CRYPT_presets_bass
 8c05975244adccbc CUSTOM_CRYPT_presets_nofav
 e83dd28466b29b2b CUSTOM_CRYPT_project
@@ -550,7 +550,7 @@ c15a413f1cacc3e6 CUSTOM_NEON_drive_soft
 9b8e90b06fce38c4 CUSTOM_NEON_drum
 3bdf9e56f87055ea CUSTOM_NEON_drum_cym
 975bddd3fe1a2442 CUSTOM_NEON_drum_hand
-f4dc23fb9f0fec94 CUSTOM_NEON_drum_kit_usr
+449d6dc0beaba4f1 CUSTOM_NEON_drum_kit_usr
 1fa7bf5be294943d CUSTOM_NEON_drum_lock_held
 9512b5f2c894a644 CUSTOM_NEON_drum_locks
 aa0360e1823038e7 CUSTOM_NEON_dx_sound
@@ -652,7 +652,7 @@ e8734fbbd0a7a81b CUSTOM_NEON_mixer
 88994512e1d1af30 CUSTOM_NEON_mock_home
 29d4e947c9062f4a CUSTOM_NEON_mock_menu
 24ac5e3b7037e2f3 CUSTOM_NEON_mock_mixer
-4528dcdc8144283d CUSTOM_NEON_mock_presets
+5f6aab2451949b25 CUSTOM_NEON_mock_presets
 24f7c7142f7418c6 CUSTOM_NEON_mock_seq
 249439a46ec846f3 CUSTOM_NEON_mod
 7be6eb0e4da5044b CUSTOM_NEON_mod_env
@@ -683,7 +683,7 @@ e46c0be6d701940f CUSTOM_NEON_play_gate
 f474bbecf7e2efdc CUSTOM_NEON_pool
 a7eb772da7502e79 CUSTOM_NEON_pool_empty
 cff483c924d17661 CUSTOM_NEON_pool_unused
-7b3e0045d319b7c5 CUSTOM_NEON_presets
+37e674f707dc5e85 CUSTOM_NEON_presets
 bb9ada0b7e4ec248 CUSTOM_NEON_presets_bass
 b66654461843b66a CUSTOM_NEON_presets_nofav
 190aa4f07acedc49 CUSTOM_NEON_project
@@ -799,7 +799,7 @@ c957b47bd14ecdf7 CUSTOM_QUARK_drive_soft
 c8d302a622a039a4 CUSTOM_QUARK_drum
 8e01cc52f3075e0e CUSTOM_QUARK_drum_cym
 8fca449e28e030be CUSTOM_QUARK_drum_hand
-608616f45fcacbe4 CUSTOM_QUARK_drum_kit_usr
+79efbe56e7313184 CUSTOM_QUARK_drum_kit_usr
 2e37b4a1e46847a4 CUSTOM_QUARK_drum_lock_held
 e37cdda9f201daa4 CUSTOM_QUARK_drum_locks
 95c697781e267df3 CUSTOM_QUARK_dx_sound
@@ -901,7 +901,7 @@ b414e997a0eb7bee CUSTOM_QUARK_mock_dialog
 5ec7e338ab8750de CUSTOM_QUARK_mock_home
 560bfcd18c34cb27 CUSTOM_QUARK_mock_menu
 a2d048046c8c0b59 CUSTOM_QUARK_mock_mixer
-be228e12c90a4619 CUSTOM_QUARK_mock_presets
+5b709005fb3ba662 CUSTOM_QUARK_mock_presets
 0afb803d1905534f CUSTOM_QUARK_mock_seq
 91ac8da56f350fe0 CUSTOM_QUARK_mod
 c791940da9bcf306 CUSTOM_QUARK_mod_env
@@ -932,7 +932,7 @@ cccb8c4d42ee447b CUSTOM_QUARK_play_dir
 6891a91e5b1028e8 CUSTOM_QUARK_pool
 4dddb28cfef48ecc CUSTOM_QUARK_pool_empty
 82bf7da891d95054 CUSTOM_QUARK_pool_unused
-cc41afe74437917c CUSTOM_QUARK_presets
+8cca45e6496eb43f CUSTOM_QUARK_presets
 8e3345c3f44999dd CUSTOM_QUARK_presets_bass
 118e1a6fc66acddf CUSTOM_QUARK_presets_nofav
 f5db1a0b6bad333a CUSTOM_QUARK_project
@@ -1048,7 +1048,7 @@ a32bec4ee8be7441 CUSTOM_SKIFF_drive_hard
 dd4a31a68d3c5b82 CUSTOM_SKIFF_drum
 fb99dbfa287cf61e CUSTOM_SKIFF_drum_cym
 1a85b967f4f21674 CUSTOM_SKIFF_drum_hand
-2fee9a93dfca9dc3 CUSTOM_SKIFF_drum_kit_usr
+1d11a12ca605ca8b CUSTOM_SKIFF_drum_kit_usr
 105c3175063222da CUSTOM_SKIFF_drum_lock_held
 840cccf59f333182 CUSTOM_SKIFF_drum_locks
 2d9af4256e5849b5 CUSTOM_SKIFF_dx_sound
@@ -1150,7 +1150,7 @@ ca0dcd4ce299100f CUSTOM_SKIFF_mock_drum
 8dbf786b976046ca CUSTOM_SKIFF_mock_home
 03e7df79563ca209 CUSTOM_SKIFF_mock_menu
 37b8a15aeb4f6103 CUSTOM_SKIFF_mock_mixer
-0f4a77c8ea502637 CUSTOM_SKIFF_mock_presets
+e5d8cd10f3715ca4 CUSTOM_SKIFF_mock_presets
 ccda2940798a1aa8 CUSTOM_SKIFF_mock_seq
 8ce10d153f805393 CUSTOM_SKIFF_mod
 1152cf7bb6c1da14 CUSTOM_SKIFF_mod_env
@@ -1181,7 +1181,7 @@ e8fe09d105e110d0 CUSTOM_SKIFF_play_gate
 f5d8942fccd14b2d CUSTOM_SKIFF_pool
 f62e7fe3215f0043 CUSTOM_SKIFF_pool_empty
 d65a0757d69b619a CUSTOM_SKIFF_pool_unused
-a1c7965e50ca1c82 CUSTOM_SKIFF_presets
+d792d856939f3111 CUSTOM_SKIFF_presets
 0b429a0bc1414a8b CUSTOM_SKIFF_presets_bass
 c58ae6d42e5f0e49 CUSTOM_SKIFF_presets_nofav
 f8970c144f1d12de CUSTOM_SKIFF_project
@@ -1297,7 +1297,7 @@ a77eff9da226b416 HI-CON_drive_soft
 d1f73a9a03ec168c HI-CON_drum
 65484cfc44f9a100 HI-CON_drum_cym
 befd35a09297bb8d HI-CON_drum_hand
-42fdcd382acc0968 HI-CON_drum_kit_usr
+5c6340660449809e HI-CON_drum_kit_usr
 7df88f668b3638c4 HI-CON_drum_lock_held
 f0ad9dba6418eacc HI-CON_drum_locks
 df048903d51e8abd HI-CON_dx_sound
@@ -1399,7 +1399,7 @@ d5c239b0a3507026 HI-CON_mock_drum
 2f3b8e241af32ca1 HI-CON_mock_home
 0b1d8041ef329262 HI-CON_mock_menu
 9e59da64c73bcdc8 HI-CON_mock_mixer
-99b4b81ab2336085 HI-CON_mock_presets
+29c39e5d17dd137b HI-CON_mock_presets
 99f27f9f37a2dac1 HI-CON_mock_seq
 e1a64c7680aee9ab HI-CON_mod
 bc008cf3a9d360c9 HI-CON_mod_env
@@ -1430,7 +1430,7 @@ e7049a006d272be3 HI-CON_play_dir
 aa1c03274eded87b HI-CON_pool
 9d24180c43fc4f05 HI-CON_pool_empty
 c7befeb875e9dad7 HI-CON_pool_unused
-ea77d98eca192510 HI-CON_presets
+25a91fc9e05a62aa HI-CON_presets
 6103df17de8980ad HI-CON_presets_bass
 54142c1300863ade HI-CON_presets_nofav
 077078b2334442da HI-CON_project
@@ -1546,7 +1546,7 @@ ae57b522887aaaad LARGE_CRYPT_drive_fuzz
 73d06a3f82958754 LARGE_CRYPT_drum
 f532ccd9a2179677 LARGE_CRYPT_drum_cym
 24b629ba4d57f67b LARGE_CRYPT_drum_hand
-4908afc52b7e21eb LARGE_CRYPT_drum_kit_usr
+eaf1e2ea358d4680 LARGE_CRYPT_drum_kit_usr
 1bc2da7a46194647 LARGE_CRYPT_drum_lock_held
 0bd51dcf524a89b3 LARGE_CRYPT_drum_locks
 192bfd7fd1fd7ac3 LARGE_CRYPT_dx_sound
@@ -1648,7 +1648,7 @@ f0fe73b51c8a0e61 LARGE_CRYPT_mixer
 0662071dfed55a3d LARGE_CRYPT_mock_home
 73062acacdb75d8c LARGE_CRYPT_mock_menu
 6c85e8e1c0ba0453 LARGE_CRYPT_mock_mixer
-31712464146fdb24 LARGE_CRYPT_mock_presets
+b4b0b227d7a4f4ac LARGE_CRYPT_mock_presets
 631e7fda3a664527 LARGE_CRYPT_mock_seq
 190aaec48db77353 LARGE_CRYPT_mod
 a6b992dcbf632d98 LARGE_CRYPT_mod_env
@@ -1679,7 +1679,7 @@ c5467555f8498371 LARGE_CRYPT_play_gate
 883eee9a2409a7ab LARGE_CRYPT_pool
 5a6fd72f2e298b83 LARGE_CRYPT_pool_empty
 ee6860238eb19bff LARGE_CRYPT_pool_unused
-7081a5024c911e43 LARGE_CRYPT_presets
+fc11b6576df862c3 LARGE_CRYPT_presets
 3f22d00b27fe26a3 LARGE_CRYPT_presets_bass
 6d0f0787e9f071ce LARGE_CRYPT_presets_nofav
 c86efac34ce60ef5 LARGE_CRYPT_project
@@ -1795,7 +1795,7 @@ cf7407bfb7cc729a LARGE_NEON_drive_soft
 01a03b5baa96975a LARGE_NEON_drum
 d8047d71840d70b7 LARGE_NEON_drum_cym
 752bb0ccd9ea2830 LARGE_NEON_drum_hand
-deabddb1af4be27b LARGE_NEON_drum_kit_usr
+7f2fa16d652f3dae LARGE_NEON_drum_kit_usr
 194e3f12f92ac679 LARGE_NEON_drum_lock_held
 dea270d968c5131a LARGE_NEON_drum_locks
 0061783d83055d0b LARGE_NEON_dx_sound
@@ -1897,7 +1897,7 @@ a60a7cdb24b57814 LARGE_NEON_mock_dialog
 2f066e34eed682a1 LARGE_NEON_mock_home
 9554c7a927c350b3 LARGE_NEON_mock_menu
 b16ab029523ba661 LARGE_NEON_mock_mixer
-f8c2c47792bc9c9b LARGE_NEON_mock_presets
+d5cfc9204c523153 LARGE_NEON_mock_presets
 b0b0f856898296eb LARGE_NEON_mock_seq
 cd726da6fdd2d138 LARGE_NEON_mod
 031ff7b4505670fb LARGE_NEON_mod_env
@@ -1928,7 +1928,7 @@ d53b329b745916a2 LARGE_NEON_play_gate
 332e02edc1cbbb04 LARGE_NEON_pool
 8c69ecc38f0b60d3 LARGE_NEON_pool_empty
 b6081883632ddcbd LARGE_NEON_pool_unused
-05b27a676f0f0538 LARGE_NEON_presets
+13a5690024e68ac8 LARGE_NEON_presets
 80332fc6fc49d1fe LARGE_NEON_presets_bass
 54c7d007136f044e LARGE_NEON_presets_nofav
 4361c799496ae3f7 LARGE_NEON_project
@@ -2044,7 +2044,7 @@ b6c13084c587c185 LARGE_QUARK_drive_fuzz
 732f0210f01a08f3 LARGE_QUARK_drum
 38e80bf004669e52 LARGE_QUARK_drum_cym
 3d0c98992f65c0d9 LARGE_QUARK_drum_hand
-3b81fe5791b255ee LARGE_QUARK_drum_kit_usr
+5575c897d64d7abe LARGE_QUARK_drum_kit_usr
 8e78bc986d675bf9 LARGE_QUARK_drum_lock_held
 cdf04b385b059833 LARGE_QUARK_drum_locks
 f00b48c9c5cc7c97 LARGE_QUARK_dx_sound
@@ -2146,7 +2146,7 @@ da32bff341f55c70 LARGE_QUARK_mock_dialog
 3350bad445630bd1 LARGE_QUARK_mock_home
 fbc605e931d1385e LARGE_QUARK_mock_menu
 9c8b6682cb82a019 LARGE_QUARK_mock_mixer
-adb0509708ac0d88 LARGE_QUARK_mock_presets
+0127bc6f03f9b1d7 LARGE_QUARK_mock_presets
 d45328a911e5b483 LARGE_QUARK_mock_seq
 6f6b66172eb8b95c LARGE_QUARK_mod
 88251dc8b61a75a8 LARGE_QUARK_mod_env
@@ -2177,7 +2177,7 @@ d5173c7af0d28ab8 LARGE_QUARK_pattern
 55f6542dfd8868ef LARGE_QUARK_pool
 b753a7e4d06c9d0b LARGE_QUARK_pool_empty
 9a86333023f531e0 LARGE_QUARK_pool_unused
-ee5a1b665ad17afd LARGE_QUARK_presets
+20ce5c2cd618e1b6 LARGE_QUARK_presets
 c8439aed33b95c40 LARGE_QUARK_presets_bass
 bdd09055158b13ee LARGE_QUARK_presets_nofav
 4c8edbfad9cfa962 LARGE_QUARK_project
@@ -2293,7 +2293,7 @@ b375de3c3ce785cb LARGE_SKIFF_drive_soft
 e3f4af04881fa948 LARGE_SKIFF_drum
 de9bfed05c2bc007 LARGE_SKIFF_drum_cym
 33967642385c330a LARGE_SKIFF_drum_hand
-499fdf18a46a6478 LARGE_SKIFF_drum_kit_usr
+79c09b8c43c1ff88 LARGE_SKIFF_drum_kit_usr
 7522e9f0fdaa1833 LARGE_SKIFF_drum_lock_held
 9143245296dc15c8 LARGE_SKIFF_drum_locks
 425eff9165d368f9 LARGE_SKIFF_dx_sound
@@ -2395,7 +2395,7 @@ c7f14b07f2f6675b LARGE_SKIFF_mock_dialog
 5835d6b42bfef3fd LARGE_SKIFF_mock_home
 d7ff61da5ff19a53 LARGE_SKIFF_mock_menu
 bd99e82fd6467b2b LARGE_SKIFF_mock_mixer
-1b4fcdd57ac7969f LARGE_SKIFF_mock_presets
+d03360518bc83773 LARGE_SKIFF_mock_presets
 5478afed4e5c9f7b LARGE_SKIFF_mock_seq
 4b3aeadd3b740e54 LARGE_SKIFF_mod
 28b789c8123fb000 LARGE_SKIFF_mod_env
@@ -2426,7 +2426,7 @@ b72a115075c0a6b6 LARGE_SKIFF_play_gate
 ed015829d9479942 LARGE_SKIFF_pool
 91c8ccc7babe2a89 LARGE_SKIFF_pool_empty
 c1ce4ea320242f6c LARGE_SKIFF_pool_unused
-2b20754ef447a101 LARGE_SKIFF_presets
+d1fb88139454adc9 LARGE_SKIFF_presets
 fcbad73d064f7a01 LARGE_SKIFF_presets_bass
 481a1d1963be8733 LARGE_SKIFF_presets_nofav
 db1b3b58320c60c5 LARGE_SKIFF_project
@@ -2544,7 +2544,7 @@ fe3d2aeb8ee081f0 NEON_drive_soft
 c7ab7c350aa01986 NEON_drum
 20d0924e88961907 NEON_drum_cym
 0c47bdfa1221a6fc NEON_drum_hand
-9229fe20fea64e4a NEON_drum_kit_usr
+0ab6cea4f10254f3 NEON_drum_kit_usr
 fe20671095595ea7 NEON_drum_lock_held
 7f9fc3efd07654c6 NEON_drum_locks
 31e858461505a7e7 NEON_dx_sound
@@ -2646,7 +2646,7 @@ ad1ae55ee369eea1 NEON_mixer_pan
 d1e874dc0fb3fc8e NEON_mock_home
 56b2576754c42349 NEON_mock_menu
 821b1a3b0ebc903c NEON_mock_mixer
-42693524bc40d115 NEON_mock_presets
+6248f9ef4c1569cd NEON_mock_presets
 958ec475e66eb8b0 NEON_mock_seq
 2453f6cc9a27e9a7 NEON_mod
 4397da9b04715142 NEON_mod_env
@@ -2677,7 +2677,7 @@ d38995c5eaf7e7a5 NEON_perform_wait
 9da217046e4851f6 NEON_pool
 e1b3e01aa7f46561 NEON_pool_empty
 b48b595b2f4e2bcf NEON_pool_unused
-b3912fdacfc0d362 NEON_presets
+d7024983be1d9d92 NEON_presets
 da506b483030d248 NEON_presets_bass
 8c0a0d8510587d70 NEON_presets_nofav
 e05da5fc19d81dc7 NEON_project
@@ -2793,7 +2793,7 @@ d9683a86e3319497 PAPER_drive_fold
 728c27861c6ad1d4 PAPER_drum
 e2a69cdbd49b5b0f PAPER_drum_cym
 ac86fa82548d39b8 PAPER_drum_hand
-bc29a63187e5476b PAPER_drum_kit_usr
+77ef6439ddfda4d7 PAPER_drum_kit_usr
 81395034846f1104 PAPER_drum_lock_held
 2911e1ee4ac04a14 PAPER_drum_locks
 249d5c7e18683452 PAPER_dx_sound
@@ -2895,7 +2895,7 @@ fcd6e860de08016e PAPER_mock_drum
 90bc7c3124c75466 PAPER_mock_home
 ea533029dcd837c4 PAPER_mock_menu
 5842171aebd30560 PAPER_mock_mixer
-d4e1d0a496d366f2 PAPER_mock_presets
+c1534fbfc370759d PAPER_mock_presets
 518a90c7e469a80e PAPER_mock_seq
 5cb0fb73c4fdd3b2 PAPER_mod
 f8ea043b3af1cb64 PAPER_mod_env
@@ -2926,7 +2926,7 @@ f654af1caf699344 PAPER_play_dir
 21b9a43462cde3c7 PAPER_pool
 39fdb4cb2cace026 PAPER_pool_empty
 020cac12dc36bf4b PAPER_pool_unused
-bf788386ba219cf4 PAPER_presets
+994ce58ebf2aa287 PAPER_presets
 43020b35d9357293 PAPER_presets_bass
 fe6cd0f1d5cec76a PAPER_presets_nofav
 40321dd5904ed089 PAPER_project
@@ -3050,7 +3050,7 @@ a1eb27087b52d4e8 QUARK_drive_soft
 19508f19dc19875c QUARK_drum
 b6c6e1e5dc2c846d QUARK_drum_cym
 d9330b9e04aa042e QUARK_drum_hand
-662537b524da9db5 QUARK_drum_kit_usr
+743cf47369e71cb5 QUARK_drum_kit_usr
 7ceb7a95063cc3e0 QUARK_drum_lock_held
 a9a39471ab25141c QUARK_drum_locks
 1b8afc7a08c6e86b QUARK_dx_sound
@@ -3152,7 +3152,7 @@ bba3932ed9e9bd02 QUARK_mock_dialog
 165a27c748d2c096 QUARK_mock_home
 8a1f31013401c211 QUARK_mock_menu
 2729614b344dc81c QUARK_mock_mixer
-8c88e95941bf2660 QUARK_mock_presets
+c44436ec1719f6df QUARK_mock_presets
 923ebde45729b3f9 QUARK_mock_seq
 5f9a3185d568c0d4 QUARK_mod
 6c22ccf0fb944a9f QUARK_mod_env
@@ -3183,7 +3183,7 @@ eaac718cd07ef186 QUARK_play_dir
 17fa68b7de237503 QUARK_pool
 ddbd7f3a9933538f QUARK_pool_empty
 a5e3b8d59a505c14 QUARK_pool_unused
-1d18f6a41d5e7e55 QUARK_presets
+c4e47e487f676f5e QUARK_presets
 12208ca79279eb28 QUARK_presets_bass
 d21ae55864213516 QUARK_presets_nofav
 a819fe71f26358cb QUARK_project
@@ -3301,7 +3301,7 @@ cf444f1cda870179 SKIFF_drive_fold
 12b125b29d51c133 SKIFF_drum
 2fc1387f7fa52dbc SKIFF_drum_cym
 2fc26babb32ca361 SKIFF_drum_hand
-38712447e48a87b6 SKIFF_drum_kit_usr
+b40c11bfb48dd15e SKIFF_drum_kit_usr
 c9be68cc785dc0b0 SKIFF_drum_lock_held
 77023270cb036c33 SKIFF_drum_locks
 19abc6c4acad5b81 SKIFF_dx_sound
@@ -3403,7 +3403,7 @@ ff281f1c023fce4d SKIFF_mock_drum
 a4446aabb73bc7ff SKIFF_mock_home
 2f7c9b9dbe76e00f SKIFF_mock_menu
 f9708271ca137c50 SKIFF_mock_mixer
-01164a2ac2b780cc SKIFF_mock_presets
+a3f1bbaa050c481c SKIFF_mock_presets
 03479d4cc24cf102 SKIFF_mock_seq
 aea9f5e67156d157 SKIFF_mod
 639fb27db5801cdc SKIFF_mod_env
@@ -3434,7 +3434,7 @@ f9b83db0d9e4ffd4 SKIFF_perform_wait
 9b786efbb6b74a86 SKIFF_pool
 1c313e348daa019d SKIFF_pool_empty
 08f1010b5cce2b80 SKIFF_pool_unused
-edbcec05c7e620ea SKIFF_presets
+3f432c8bc3902b3e SKIFF_presets
 4061b9910e88015a SKIFF_presets_bass
 1c2c14119967db8c SKIFF_presets_nofav
 d7f84b8cb7287191 SKIFF_project
