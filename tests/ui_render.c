@@ -809,7 +809,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_SONG_CHAINS, S_SONG_CHAIN_COPY,                                                      /* (2.0, #44's box) */
        S_DRUM_KIT_USR, S_LANES_USR,                                                           /* (2.0, #35) */
        S_FOLLOW, S_FOLLOW_SCALE, S_FOLLOW_FIT, S_FOLLOW_OFF, S_FOLLOW_WAIT,                   /* (2.1) */
-       S_FILTER_OB12, S_FILTER_VOWEL, S_FILTER_2,                                             /* (custom) */
+       S_FILTER_OB12, S_FILTER_VOWEL, S_FILTER_2, S_SYNTH_A, S_SYNTH_B,                                             /* (custom) */
        S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG, S_MOCK_MENU, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "project", "lanes", "step", "pattern", "chance", "motion", "drum",
@@ -843,7 +843,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "notes_range", "notes_pick", "feel_range", "notes_overlap", "momentary", "pool_empty", "pool_unused", "confirm_empty",
     "song_once", "song_new", "song_copyplus", "song_chain", "song_chain3", "notes_chain", "lane_mix", "lane_mix_dx",
     "song_sound", "song_sounds", "song_chains", "song_chain_copy", "drum_kit_usr", "lanes_usr",
-    "follow", "follow_scale", "follow_fit", "follow_off", "follow_wait", "filter_ob12", "filter_vowel", "filter_2", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu"};
+    "follow", "follow_scale", "follow_fit", "follow_off", "follow_wait", "filter_ob12", "filter_vowel", "filter_2", "synth_a", "synth_b", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1031,6 +1031,10 @@ static void setup(int s)
         TSEL->p[P_FTYPE] = (int16_t)(s == S_FILTER_VOWEL ? FT_VOWEL : FT_OB12);
         TSEL->p[P_FCUT] = 70; TSEL->p[P_FRES] = 96; TSEL->p[P_FCHR] = s == S_FILTER_VOWEL ? 40 : 56; TSEL->p[P_FDRV] = 30;
         go_title(s == S_FILTER_2 ? "FILTER 2" : "FILTER"); ui.hot_col = 1; ui.hot_t = 30; break;
+    case S_SYNTH_A: case S_SYNTH_B:                   /* (custom) SYNTH's pages: WAVE SCAN */
+        set_engine_of(TSEL, ENGI_SYNTH);
+        apply_preset_to(TSEL, 5);
+        go_title(s == S_SYNTH_A ? "EDIT 1" : "EDIT 2"); ui.hot_col = 1; ui.hot_t = 30; break;
     case S_MENU_MIDI: case S_MENU_MIDI_SCROLL:         /* (1.3) MIDI: LEARN CLEAR's count; scrolled to T6, T2 on 10 */
         memset(favorites.factory[ENGI_DIGITAL], 0, sizeof favorites.factory[ENGI_DIGITAL]);
         memset(&favorites.factory[15][6], 0, 6);

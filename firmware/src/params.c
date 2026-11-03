@@ -89,7 +89,7 @@ static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-",
 #else
                                              "-",
 #endif
-                                             "DRUM-X",
+                                             "DRUM-X", "SYNTH",   /* ((custom) SYNTH 15) */
 };
 
 #define PD(l, f, mn, mx, df) {l, 0, mn, mx, df, f, 0}

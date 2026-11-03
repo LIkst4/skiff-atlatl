@@ -3656,8 +3656,8 @@ static int test_quick_layers(void)
     lay_combo(B_EDIT, white(eng_rank(2)));             /* (the keys: the engines one can pick, engines.c eng_vis) */
     ok = TSEL->eng_req == 2u && TSEL->preset == 0u && ui.layer == LAYER_EDIT && sync_reload && !gates();
     key_up(white(eng_rank(2))); frame();
-    key_down(white(1)); key_up(white(1)); frame();
-    ok &= TSEL->eng_req == ENGI_FM6;                    /* (G3: FM6, second in ENGINE_ORDER) */
+    key_down(white(eng_rank(ENGI_FM6))); key_up(white(eng_rank(ENGI_FM6))); frame();
+    ok &= TSEL->eng_req == ENGI_FM6;                    /* (FM6: ((custom) third, after SYNTH, in ENGINE_ORDER) */
     key_down(white(NENG_SHOWN - 2u)); key_up(white(NENG_SHOWN - 2u)); frame();
     ok &= TSEL->eng_req == ENGI_DRUM;                   /* (the key before the last: DRUM) */
     key_down(white(NENG_SHOWN - 1u)); key_up(white(NENG_SHOWN - 1u)); frame();
@@ -4471,11 +4471,12 @@ static int test_fm4_retired(void)
         seen |= 1u << TSEL->eng_req;
     }
     bad += check("PRESETS KNOB 2: the engines in order, DIGITAL skipped, back to the first",
-                 seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == ENGI_FM6 && eng_step(ENGI_FM6, 1) == 2u &&
-                 eng_step(ENGI_FM6, -1) == 0u && eng_step(0, -1) == ENGI_DRUMX && eng_step(ENGI_DRUMX, -1) == ENGI_DRUM);
+                 seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == (FELUCCA_FM4 ? ENGI_FM6 : ENGI_SYNTH) &&
+                 eng_step(ENGI_FM6, 1) == (FELUCCA_FM4 ? ENGI_DIGITAL : 2u) &&
+                 eng_step(ENGI_FM6, -1) == (FELUCCA_FM4 ? 0u : ENGI_SYNTH) && eng_step(0, -1) == ENGI_DRUMX && eng_step(ENGI_DRUMX, -1) == ENGI_DRUM);
     {   /* the display order (engines.c ENGINE_ORDER): every engine one can pick once; the PRESETS list follows it */
-        static const char *const ORDER[] = {"ANALOG", "FM6", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL", "GRAIN",
-                                            "PHYS", "NOISE", "SLICE", "DRUM", "DRUM-X"};
+        static const char *const ORDER[] = {"ANALOG", "SYNTH", "FM6", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL",
+                                            "GRAIN", "PHYS", "NOISE", "SLICE", "DRUM", "DRUM-X"};   /* ((custom) SYNTH) */
         uint32_t last = 0xFFu, r = 0, n = 0;
         ok = NENG_SHOWN == NELEM(ORDER);
         for (i = 0; ok && i < NENG_SHOWN; i++)

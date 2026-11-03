@@ -58,10 +58,12 @@ _Static_assert(NTRK <= 8 && NPART < NVOICE, "a track mask is a uint8_t; each par
                                   * sounds (fm4_convert.c), settings PER1..PER3, 1.0's FM6 bank. Only the converter
                                   * (web/conv) and its tests build them; 2.0 keeps such a record's bytes (OLD FORMAT) */
 #endif
-#define NENGINES 15u             /* (Skiff) DRUM-X (14) after SLICE (13): the other engines keep their numbers */
+#define NENGINES 16u             /* (custom) SYNTH (15) appended */
+#define NENGINES_SKIFF 15u             /* (Skiff) DRUM-X (14) after SLICE (13): the other engines keep their numbers */
 #define ENGI_DIGITAL 1u          /* reserved without FELUCCA_FM4: never selectable (eng_ok), its sounds load as FM6 */
 #define ENGI_SLICE 13u           /* reserved without FELUCCA_SLICE, as DIGITAL is without FELUCCA_FM4 */
-#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - !FELUCCA_SLICE)   /* the engines one can pick: PRESETS, the EDIT layer,
+#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - !FELUCCA_SLICE - !!FELUCCA_FM4)   /* ((custom) SYNTH: not with FM4, the
+                                                                     * EDIT layer has 15 white keys) */   /* the engines one can pick: PRESETS, the EDIT layer,
                                                 * the editor, in the display order of engines.c ENGINE_ORDER */
 #define UP_SLOTS 32u             /* user presets (upreset.c) */
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
@@ -238,6 +240,7 @@ static uint32_t gsid_get(int16_t *g, const uint8_t *b, uint32_t max)
 #define ENGI_GRAIN 8u
 #define ENGI_PHYS 9u
 #define ENGI_DRUM 10u
+#define ENGI_SYNTH 15u           /* (custom) SYNTH (eng_synth.c): its filter per voice is the track FILTER's */
 #define ENGI_DRUMX 14u           /* (Skiff) DRUM-X (eng_drumx.c): a drum track as DRUM's (seq.c drum_track) */
 #define NHEAVY 4u                /* (Skiff phase 6) the tracks that play every engine; the ones after them are light: no
                                   * PHYS, no GRAIN (engines.c eng_allowed: their state is the big one) */

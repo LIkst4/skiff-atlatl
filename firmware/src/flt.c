@@ -44,8 +44,16 @@ static inline uint32_t fl_G(int32_t g) { return (uint32_t)(((uint32_t)g << 16) /
 /* one TPT one-pole step: returns the low-pass, updates the state */
 static inline int32_t fl_op(int32_t *s, int32_t x, uint32_t G)
 {
-    int32_t v = mulq16(x - *s, G), y = v + *s;
+    int32_t v = (int32_t)(((int64_t)(x - *s) * (int32_t)G) >> 16), y = v + *s;   /* (one 32x32 -> 64 multiply) */
     *s = fl_sat(y + v);
+    return y;
+}
+/* .. without the clamp: inside the ladders, whose input is already through a tanh (|u| < 16400) and whose one-poles
+ * never pass their input's peak, so the states stay within it */
+static inline int32_t fl_opu(int32_t *s, int32_t x, uint32_t G)
+{
+    int32_t v = (int32_t)(((int64_t)(x - *s) * (int32_t)G) >> 16), y = v + *s;
+    *s = y + v;
     return y;
 }
 /* a saturating stage: tanh around +-1.0 = 16384 here (softclip's Q15 at twice the input) */
@@ -57,6 +65,20 @@ static void fl_ladder(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, in
                       int32_t sat, int32_t comp)
 {
     uint32_t G = fl_G(g), i;
+    if (taps == 4u && !sat) {                    /* LP MG, LD at 24 dB: the plain four poles, the common case */
+        int32_t s0 = f->s[0], s1 = f->s[1], s2 = f->s[2], s3 = f->s[3], yl = f->y;
+        for (i = 0; i < n; i++) {
+            int32_t x = clamp(b[i] >> 2, -32000, 32000), u;
+            u = fl_tanh(fl_q12(x, drv) - fl_q12(yl, k));
+            u = fl_opu(&s0, u, G);
+            u = fl_opu(&s1, u, G);
+            u = fl_opu(&s2, u, G);
+            yl = fl_opu(&s3, u, G);
+            b[i] = fl_sat(fl_q12(yl, comp)) << 2;
+        }
+        f->s[0] = s0, f->s[1] = s1, f->s[2] = s2, f->s[3] = s3, f->y = yl;
+        return;
+    }
     for (i = 0; i < n; i++) {
         int32_t x = clamp(b[i] >> 2, -32000, 32000), u, y1, y2, y3, y4, o;
         u = fl_tanh(fl_q12(x, drv) - fl_q12(f->y, k));

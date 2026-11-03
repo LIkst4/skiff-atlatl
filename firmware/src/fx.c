@@ -766,8 +766,9 @@ static int32_t wet[CTL];                                 /* (the dry mix and the
  * DIST / SLICER while it sounds or its tail runs. ENGINES[] order. An estimate: it only steers the split, the sound does
  * not depend on it */
 static uint16_t part_cost[NPART];                       /* the last block's, per track */
-static const uint16_t ENG_VCOST[NENGINES] = {163, 0, 162, 67, 70, 174, 144, 143, 189, 309, 113, 134, 181, 129, 120};
-_Static_assert(NENGINES == 15, "ENG_VCOST: a cost per engine");
+static const uint16_t ENG_VCOST[NENGINES] = {163, 0, 162, 67, 70, 174, 144, 143, 189, 309, 113, 134, 181, 129, 120,
+                                             240};   /* ((custom) SYNTH: an estimate, ADD and a filter per voice) */
+_Static_assert(NENGINES == 16, "ENG_VCOST: a cost per engine");
 #else
 static int32_t send_c[CTL], send_d[CTL], send_r[CTL], wet[CTL], mix_l[CTL], mix_r[CTL];
 #endif
@@ -924,7 +925,6 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
 
 /* (custom) the track FILTER (flt.c): after the engine, before DIST. b the mono sum; d, e (SPREAD's side, a panned kit's
  * losses) through instances of their own, so the stereo keeps the same tone; COMB's line is b's only (d, e: mono) */
-#include "flt.c"
 static flt_t tflt[NTRK][3];
 static int16_t tflt_line[NTRK][FLT_LINE];
 static __attribute__((noinline)) void track_filter(track_t *t, int32_t *b, int32_t *d, int32_t *e, uint32_t n)
@@ -1032,8 +1032,8 @@ static __attribute__((noinline)) void mix_spread(track_t *t, int32_t *b, uint32_
     if (!e)
         for (i = 0; i < n; i++)
             d[i] = (d[i] << 1) - b[i];                  /* left - right */
-    if (t->p[P_FTYPE])
-        track_filter(t, b, d, e, n);                    /* (custom) */
+    if (t->p[P_FTYPE] && t->engine != ENGI_SYNTH)
+        track_filter(t, b, d, e, n);                    /* ((custom) SYNTH: its own, per voice) */                    /* (custom) */
     track_dist(t, b, n);
     if (t->p[P_ITYPE] | t->ins_run)
         track_insert(t, b, n);                          /* (the mono sum, as DRIVE) */
@@ -1163,7 +1163,7 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
         int32_t c = t->p[P_CHOR] * 258, d = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
         int32_t xmax = c > d ? c : d;
         xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
-        if (t->p[P_FTYPE])
+        if (t->p[P_FTYPE] && t->engine != ENGI_SYNTH)
             track_filter(t, b, 0, 0, n);                /* (custom) the FILTER: OFF, nothing */
         track_dist(t, b, n);
         if (t->p[P_ITYPE] | t->ins_run)

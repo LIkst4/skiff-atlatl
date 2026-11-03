@@ -434,6 +434,9 @@ EOF
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/md_test" tests/md_test.c -lm
     mkdir -p build/md_demo
     run "(custom) MD kits (Hortator's models): every lane sounds and ends, the knobs, a roll and kit changes, the hat choke, cost, demos" "$OUT/md_test" build/md_demo
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/synth_test" tests/synth_test.c -lm
+    mkdir -p build/synth_demo
+    run "(custom) SYNTH: every preset, every oscillator model swept, every filter per voice, the track FILTER out of it, cost, demos" "$OUT/synth_test" build/synth_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumx_test" tests/drumx_test.c -lm
     mkdir -p build/drumx_demo
     run "DRUM-X: every lane sounds and ends, MORPH, TUNE, the pitch envelope, hat choke, the knobs, FOLD, FM, a drum track, demos" "$OUT/drumx_test" build/drumx_demo
