@@ -34,7 +34,7 @@ jobs:
         run: |
           find "$JIELI_TOOLCHAIN/" -name "*nm" | head
           NM=$(find "$JIELI_TOOLCHAIN/" -name "*nm" -type f | head -1); NM=${NM:-nm}
-          "$NM" --size-sort -S -t d build/felucca.o | tail -150 || nm --size-sort -S -t d build/felucca.o | tail -150 || true
+          "$NM" --size-sort -S -t d build/felucca.o | grep -v " [bB] " || true
           "$NM" --size-sort -S -t d build/felucca.o | awk '{s+=$2} END {print "total symbol bytes", s}' || true
       - name: Host tests
         run: SANITIZE=0 sh tests/run_tests.sh
