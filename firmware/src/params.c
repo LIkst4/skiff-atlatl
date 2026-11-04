@@ -214,6 +214,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_RTVEL] = PD("RTRG VEL", F_BIPCT, -64, 63, 0),   /* (custom) 0: every part at the step's velocity, as before */
     [P_SYMBRT] = PD("BRIGHT", F_PCT, 0, 127, 127),   /* (custom) MODAL: 127 every mode at its level, as before */
     [P_SYMPOS] = PD("POSITION", F_PCT, 0, 127, 0),   /* (custom) MODAL: 0 off (every mode struck), as before */
+#define LMDL(k) [P_LMDL0 + k] = PE("MODEL", N_LMDL, 0)   /* (custom) a DRUM lane's MODEL: KIT, the kit's own (as before) */
+    LMDL(0), LMDL(1), LMDL(2), LMDL(3), LMDL(4), LMDL(5), LMDL(6), LMDL(7),
+#undef LMDL
 };
 
 static const param_desc_t GP[G_COUNT] = {
@@ -623,7 +626,8 @@ static int16_t smx_sel __attribute__((section(".pool")));   /* (#21) .. KNOB 1's
 
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
-    uint32_t id = pg->graph == GR_LMIX ? (slot == 1u ? P_LN0 + page_lane() : slot == 2u ? P_LPAN0 + page_lane() : 0xFFu) :
+    uint32_t id = pg->graph == GR_LMIX ? (slot == 1u ? P_LN0 + page_lane() : slot == 2u ? P_LPAN0 + page_lane() :
+                                          slot == 3u && TSEL->eng_req % NENGINES == ENGI_DRUM ? P_LMDL0 + page_lane() : 0xFFu) :
                   pg->graph != GR_LANES ? pg->id[slot] : slot == 1u ? P_LN0 + page_lane() :   /* (LANES: its LEVEL, */
                   slot == 2u ? P_LTUNE0 + page_lane() : slot == 3u ? P_LDECAY0 + page_lane() : 0xFFu;   /* (phase 9)
                                                        * TUNE, DECAY; (2.0) LANE MIX: LEVEL, PAN) */

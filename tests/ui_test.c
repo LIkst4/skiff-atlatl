@@ -3044,7 +3044,7 @@ static int test_edit_cycle(void)
         turn(EN_K3, -10);
         turn(EN_K2, -2);
         ok &= ui.lane == 2u && TSEL->p[P_LPAN0 + 2] == -10 && TSEL->p[P_LN2] == 125 && !TSEL->p[P_LPAN0 + 5] &&
-              TSEL->p[P_LN5] == 124 && lock_id(1) == P_LN0 + 2u && lock_id(2) == P_LPAN0 + 2u && lock_id(3) == 0xFFu;
+              TSEL->p[P_LN5] == 124 && lock_id(1) == P_LN0 + 2u && lock_id(2) == P_LPAN0 + 2u && lock_id(3) == P_LMDL0 + 2u;   /* ((custom) KNOB 4 its MODEL) */
         key_down(13); frame(); key_up(13); frame();  /* (13: F#, HAT CL) */
         ok &= ui.lane == DV_HATC;
         turn(EN_K1, -1);

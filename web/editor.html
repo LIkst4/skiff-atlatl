@@ -1709,7 +1709,8 @@ const P_LFO2 = [117, 118, 119], P_SPRD = 120, P_INSERT = [121, 122, 123, 124], P
 const P_LPAN = Array.from({ length: 8 }, (_, i) => 127 + i);   /* (2.0, #36, P_COUNT 143, P_E0 135) core.h P_LPAN0..7: the
                                                    DRUM lanes' PAN, sound parameters as the lane levels */
 const P_FILTER = [138, 139, 140, 141], P_FDRV = 142;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
-const P_SYNTH3 = [143, 144, 145, 146], P_303 = [147, 148, 149, 38], P_RTVEL = 150, P_MODAL = [151, 152];   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
+const P_SYNTH3 = [143, 144, 145, 146], P_303 = [147, 148, 149, 38], P_RTVEL = 150, P_MODAL = [151, 152];
+const P_LMDL = Array.from({ length: 8 }, (_, i) => 153 + i);   /* (custom, P_COUNT 169, P_E0 161) DRUM's lanes' MODEL */   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
                                                        * X-MOD DRIFT; ACCENT ACC DEC MUFFLE and GLIDE (P_GLIDE 7) */
 const P_FOLLOW = [135, 136, 137];   /* (2.1, P_COUNT 146, P_E0 138) core.h P_FOLLOW P_FMODE P_FNOTE: the chord follow, the
                                      track's */
@@ -2598,7 +2599,9 @@ function makeMockDevice(opt = {}) {
     D("MUFFLE", F.PCT, 0, 127, 0));                                                                         /* SYNTH's own */
   TP.push(D("RTRG VEL", F.BIPCT, -64, 63, 0),                                     /* 150: (custom) RATCH's ramp */
     D("BRIGHT", F.PCT, 0, 127, 127), D("POSITION", F.PCT, 0, 127, 0));           /* 151, 152: SYNTH's MODAL */
-  const P_COUNT = 161, G_COUNT = 27, NSTEP = 64, P_E0 = 153, G_ENGSEL = 20, P_SLCR = 45;
+  const N_LMDL = ["KIT", "K808", "K909", "S808", "S909", "C808", "C909", "HATC", "HATO", "CYMB", "COWB", "TOM", "CONGA", "RIM", "CLAVE", "BOOM", "SNAP", "CRACK", "METAL", "HISS", "FM", "BDTRX", "SDTRX", "TMTRX", "CGTRX", "CPTRX", "RSTRX", "CBTRX", "CHTRX", "OHTRX", "CYTRX", "SHTRX", "CLTRX", "B2TRX", "BDEFM", "SDEFM", "TMEFM", "CPEFM", "RSEFM", "CBEFM", "HHEFM", "CYEFM"];
+  for (let i = 0; i < 8; i++) TP.push(E("MODEL", N_LMDL, 0));                   /* 153..160: (custom) a DRUM lane's MODEL */
+  const P_COUNT = 169, G_COUNT = 27, NSTEP = 64, P_E0 = 161, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -4226,6 +4229,7 @@ const LAYOUT = (pe0) => [
   { t: "EDIT", engine: true, pages: [["EDIT 1", 0, [pe0, pe0 + 1, pe0 + 2, pe0 + 3]], ["EDIT 2", 0, [pe0 + 4, pe0 + 5, pe0 + 6, pe0 + 7]],
     ...(pe0 >= 91 && ["DRUM", "DRUM-X"].includes(engName()) ? [["LANES", 0, P_LANES.slice(0, 4)], ["LANES 2", 0, P_LANES.slice(4)]] : []),   /* lane levels 83..90 */
     ...(pe0 >= 135 && ["DRUM", "DRUM-X"].includes(engName()) ? [["PAN", 0, P_LPAN.slice(0, 4)], ["PAN 2", 0, P_LPAN.slice(4)]] : []),   /* ((2.0, #36)) */
+    ...(pe0 >= 161 && engName() === "DRUM" ? [["MODEL", 0, P_LMDL.slice(0, 4)], ["MODEL 2", 0, P_LMDL.slice(4)]] : []),   /* ((custom)) */
     ...(pe0 >= 117 && engName() === "DRUM" ? [["TUNE", 0, P_LTUNE.slice(0, 4)], ["TUNE 2", 0, P_LTUNE.slice(4)],   /* ((Skiff phase 9) */
       ["DECAY", 0, P_LDECAY.slice(0, 4)], ["DECAY 2", 0, P_LDECAY.slice(4)]] : [])] },
   ...(pe0 >= 81 && engName() === "DIGITAL" ? [{ t: "OP ENV", pages: [   /* P_FM1_ATK 61: ATK DEC SUS REL LVL per operator (a

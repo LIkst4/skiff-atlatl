@@ -102,6 +102,13 @@ static const dmodel_t MD_MODELS[MDM_N] = {
     DM_CLTRX_DEF, DM_B2TRX_DEF, DM_BDEFM_DEF, DM_SDEFM_DEF, DM_XTEFM_DEF, DM_CPEFM_DEF, DM_RSEFM_DEF, DM_CBEFM_DEF,
     DM_HHEFM_DEF, DM_CYEFM_DEF};
 
+/* (custom) the models' names for a lane's MODEL (params.c P_LMDL0..7): "KIT" (the kit's own), then MD_MODELS' order */
+static const char *const N_LMDL[] = {"KIT", "K808", "K909", "S808", "S909", "C808", "C909", "HATC", "HATO", "CYMB", "COWB",
+                                     "TOM", "CONGA", "RIM", "CLAVE", "BOOM", "SNAP", "CRACK", "METAL", "HISS", "FM", "BDTRX",
+                                     "SDTRX", "TMTRX", "CGTRX", "CPTRX", "RSTRX", "CBTRX", "CHTRX", "OHTRX", "CYTRX", "SHTRX",
+                                     "CLTRX", "B2TRX", "BDEFM", "SDEFM", "TMEFM", "CPEFM", "RSEFM", "CBEFM", "HHEFM", "CYEFM"};
+_Static_assert(sizeof N_LMDL / sizeof N_LMDL[0] == MDM_N + 1u, "a name for each model, and KIT");
+
 /* the MD kits: a model a lane (KICK SNARE CLAP CL HAT OP HAT TOM RIM BELL, eng_drum.c's lanes) */
 #define MD_NKIT 6
 static const uint8_t MD_KIT[MD_NKIT][8] = {

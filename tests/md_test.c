@@ -77,6 +77,53 @@ int main(int argc, char **argv)
     mkdir("build", 0755);
     mkdir(dir, 0755);
 
+    /* 0 (custom) a lane's own MODEL (EDIT > LANE MIX): STD's kick as the 909's, the 808 kit's kick as BOOM; KIT (0) the
+     * kit's own (bit for bit as before); every model on a lane sounds, bounded, ends */
+    {
+        uint64_t h0 = 0, h1 = 0, h2 = 0, h3 = 0;
+        int ok = 1;
+        uint32_t m;
+        kit_fresh(DK_STD);
+        trk_note_on(&trk[0], 36, 110);
+        blocks(FS / 4 / CTL, 0, &h0);
+        kit_fresh(DK_STD);
+        trk[0].p[P_LMDL0] = 1 + MDM_K909;
+        trk_note_on(&trk[0], 36, 110);
+        blocks(FS / 4 / CTL, 0, &h1);
+        ok &= trk[0].v[0].active || voices_on(&trk[0]);
+        kit_fresh(DK_MD909);
+        trk_note_on(&trk[0], 36, 110);
+        blocks(FS / 4 / CTL, 0, &h2);
+        snprintf(w, sizeof w, "(custom) lane MODEL: STD's kick as K909: another sound than STD's (the 909 kit's model)");
+        ck(w, h1 != h0 && h2 != h0);
+        kit_fresh(DK_MD808);
+        trk[0].p[P_LMDL0] = 1 + MDM_BOOM;
+        trk_note_on(&trk[0], 36, 110);
+        blocks(FS / 4 / CTL, 0, &h3);
+        kit_fresh(DK_MD808);
+        h0 = 0;
+        trk_note_on(&trk[0], 36, 110);
+        blocks(FS / 4 / CTL, 0, &h0);
+        ck("  the 808 kit's kick as BOOM: another sound", h3 != h0);
+        for (m = 0; m < MDM_N; m++) {
+            double mean;
+            int32_t pk;
+            uint32_t n;
+            kit_fresh(DK_STD);
+            trk[0].p[P_LMDL0 + 2] = (int16_t)(1 + m);       /* (the CLAP lane) */
+            trk_note_on(&trk[0], 39, 110);
+            trk_note_off(&trk[0], 39);
+            pk = blocks(FS / CTL, &mean, 0);
+            for (n = 0; n < 12u * FS / CTL && voices_on(&trk[0]); n++)
+                blocks(1, 0, 0);
+            if (pk < 300 || pk > 32767 || fabs(mean) > 300 || voices_on(&trk[0]))
+                ok = 0, printf("  model %s on CLAP: peak %d mean %.0f voices %u\n", N_LMDL[1 + m], (int)pk, mean,
+                               voices_on(&trk[0]));
+        }
+        snprintf(w, sizeof w, "  every one of the %u models on a lane of STD: sounds, bounded, no DC, ends", (unsigned)MDM_N);
+        ck(w, ok);
+    }
+
     /* 1 */
     for (k = 0; k < MD_NKIT; k++) {
         int ok = 1;

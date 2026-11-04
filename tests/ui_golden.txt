@@ -107,8 +107,8 @@ d29bb8b92bcd60f0 CRYPT_home_scope
 b3dc5d6e98c690a0 CRYPT_insert_crush
 2f35d04a0686e834 CRYPT_insert_flanger
 c09c7cb9d3b58fbf CRYPT_insert_fuzz
-bd4adf3d24c2ae1d CRYPT_lane_mix
-089a41a80d49207d CRYPT_lane_mix_dx
+4773ffa8ab409fe6 CRYPT_lane_mix
+186edbaf118d3156 CRYPT_lane_mix_dx
 6f4b2fba473e4368 CRYPT_lanes
 1d6f234420c01df0 CRYPT_lanes_tune
 6f4b2fba473e4368 CRYPT_lanes_usr
@@ -130,7 +130,7 @@ e519457e51b5dab5 CRYPT_layer_scl_peek
 72b7b509ccb09dba CRYPT_layer_seq_tools
 6866502b4ef3a9b6 CRYPT_layer_seq_tools_drum
 843317262cbb0652 CRYPT_learn
-64024f205eb588d2 CRYPT_learn_cc
+73e971bcbfde35d0 CRYPT_learn_cc
 630f8603e429aea9 CRYPT_lfo
 d36d126ae36ce43f CRYPT_lfo_2
 0e55c7a66d89c8ba CRYPT_lfo_run
@@ -358,8 +358,8 @@ f35aa43e378e8fe7 CUSTOM_CRYPT_home_idle
 0d074dc8e28cef93 CUSTOM_CRYPT_insert_crush
 497046c6acc7aa80 CUSTOM_CRYPT_insert_flanger
 640d75994a38ac4c CUSTOM_CRYPT_insert_fuzz
-9c982c7187d4eda8 CUSTOM_CRYPT_lane_mix
-6114e7232d661b46 CUSTOM_CRYPT_lane_mix_dx
+37a00cafdfc2e368 CUSTOM_CRYPT_lane_mix
+e8b19e7f2421f6c6 CUSTOM_CRYPT_lane_mix_dx
 732b6ec017efe9b2 CUSTOM_CRYPT_lanes
 6af0525a902ad43a CUSTOM_CRYPT_lanes_tune
 732b6ec017efe9b2 CUSTOM_CRYPT_lanes_usr
@@ -381,7 +381,7 @@ d494a6674d9fdf25 CUSTOM_CRYPT_layer_scl_peek
 a4b9be8b2d8fc290 CUSTOM_CRYPT_layer_seq_tools
 b4b22471c73aee79 CUSTOM_CRYPT_layer_seq_tools_drum
 257a76e47285377a CUSTOM_CRYPT_learn
-31b453fcf91d0a9a CUSTOM_CRYPT_learn_cc
+6841db89604cc756 CUSTOM_CRYPT_learn_cc
 623821eb3d7d962a CUSTOM_CRYPT_lfo
 c24fad67881c9a22 CUSTOM_CRYPT_lfo_2
 06b56e6d3682a129 CUSTOM_CRYPT_lfo_run
@@ -609,8 +609,8 @@ d31284ca7896940a CUSTOM_NEON_home_scope
 c3fabf8066e407c2 CUSTOM_NEON_insert_crush
 6af31303bca68846 CUSTOM_NEON_insert_flanger
 43350387a1edf4e3 CUSTOM_NEON_insert_fuzz
-f45c5c2d96be1656 CUSTOM_NEON_lane_mix
-48e7f6db3edd65ee CUSTOM_NEON_lane_mix_dx
+03cfee38b2139e7d CUSTOM_NEON_lane_mix
+01d4825cee792151 CUSTOM_NEON_lane_mix_dx
 33406fded8c698f3 CUSTOM_NEON_lanes
 5fb2e7ba7b04f39f CUSTOM_NEON_lanes_tune
 33406fded8c698f3 CUSTOM_NEON_lanes_usr
@@ -632,7 +632,7 @@ f451341f9d914fa1 CUSTOM_NEON_layer_rec_set
 2ec5bd7952e724d8 CUSTOM_NEON_layer_seq_tools
 58fec5445732e635 CUSTOM_NEON_layer_seq_tools_drum
 c9c6fb0e146d8c63 CUSTOM_NEON_learn
-db4404ded581af03 CUSTOM_NEON_learn_cc
+496c64ee2b42becb CUSTOM_NEON_learn_cc
 10b6d05d6281e167 CUSTOM_NEON_lfo
 8adec5a748a150b2 CUSTOM_NEON_lfo_2
 aef16c290fe11691 CUSTOM_NEON_lfo_run
@@ -860,8 +860,8 @@ ece5a8ebee4bfd93 CUSTOM_QUARK_home_scope
 0ba90d9eb788637a CUSTOM_QUARK_insert_crush
 f329195b5e2c6ed3 CUSTOM_QUARK_insert_flanger
 1522ea7863f5f911 CUSTOM_QUARK_insert_fuzz
-fbb6f59f0db1064f CUSTOM_QUARK_lane_mix
-85b07114d7441409 CUSTOM_QUARK_lane_mix_dx
+d97183133570322a CUSTOM_QUARK_lane_mix
+a4012f3ce3e8d434 CUSTOM_QUARK_lane_mix_dx
 81b43e06cb3e9f92 CUSTOM_QUARK_lanes
 5b7a379e73df76e9 CUSTOM_QUARK_lanes_tune
 81b43e06cb3e9f92 CUSTOM_QUARK_lanes_usr
@@ -883,7 +883,7 @@ f0eb469e135b48e9 CUSTOM_QUARK_layer_rec_set
 afa41e25ac365a10 CUSTOM_QUARK_layer_seq_tools
 12b3daa47147dbc6 CUSTOM_QUARK_layer_seq_tools_drum
 f9580d8921b0dd6d CUSTOM_QUARK_learn
-6403da8dce40d2c6 CUSTOM_QUARK_learn_cc
+f1f3302f612966ba CUSTOM_QUARK_learn_cc
 b80a0799e4c72a26 CUSTOM_QUARK_lfo
 64e9fe4a756ee105 CUSTOM_QUARK_lfo_2
 f91e346a731bc260 CUSTOM_QUARK_lfo_run
@@ -1111,8 +1111,8 @@ eae2503eacb4af9f CUSTOM_SKIFF_head_bpm_lock
 aa4f1ed6ca5b4908 CUSTOM_SKIFF_insert_crush
 5f513c212385758b CUSTOM_SKIFF_insert_flanger
 17b0e5699ed4acf5 CUSTOM_SKIFF_insert_fuzz
-a2b4ea1081ed8a7d CUSTOM_SKIFF_lane_mix
-73011cf34fd43b6d CUSTOM_SKIFF_lane_mix_dx
+ea4f325a8d886c57 CUSTOM_SKIFF_lane_mix
+b10848be22f61ad4 CUSTOM_SKIFF_lane_mix_dx
 65679b1c3f3df2da CUSTOM_SKIFF_lanes
 19dd3345227c6558 CUSTOM_SKIFF_lanes_tune
 65679b1c3f3df2da CUSTOM_SKIFF_lanes_usr
@@ -1134,7 +1134,7 @@ e62105548c4fd401 CUSTOM_SKIFF_layer_rec_set
 20cab738f4d2e9db CUSTOM_SKIFF_layer_seq_tools
 8b4f0fd879d530b8 CUSTOM_SKIFF_layer_seq_tools_drum
 42dbe3603e4a7f00 CUSTOM_SKIFF_learn
-c2196d000a1b128f CUSTOM_SKIFF_learn_cc
+8c5d0cbd4057a04b CUSTOM_SKIFF_learn_cc
 71f76204afb7cc4a CUSTOM_SKIFF_lfo
 fdfc12eb18d7d9da CUSTOM_SKIFF_lfo_2
 a47810019df73de4 CUSTOM_SKIFF_lfo_run
@@ -1362,8 +1362,8 @@ ae1c974b813baf6b HI-CON_home
 0262e2c325f7b8f3 HI-CON_insert_crush
 5819380385445165 HI-CON_insert_flanger
 6ceb0e8472c13edc HI-CON_insert_fuzz
-31da37c896aa9c9b HI-CON_lane_mix
-d9c6583db0500332 HI-CON_lane_mix_dx
+a2b2d1aa3cc3f2f8 HI-CON_lane_mix
+274617d6dbd4449d HI-CON_lane_mix_dx
 084c99f805743f3c HI-CON_lanes
 62680cd9986e49ab HI-CON_lanes_tune
 084c99f805743f3c HI-CON_lanes_usr
@@ -1385,7 +1385,7 @@ cace7c5ee5531052 HI-CON_layer_rec_set
 565abb0180595fbe HI-CON_layer_seq_tools
 90c86bea0a61e157 HI-CON_layer_seq_tools_drum
 623c7a3c6e7ce8ea HI-CON_learn
-dd365bc83605bc91 HI-CON_learn_cc
+adb9167d1b839ca3 HI-CON_learn_cc
 708178fffe0d7b65 HI-CON_lfo
 9d9bd79dd7ee1e01 HI-CON_lfo_2
 8ca68821718e73ff HI-CON_lfo_run
@@ -1613,8 +1613,8 @@ d8f2de191b4d764c LARGE_CRYPT_head_project
 44fdbbc399d394a2 LARGE_CRYPT_insert_crush
 9df79cd0d2687d55 LARGE_CRYPT_insert_flanger
 c5cc7798b6474fe7 LARGE_CRYPT_insert_fuzz
-220cdc5660f68cc9 LARGE_CRYPT_lane_mix
-0b991acdccd75f95 LARGE_CRYPT_lane_mix_dx
+512861d4979ba295 LARGE_CRYPT_lane_mix
+265e78bab8b91d11 LARGE_CRYPT_lane_mix_dx
 14e518683ad1f37a LARGE_CRYPT_lanes
 0d324b674edc7917 LARGE_CRYPT_lanes_tune
 14e518683ad1f37a LARGE_CRYPT_lanes_usr
@@ -1636,7 +1636,7 @@ d1bf740f049a00cc LARGE_CRYPT_layer_scl_peek
 855c547df8451f5c LARGE_CRYPT_layer_seq_tools
 c15f7be7772a88e4 LARGE_CRYPT_layer_seq_tools_drum
 5723d83ceb6d9bd0 LARGE_CRYPT_learn
-70c30d2156080810 LARGE_CRYPT_learn_cc
+8f6f4b761ec09a0a LARGE_CRYPT_learn_cc
 1cf72d45b2a97c1e LARGE_CRYPT_lfo
 2f0df5c1d6779db8 LARGE_CRYPT_lfo_2
 c0a821014d9f29f6 LARGE_CRYPT_lfo_run
@@ -1864,8 +1864,8 @@ e00dd5c70628e735 LARGE_NEON_head_play_rec
 4f16209600e321af LARGE_NEON_insert_crush
 ea29f2aa79e3a0f2 LARGE_NEON_insert_flanger
 fff415b09e4d79ed LARGE_NEON_insert_fuzz
-8a6bcfd7a3e5a8c5 LARGE_NEON_lane_mix
-cdc6ac3987e1eacb LARGE_NEON_lane_mix_dx
+63abe7fe8a5bff14 LARGE_NEON_lane_mix
+d0a31b92c34f68fa LARGE_NEON_lane_mix_dx
 2cf24541f82048c8 LARGE_NEON_lanes
 a7bde0918aba3221 LARGE_NEON_lanes_tune
 2cf24541f82048c8 LARGE_NEON_lanes_usr
@@ -1887,7 +1887,7 @@ a75810c548ba675d LARGE_NEON_layer_scl_peek
 d2d03bf34a5cafb1 LARGE_NEON_layer_seq_tools
 290e279a68f8f507 LARGE_NEON_layer_seq_tools_drum
 882c329d5086d6f1 LARGE_NEON_learn
-4dce972a7381df2d LARGE_NEON_learn_cc
+d50d96f1372abbcd LARGE_NEON_learn_cc
 3d5aa96b42d66ddd LARGE_NEON_lfo
 d0b30854bbb0511b LARGE_NEON_lfo_2
 70b4b983f06700d4 LARGE_NEON_lfo_run
@@ -2115,8 +2115,8 @@ b8ebc47dba0c2bf1 LARGE_QUARK_home
 f1cee5074732537c LARGE_QUARK_insert_crush
 c63f9cf216123322 LARGE_QUARK_insert_flanger
 ba3b6e87043c990f LARGE_QUARK_insert_fuzz
-47f09962f20a89e3 LARGE_QUARK_lane_mix
-04a72c72e11c58a1 LARGE_QUARK_lane_mix_dx
+4c5ec4f9c5f92c59 LARGE_QUARK_lane_mix
+9833714101e2047f LARGE_QUARK_lane_mix_dx
 5d1fbd0ec53d9672 LARGE_QUARK_lanes
 fb69018dbd1bf30d LARGE_QUARK_lanes_tune
 5d1fbd0ec53d9672 LARGE_QUARK_lanes_usr
@@ -2138,7 +2138,7 @@ ad92f973236cb7e3 LARGE_QUARK_layer_scl_active
 ea04649d72792068 LARGE_QUARK_layer_seq_tools
 861275cbe0f514e6 LARGE_QUARK_layer_seq_tools_drum
 c9ca0d56c4945dff LARGE_QUARK_learn
-a3787859f0940049 LARGE_QUARK_learn_cc
+e57cb500e460c00f LARGE_QUARK_learn_cc
 32ea86a37acf7211 LARGE_QUARK_lfo
 9f45d60fc9951f03 LARGE_QUARK_lfo_2
 bcfa314e39c54f05 LARGE_QUARK_lfo_run
@@ -2366,8 +2366,8 @@ f40be89df059fd30 LARGE_SKIFF_head_rec_other
 62df207bedf55e09 LARGE_SKIFF_insert_crush
 09133fdd8f34be48 LARGE_SKIFF_insert_flanger
 98d6639ba3016441 LARGE_SKIFF_insert_fuzz
-3192c2a30a09f073 LARGE_SKIFF_lane_mix
-90d811429a86be1e LARGE_SKIFF_lane_mix_dx
+90b47fe2752654c9 LARGE_SKIFF_lane_mix
+3cc32f193bc70d54 LARGE_SKIFF_lane_mix_dx
 efb26909acaf28ce LARGE_SKIFF_lanes
 7726c5869ec63859 LARGE_SKIFF_lanes_tune
 efb26909acaf28ce LARGE_SKIFF_lanes_usr
@@ -2389,7 +2389,7 @@ b085672c1fa6f756 LARGE_SKIFF_layer_scl_peek
 fb173ebc34506f4a LARGE_SKIFF_layer_seq_tools
 f736c87d27c213a4 LARGE_SKIFF_layer_seq_tools_drum
 b66bd1d25965aab0 LARGE_SKIFF_learn
-4e266dad33d91cdb LARGE_SKIFF_learn_cc
+0a2c3986733a7ee1 LARGE_SKIFF_learn_cc
 50ce85a409bf32bc LARGE_SKIFF_lfo
 07abcbd47282eae5 LARGE_SKIFF_lfo_2
 f8ed6aa6ed0b27e5 LARGE_SKIFF_lfo_run
@@ -2619,8 +2619,8 @@ b0f7eb11944a2edb NEON_home_idle
 e2447b9c87abcd9d NEON_insert_crush
 ae8d9d8e90fa18f6 NEON_insert_flanger
 075fc486a5851464 NEON_insert_fuzz
-01dce52a26978d90 NEON_lane_mix
-c227f7071c079fc2 NEON_lane_mix_dx
+3d9e22522978c1a6 NEON_lane_mix
+b723dbc1c7b3daa0 NEON_lane_mix_dx
 6e2cad7f521fa63b NEON_lanes
 c46c985505f54cac NEON_lanes_tune
 6e2cad7f521fa63b NEON_lanes_usr
@@ -2642,7 +2642,7 @@ f566fbd2162ca489 NEON_layer_rec_set
 2e12f359aac0b415 NEON_layer_seq_tools
 2cefe00572bb4d23 NEON_layer_seq_tools_drum
 f5a94e9d050aca41 NEON_learn
-1faa6b7d90fe133d NEON_learn_cc
+ad18a35a7b579dbd NEON_learn_cc
 2fa84c0718088114 NEON_lfo
 cea838e8e1c905ab NEON_lfo_2
 574fae9a7595ed5f NEON_lfo_run
@@ -2870,8 +2870,8 @@ f1701f647c47f1c9 PAPER_home_scope
 1bdddf72aa9bbfcf PAPER_insert_crush
 2efd3f86c8d03e67 PAPER_insert_flanger
 df0418e20837c229 PAPER_insert_fuzz
-93075554fb6fb627 PAPER_lane_mix
-7ab2f6f05652edf0 PAPER_lane_mix_dx
+d7c4e57ee738f736 PAPER_lane_mix
+3eaf01e246833885 PAPER_lane_mix_dx
 9695b1086e8770ae PAPER_lanes
 e70fad029668c297 PAPER_lanes_tune
 9695b1086e8770ae PAPER_lanes_usr
@@ -2893,7 +2893,7 @@ d4de7852b5372979 PAPER_layer_perform
 d3ac67c91316d3a6 PAPER_layer_seq_tools
 ff4e69cf044b3a9b PAPER_layer_seq_tools_drum
 32ed8282ef31a3c7 PAPER_learn
-99cf02da89d453a9 PAPER_learn_cc
+d9354f139facb006 PAPER_learn_cc
 e33b32d2f22747f0 PAPER_lfo
 93e328aa92cc53f8 PAPER_lfo_2
 d14aa7e0371b8d50 PAPER_lfo_run
@@ -3129,8 +3129,8 @@ d355e197fc6313ac QUARK_head_project
 14d7c3ddc35f54de QUARK_insert_crush
 3b1a48d8144dbd1c QUARK_insert_flanger
 658bc5ae53769674 QUARK_insert_fuzz
-a461372221b44273 QUARK_lane_mix
-90e1d1386b3eac31 QUARK_lane_mix_dx
+cbfd879d7910d764 QUARK_lane_mix
+3dc9a01e6226ffea QUARK_lane_mix_dx
 91fd49244c2e50ba QUARK_lanes
 2c7594aa858e039d QUARK_lanes_tune
 91fd49244c2e50ba QUARK_lanes_usr
@@ -3152,7 +3152,7 @@ b7ecee5724506f1f QUARK_layer_rec
 18fb5dda37d982c2 QUARK_layer_seq_tools
 424754698aceae04 QUARK_layer_seq_tools_drum
 27b7aaa4151d1236 QUARK_learn
-3df4a52efb3a5590 QUARK_learn_cc
+2139c2410f8a2192 QUARK_learn_cc
 c7ee51e74d2add07 QUARK_lfo
 6b4e5d2a7d557ea5 QUARK_lfo_2
 e788119663b7c890 QUARK_lfo_run
@@ -3382,8 +3382,8 @@ c60c558f2115ca16 SKIFF_home_scope
 a47ac4711624d03a SKIFF_insert_crush
 f2cb04ec25def779 SKIFF_insert_flanger
 ba54ca71bafbeff1 SKIFF_insert_fuzz
-e78ecac7cf8dc891 SKIFF_lane_mix
-6a210ddda165ccda SKIFF_lane_mix_dx
+b60405a4cb309158 SKIFF_lane_mix
+667aa1d1d3db6976 SKIFF_lane_mix_dx
 548726535b1a1295 SKIFF_lanes
 45cf6e31c7899fbd SKIFF_lanes_tune
 548726535b1a1295 SKIFF_lanes_usr
@@ -3405,7 +3405,7 @@ b6d70e9ea1d3f252 SKIFF_layer_scl_peek
 06016ea8f1f2dd5f SKIFF_layer_seq_tools
 7e7b54d291c8eba5 SKIFF_layer_seq_tools_drum
 53245e18de7495b5 SKIFF_learn
-5cfff21f70e2eef6 SKIFF_learn_cc
+8b93a1a99afcfc74 SKIFF_learn_cc
 628692130226c5f8 SKIFF_lfo
 99917ac6cf9461d3 SKIFF_lfo_2
 451a7c2e741146fd SKIFF_lfo_run

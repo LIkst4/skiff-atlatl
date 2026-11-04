@@ -817,7 +817,8 @@ static uint32_t lock_id(uint32_t k)
                                                               (k & 3u) == 2u ? P_LTUNE0 + page_lane() :
                                                               (k & 3u) == 3u ? P_LDECAY0 + page_lane() : 0xFFu) :
                   PAGES[ui.plk_src - 1u].graph == GR_LMIX ? ((k & 3u) == 1u ? P_LN0 + page_lane() :
-                                                             (k & 3u) == 2u ? P_LPAN0 + page_lane() : 0xFFu) :
+                                                             (k & 3u) == 2u ? P_LPAN0 + page_lane() :
+                                                             (k & 3u) == 3u ? P_LMDL0 + page_lane() : 0xFFu) :
                   PAGES[ui.plk_src - 1u].graph == GR_MOD ? ((k & 3u) == 3u && mod_ui_route < MOD_SLOT0 ?
                                                             MOD_FIXED[mod_ui_route] : 0xFFu) :   /* (a slot's: none,
                                                                                                   * as before) */

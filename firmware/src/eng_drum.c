@@ -90,6 +90,14 @@ static uint32_t drum_md(const int16_t *p)
     uint32_t k = drum_kit_plays(p[P_E0]);
     return k >= DK_MD808 && k < DK_DX ? k - DK_MD808 + 1u : 0u;
 }
+/* (custom) the MD model lane ln plays + 1: its own MODEL (P_LMDL0 + ln, any kit), else an MD kit's, else 0 */
+static uint32_t drum_lane_md(const int16_t *p, uint32_t ln)
+{
+    int32_t m = p[P_LMDL0 + (ln & 7u)];
+    if (m > 0 && m <= (int32_t)MDM_N)
+        return (uint32_t)m;
+    return drum_md(p) ? MD_KIT[drum_md(p) - 1u][ln & 7u] + 1u : 0u;
+}
 /* (custom) the DX kits: 1 DX, 2 DX+ (FM and the folder), 0 another kit */
 static uint32_t drum_dx(const int16_t *p)
 {
@@ -328,7 +336,8 @@ static void drum_note_on(track_t *t, voice_t *v)
     if (L->owner == i + 1u)                              /* this voice played another lane: it stops there */
         L->owner = 0;
     L = &K[lane];
-    if (drum_dx(t->p)) {                                 /* (custom) a DX kit: DRUM-X's hit on the lane */
+    if (drum_dx(t->p) && !drum_lane_md(t->p, lane)) {    /* (custom) a DX kit: DRUM-X's hit on the lane (a lane's own
+                                                          * MODEL before it) */
         st = DX_GM[dx_gm_ix(v->note)][1];                /* (its pitch on the lane as DRUM-X's GM map has it) */
         if (L->pad != 2u) {                              /* (DRUM's own or an MD lane before: from rest) */
             memset(&L->dx, 0, sizeof L->dx);
@@ -345,8 +354,8 @@ static void drum_note_on(track_t *t, voice_t *v)
             dx_choke(&K[DV_HATO].dx);                    /* a closed hat chokes the open one */
         return;
     }
-    if (drum_md(t->p)) {                                 /* (custom) an MD kit: the lane's model, struck */
-        uint32_t model = MD_KIT[drum_md(t->p) - 1u][lane];
+    if (drum_lane_md(t->p, lane)) {                      /* (custom) an MD kit, or the lane's own MODEL: struck */
+        uint32_t model = drum_lane_md(t->p, lane) - 1u;
         md_lane_t *M = &L->md;
         if (L->pad != 1u || M->model != model + 1u) {    /* another model (or DRUM's own) on this lane: from rest */
             memset(M, 0, sizeof *M);
@@ -520,7 +529,7 @@ static __attribute__((noinline)) int drum_md_run(drum_lane_t *L, const int16_t *
     md_lane_t *M = &L->md;
     uint32_t i;
     int again;
-    if (L->pad != 1u || !drum_md(p) || !M->model) {
+    if (L->pad != 1u || !drum_lane_md(p, ln) || !M->model) {
         if (L->pad == 1u)
             M->v.active = 0;
         return -1;
@@ -600,11 +609,11 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     m = vmod_level(m, &ml, clamp(p[P_LN0 + ln], 0, 127));   /* the lane's LEVEL (dsp.c); 100 %: the ramp as it was */
     if (n > CTL)
         n = CTL;
-    if (L->pad == 2u || drum_dx(p)) {                    /* (custom) a DX lane (out of line: drum_dx_run) */
+    if (L->pad == 2u || (!L->pad && drum_dx(p) && !drum_lane_md(p, ln))) {   /* (custom) a DX lane (drum_dx_run) */
         again = drum_dx_run(L, p, ln, y, n);
         if (again < 0)
             return;
-    } else if (L->pad || drum_md(p)) {                   /* (custom) an MD lane (out of line: drum_md_run) */
+    } else if (L->pad || drum_lane_md(p, ln)) {          /* (custom) an MD lane (out of line: drum_md_run) */
         again = drum_md_run(L, p, ln, y, n);
         if (again < 0)
             return;
