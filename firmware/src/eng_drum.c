@@ -448,6 +448,35 @@ static __attribute__((noinline)) void drum_declick(drum_lane_t *L, int32_t *y, u
     L->dk[1] = (int16_t)clamp(dc >> 1, -32768, 32767);
 }
 
+/* (custom) an MD lane's block into y (n <= CTL): Hortator's model, the knobs, the choke's fade. Its own function, out of
+ * line, so that DRUM's own lanes keep drum_render's loops as they were (tests/target_budget.txt). Returns again (struck
+ * again while it rings), or -1: the kit changed under it, it ends, nothing to play */
+static __attribute__((noinline)) int drum_md_run(drum_lane_t *L, const int16_t *p, uint32_t ln, int32_t *y, uint32_t n)
+{
+    md_lane_t *M = &L->md;
+    uint32_t i;
+    int again;
+    if (!L->pad || !drum_md(p) || !M->model) {
+        if (L->pad)
+            M->v.active = 0;
+        return -1;
+    }
+    for (i = 0; i < n; i++)
+        y[i] = 0;
+    md_knobs(&M->trk, M->model - 1u, p, ln, L->st);      /* (the knobs move it while it rings) */
+    if (M->v.active)
+        MD_MODELS[M->model - 1u].render(&M->trk, &M->v, y, n);
+    if (M->choke) {                                      /* choked: out over this block */
+        for (i = 0; i < n; i++)
+            y[i] = y[i] / (int32_t)n * (int32_t)(n - i); /* (32-bit: no 64-bit divide on the target) */
+        M->v.active = 0;
+        M->choke = 0;
+    }
+    again = M->again;
+    M->again = 0;
+    return again;
+}
+
 static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
@@ -462,26 +491,10 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     m = vmod_level(m, &ml, clamp(p[P_LN0 + ln], 0, 127));   /* the lane's LEVEL (dsp.c); 100 %: the ramp as it was */
     if (n > CTL)
         n = CTL;
-    if (L->pad || drum_md(p)) {                          /* (custom) an MD lane */
-        md_lane_t *M = &L->md;
-        if (!L->pad || !drum_md(p) || !M->model) {       /* (the kit changed under it: it ends) */
-            if (L->pad)
-                M->v.active = 0;
+    if (L->pad || drum_md(p)) {                          /* (custom) an MD lane (out of line: drum_md_run) */
+        again = drum_md_run(L, p, ln, y, n);
+        if (again < 0)
             return;
-        }
-        for (i = 0; i < n; i++)
-            y[i] = 0;
-        md_knobs(&M->trk, M->model - 1u, p, ln, L->st);   /* (the knobs move it while it rings) */
-        if (M->v.active)
-            MD_MODELS[M->model - 1u].render(&M->trk, &M->v, y, n);
-        if (M->choke) {                                  /* choked: out over this block */
-            for (i = 0; i < n; i++)
-                y[i] = y[i] / (int32_t)n * (int32_t)(n - i);   /* (32-bit: no 64-bit divide on the target) */
-            M->v.active = 0;
-            M->choke = 0;
-        }
-        again = M->again;
-        M->again = 0;
     } else if (drum_user(p)) {                           /* ((2.0, #35) a user kit: the lane's sample) */
         drum_smp(t, v, out, n, m, ln, L->st);
         return;

@@ -24,8 +24,13 @@ jobs:
           echo "JIELI_TOOLCHAIN=$HOME/.jieli/toolchain" >> "$GITHUB_ENV"
       - name: "JieLi AC79 SDK (Apache-2.0, three of its files go into the package)"
         run: |
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
-            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+          for a in 1 2 3 4 5; do
+            rm -rf "$HOME/fw-AC79_AIoT_SDK"
+            git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK" && break
+            [ "$a" = 5 ] && exit 1
+            echo "clone failed (try $a), retrying"; sleep $((a * 15))
+          done
           echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
       - name: Build
         run: ./build.sh
