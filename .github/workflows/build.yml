@@ -47,7 +47,8 @@ jobs:
             gh release create "$tag" --prerelease --target "$GITHUB_SHA" --title "$tag" --notes "$notes"
           gh release edit "$tag" --notes "$notes"
           cp build/felucca.fwsc build/skiff-atlatl.fwsc
-          gh release upload "$tag" build/skiff-atlatl.fwsc --clobber
+          gzip -9 -c build/felucca.dis > build/felucca.dis.gz   # (the disassembly: an emulator's PC to its function)
+          gh release upload "$tag" build/skiff-atlatl.fwsc build/felucca.dis.gz --clobber
       - name: "Size report (on a failed build: the biggest symbols of the app's object)"
         if: failure()
         run: |
