@@ -51,8 +51,8 @@ async function editorMock() {
   inp.onmidimessage = (e) => link.receive(e.data);
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
-  ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "SLICE" && info.engines[14] === "-"
- && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 158 && info.pe0 === 150 && info.engines[4] === "SAMPLE",
+  ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-" && info.engines[14] === "-"
+ && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 158 && info.pe0 === 150 && info.engines[4] === "-",
     "editor: INFO ((custom) P_COUNT 158, P_E0 150 from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
   {
     /* (Skiff 1.3) wide ids: a track id from 128 on ((2.0) E0..E7 since P_E0 135, after the lane pans 127..134; (2.1) P_E0
@@ -199,9 +199,10 @@ async function editorMock() {
   {   /* the lists in the device's order (engines.c ENGINE_ORDER): FM6 second, DRUM then (Skiff) DRUM-X last, "-" never;
          the numbers stay */
     const shown = E.engineOrder(info.engines).map((i) => info.engines[i]);
-    ok(shown.join() === "SYNTH,FMINI,FM6,PHASE,LOFI,SAMPLE,VOICE,GRAIN,PHYS,SLICE,DRUM" &&
+    ok(shown.join() === "SYNTH,FMINI,FM6,PHASE,LOFI,VOICE,GRAIN,PHYS,DRUM" &&
        E.engineOrder(info.engines)[0] === 15 && E.engineOrder(info.engines)[1] === 16 && E.engineOrder(info.engines)[2] === 12 &&
-       E.engineOrder(info.engines)[10] === 10,   /* ((custom) SYNTH first; ANALOG TRIO WHEEL NOISE DRUM-X retired: "-") */
+       E.engineOrder(info.engines)[8] === 10,   /* ((custom) SYNTH first; ANALOG TRIO WHEEL NOISE DRUM-X retired, SAMPLE
+                                                         * SLICE without the sampler: "-") */
        "editor: engines listed SYNTH FMINI FM6 first, DRUM last (indices kept)");
     ok(E.engineOrder(["ANALOG", "X", "-", "DRUM", "FM6"]).join() === "0,4,3,1", "editor: an unknown engine follows the known ones");
     m.state.favorites[10][0] = m.state.favorites[12][0] = true;
@@ -390,6 +391,8 @@ async function editorSamplePresets() {
   const C = E.CMD;
   const { m, rq, done } = attachMock();
   const info = E.parse[C.INFO](await rq(E.req.info()));
+  const sampler = info.engines[4] === "SAMPLE";   /* ((custom) without the sampler SAMPLE is "-", its sounds SYNTH's (retire.c) */
+  if (sampler) {
   const names = E.parse[C.NAMES](await rq(E.req.names(4)));
   await rq(E.req.preset(4, 0));
   const set = E.parse[C.DESC](await rq(E.req.desc(0, info.pe0)));
@@ -404,18 +407,21 @@ async function editorSamplePresets() {
   const setPerc = E.parse[C.SET](await rq(E.req.set(0, info.pe0, 4)));
   ok(alias.preset === 0 && setAlias.value === 0 && setPerc.value === 0,
     "SAMPLE: preset 1 and SET 1 / 4 (once TRANH, PERC) land on PIANO");
+  }
+  const U = sampler ? ["USR1", "USR2", "USR3"] : ["STD", "STD", "STD"];   /* ((custom) user kits: with the sampler only */
   await rq(E.req.preset(10, 0));
   const kitD = E.parse[C.DESC](await rq(E.req.desc(0, info.pe0)));
   const kitSet = [];
   for (const v of [1, 2, 3]) kitSet.push(E.parse[C.SET](await rq(E.req.set(0, info.pe0, v))).value);
-  ok(eq(kitD.names, ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3",
+  ok(eq(kitD.names, ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", ...U,
         "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"]) &&
      eq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((v) => E.aliasOf(kitD.names, v)), [0, 6, 5, 8, 4, 5, 6, 7, 8, 9, 10, 11]) &&
      eq(E.enumShown(kitD).filter((v) => E.aliasOf(kitD.names, v) === v).map((v) => kitD.names[v]),
-        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI",
-         "DX", "DX+"]) &&
+        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", ...(sampler ? U : []), "808", "909", "TRX", "EFM", "TRX-P",
+         "MI", "DX", "DX+"]) &&
      eq(kitSet, [6, 5, 8]),
     "DRUM: KIT 1..3 (once HAND CYM H+CYM) named 66 10 77, aliases of 6 5 8: hidden, a SET lands there; ((2.0, #35) USR1..3 after; (custom) the MD kits, DX DX+)");
+  if (!sampler) { done(); return; }
   const removed = E.parse[C.PRESET](await rq(E.req.preset(4, 4)));
   const kit = E.parse[C.DUMP](await rq(E.req.dump()), info);
   ok(removed.engine === 10 && removed.preset === 0 && kit.engine === 10 && eq(kit.p.slice(info.pe0), E.DRUM_KIT_E),

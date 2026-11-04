@@ -65,8 +65,21 @@ enum { DK_STD, DK_HAND, DK_CYM, DK_HCYM, DK_80, DK_10, DK_66, DK_55, DK_77, DK_D
        DK_COUNT };   /* (stored values) */
 /* the kit a stored KIT value plays: HAND CYM H+CYM (retired after 1.0.4) -> 66 (a conga on TOM), 10 (a cymbal on
  * BELL), 77 (claves on RIM, a cymbal on BELL) */
+/* (custom) the user kits (USR1..3, a user sample slot each) only with FELUCCA_USER_KITS (off: no sampler); without it
+ * their stored values are aliases of STD (named STD, played as STD, the knob steps over them) */
+#ifndef FELUCCA_USER_KITS
+#define FELUCCA_USER_KITS FELUCCA_SAMPLER
+#endif
+#if FELUCCA_USER_KITS
+#define DK_USR_PLAYS(k) (k)
+#define DK_USR_NAME(n) n
+#else
+#define DK_USR_PLAYS(k) DK_STD
+#define DK_USR_NAME(n) "STD"
+#endif
 static const uint8_t DK_PLAYS[DK_COUNT] = {DK_STD, DK_66, DK_10, DK_77, DK_80, DK_10, DK_66, DK_55, DK_77, DK_DEEP,
-                                           DK_TIGHT, DK_PERC, DK_USR1, DK_USR2, DK_USR3,
+                                           DK_TIGHT, DK_PERC, DK_USR_PLAYS(DK_USR1), DK_USR_PLAYS(DK_USR2),
+                                           DK_USR_PLAYS(DK_USR3),
                                            DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI, DK_DX, DK_DXP};
 _Static_assert(DK_DX - DK_MD808 == MD_NKIT, "the MD kits: one KIT value each");
 
@@ -97,8 +110,13 @@ static const uint8_t DV_TYPE_LANE[DVT_COUNT] = {
 /* .. a user kit's: its slot + 1, 0 a kit of DRUM's own */
 static uint32_t drum_user(const int16_t *p)
 {
+#if FELUCCA_USER_KITS
     uint32_t k = drum_kit_plays(p[P_E0]);
     return k >= DK_USR1 && k <= DK_USR3 ? k - DK_USR1 + 1u : 0u;   /* ((custom) the MD kits after them) */
+#else
+    (void)p;                                             /* ((custom) no user kits: USR1..3 play STD, aliases) */
+    return 0u;
+#endif
 }
 
 typedef struct {
@@ -122,7 +140,7 @@ typedef struct {
 
 /* 1..3 named as the kit they play: aliases, never shown or offered (EDITOR_PROTOCOL.md: retired values) */
 static const char *const N_DRUM_KIT[] = {"STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC",
-                                         "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"};
+                                         DK_USR_NAME("USR1"), DK_USR_NAME("USR2"), DK_USR_NAME("USR3"), "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"};
 static const char *const N_DRUM_KICK[] = {"PUNCH", "ROUND"};
 
 /* General MIDI notes 35..81 -> the drum (DVT_*; DVT_PUNCH: the kick KICK picks) and semitones from its

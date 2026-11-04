@@ -83,7 +83,7 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "DEPTH", "VEL", "TIME", "FCUT"};   /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
-static const char *const N_ENGNAME[] = {"-", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "-", "-", "GRAIN", "PHYS",
+static const char *const N_ENGNAME[] = {"-", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", FELUCCA_SAMPLER ? "SAMPLE" : "-", "VOICE", "-", "-", "GRAIN", "PHYS",
                                              "DRUM", "-", "FM6",   /* ((custom) ANALOG TRIO WHEEL NOISE DRUM-X retired: "-") */
 #if FELUCCA_SLICE
                                              "SLICE",

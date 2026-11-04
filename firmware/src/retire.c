@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* (custom) Retired engines: ANALOG (0), TRIO (6), WHEEL (7), NOISE (11); DRUM-X (14): DRUM plays its voice as the DX
+/* (custom) Retired engines: ANALOG (0), SAMPLE (4), TRIO (6), WHEEL (7), NOISE (11); SLICE (13) when built without it
+ * (FELUCCA_SLICE 0, the default: no sampler; its sounds load as DRUM KIT); DRUM-X (14): DRUM plays its voice as the DX
  * kits (eng_drum.c), and its sounds load there, its knobs as they were (retire_values). SYNTH makes their sounds (its VA WAVE ADD NOISE
  * ORGAN oscillators, OSC B's SYNC and RING, the filter library: eng_synth.c, its presets from SAW LEAD on), so their
  * DSP left the build to free flash for other things. Their numbers stay reserved, as DIGITAL's (fm4_convert.c): the
@@ -29,10 +30,15 @@ static int eng_retired(uint32_t e)
 {
     if (e >= NENGINES)                   /* (not an engine: never one, as eng_ok) */
         return 0;
-    return e == ENGI_ANALOG || e == ENGI_TRIO || e == ENGI_WHEEL || e == ENGI_NOISE || e == ENGI_DRUMX;
+    return e == ENGI_ANALOG || e == ENGI_TRIO || e == ENGI_WHEEL || e == ENGI_NOISE || e == ENGI_DRUMX ||
+           (!FELUCCA_SAMPLER && e == ENGI_SAMPLE) || (!FELUCCA_SLICE && e == ENGI_SLICE);
 }
-/* the engine a retired engine's sounds load as: DRUM-X's DRUM (its DX kits), the others' SYNTH */
-static uint32_t retire_engine(uint32_t e) { return e % NENGINES == ENGI_DRUMX ? ENGI_DRUM : ENGI_SYNTH; }
+/* the engine a retired engine's sounds load as: DRUM-X's and SLICE's (breaks) DRUM, the others' SYNTH */
+static uint32_t retire_engine(uint32_t e)
+{
+    e %= NENGINES;
+    return e == ENGI_DRUMX || e == ENGI_SLICE ? ENGI_DRUM : ENGI_SYNTH;
+}
 
 /* the SYNTH preset each retired preset loads as (eng_synth.c SYNTH_PRESETS; tests/retire_test.c checks the names) */
 static const uint8_t RETIRE_ANALOG[] = {
@@ -52,6 +58,11 @@ static const uint8_t RETIRE_NOISE[] = {40, 41, 42, 44, 13, 41, 13, 43};   /* WIN
 static const uint8_t RETIRE_WHEEL[] = {45, 46, 47, 48, 49, 50, 51, 10};   /* FULL ORGAN, JAZZ PERC, GOSPEL, SOFT FLUTE,
                                       * ROCK DRIVE, CATHEDRAL, PEDAL BASS, CLARINET (ADD CLARINET) */
 
+static const uint8_t RETIRE_SAMPLE[] = {14, 14, 16, 18, 14, 15, 20, 17, 19, 21};   /* PIANO (and its aliases) SY PIANO,
+                                      * FLUTE SY FLUTE, SAX SY SAX, LOFI PIANO SY LOFI PNO, MUSIC BOX SY MUSICBOX, FLUTE
+                                      * PAD SY FLUTE PAD, DARK SAX SY DARK SAX, KOTO SY KOTO (the factory samples' sounds
+                                      * synthesized: SAMPLE retired) */
+
 /* the preset of retire_engine(e) for preset pi of retired engine e (a number past its list: its first) */
 static uint32_t retire_preset(uint32_t e, uint32_t pi)
 {
@@ -59,6 +70,8 @@ static uint32_t retire_preset(uint32_t e, uint32_t pi)
     uint32_t n;
     switch (e % NENGINES) {
     case ENGI_DRUMX: return BOARD_SMK37 ? 0u : DRUM_PDX + (pi < DRUM_NDX ? pi : 0u);   /* DRUM-X's: DRUM's DX presets */
+    case ENGI_SLICE: return 0u;                       /* SLICE's breaks: DRUM KIT */
+    case ENGI_SAMPLE: m = RETIRE_SAMPLE; n = sizeof RETIRE_SAMPLE; break;
     case ENGI_ANALOG: m = RETIRE_ANALOG; n = sizeof RETIRE_ANALOG; break;
     case ENGI_TRIO: m = RETIRE_TRIO; n = sizeof RETIRE_TRIO; break;
     case ENGI_WHEEL: m = RETIRE_WHEEL; n = sizeof RETIRE_WHEEL; break;

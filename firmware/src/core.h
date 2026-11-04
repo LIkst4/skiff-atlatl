@@ -45,8 +45,13 @@ _Static_assert(NTRK <= 8 && NPART < NVOICE, "a track mask is a uint8_t; each par
 #define AUDIO_RAM                /* (Skiff) audio code run from RAM on the unit (felucca.c); host builds: nothing */
 #define AUDIO_FAR(fn) fn         /* .. a call between it and XIP code: on the unit through a pointer; here direct */
 #endif
+#ifndef FELUCCA_SAMPLER
+#define FELUCCA_SAMPLER 0        /* (custom) the sampler: SAMPLE (engine 4), SLICE, DRUM's user kits. 0 (the default): none,
+                                  * their sounds load as SYNTH's and DRUM's (retire.c); the flash goes to the synths */
+#endif
 #ifndef FELUCCA_SLICE
-#define FELUCCA_SLICE 1          /* the SLICE engine (eng_slice.c), engine 13; FELUCCA_SLICE=0 builds without it */
+#define FELUCCA_SLICE FELUCCA_SAMPLER   /* the SLICE engine (eng_slice.c), engine 13; FELUCCA_SLICE=0 builds without it
+                                  * ((custom) with the sampler only; without, a SLICE sound loads as DRUM's kit) */
 #endif
 #ifndef FELUCCA_FM4
 #define FELUCCA_FM4 0            /* the DIGITAL engine (eng_digital.c, four-operator FM): kept in the tree, not built
@@ -69,7 +74,7 @@ _Static_assert(NTRK <= 8 && NPART < NVOICE, "a track mask is a uint8_t; each par
 #define ENGI_TRIO 6u
 #define ENGI_WHEEL 7u
 #define ENGI_NOISE 11u
-#define NRETIRED 5u
+#define NRETIRED (5u + !FELUCCA_SAMPLER)   /* ((custom) and SAMPLE without the sampler: SYNTH's synthesized sounds) */
 #define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - !FELUCCA_SLICE - NRETIRED)   /* the engines one can pick: PRESETS, the EDIT
                                                 * layer, the editor, in the display order of engines.c ENGINE_ORDER */
 #define UP_SLOTS 32u             /* user presets (upreset.c) */

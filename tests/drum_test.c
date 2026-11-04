@@ -1390,7 +1390,8 @@ static void retired(void)
             bad += v != ORDER[i];
             v = param_turn(d, v, 1);
         }
-        for (i = 0; i < SMP_SHOWN; i++) {               /* ((2.0, #35) the user slots USR1.., held at the last) */
+        for (i = 0; FELUCCA_USER_KITS && i < SMP_SHOWN; i++) {   /* ((2.0, #35) the user slots USR1.., held at the last;
+                                                         * (custom) with the sampler only: else STD's aliases, skipped) */
             bad += v != DK_USR1 + i;
             v = param_turn(d, v, 1);
         }

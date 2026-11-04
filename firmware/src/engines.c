@@ -78,7 +78,11 @@ static const engine_t *const ENGINES[NENGINES] = {
 #endif
     &ENG_PHASE,                  /* 2 */
     &ENG_LOFI,                   /* 3 */
+#if FELUCCA_SAMPLER
     &ENG_SAMPLE,                 /* 4 */
+#else
+    &ENG_RETIRED,                /* 4: SAMPLE, (custom) without the sampler: SYNTH's synthesized sounds (retire.c) */
+#endif
     &ENG_FORMANT,                /* 5 VOICE (eng_formant.c: "voice" is a sounding note in voice.c) */
     &ENG_RETIRED,                /* 6: TRIO, (custom) retired */
     &ENG_RETIRED,                /* 7: WHEEL, (custom) retired */
@@ -90,7 +94,8 @@ static const engine_t *const ENGINES[NENGINES] = {
 #if FELUCCA_SLICE
     &ENG_SLICE,                  /* 13 (ENGI_SLICE) */
 #else
-    &ENG_FM4_GONE,               /* 13: reserved (FELUCCA_SLICE=0 builds without SLICE: never offered, eng_ok) */
+    &ENG_RETIRED,                /* 13: reserved (FELUCCA_SLICE=0 builds without SLICE: never offered, eng_ok; (custom) its
+                                  * sounds load as DRUM's kit, retire.c) */
 #endif
     &ENG_RETIRED,                /* 14: DRUM-X (Skiff), (custom) retired: DRUM's DX kits */
     &ENG_SYNTH,                  /* 15 (ENGI_SYNTH, custom) */
@@ -131,7 +136,11 @@ static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
 #if FELUCCA_FM4
     1,                           /* DIGITAL */
 #endif
-    2, 3, 4, 5, 8, 9,            /* PHASE LOFI SAMPLE VOICE GRAIN PHYS ((custom) TRIO WHEEL NOISE retired) */
+    2, 3,                        /* PHASE LOFI */
+#if FELUCCA_SAMPLER
+    4,                           /* SAMPLE ((custom) with the sampler only) */
+#endif
+    5, 8, 9,                     /* VOICE GRAIN PHYS ((custom) TRIO WHEEL NOISE retired) */
 #if FELUCCA_SLICE
     13,                          /* SLICE */
 #endif
@@ -176,5 +185,5 @@ static uint32_t eng_step_for(uint32_t k, uint32_t e, int32_t dir)   /* eng_step 
  * and a second kit: ((custom) SYNTH ACID LINE, was ANALOG ACID), FM6 PAD (was DIGITAL PAD), LOFI PULSE LD, DRUM KIT, PIANO, DRUM KIT */
 /* ((custom) without the factory samples (SMP_FACTORY 0) track 5 plays SYNTH's SY PIANO, the PIANO synthesized) */
 static const uint8_t TRK_DEF[NPART][2] = {{ENGI_SYNTH, 4}, {ENGI_FM6, 4}, {3, 0}, {ENGI_DRUM, 0},
-                                          {SMP_FACTORY ? ENGI_SAMPLE : ENGI_SYNTH, SMP_FACTORY ? 0 : 14}, {ENGI_DRUM, 0}};
+                                          {SMP_FACTORY && FELUCCA_SAMPLER ? ENGI_SAMPLE : ENGI_SYNTH, SMP_FACTORY && FELUCCA_SAMPLER ? 0 : 14}, {ENGI_DRUM, 0}};
 static uint32_t trk_def_engine(uint32_t i) { return TRK_DEF[i % NPART][0]; }
