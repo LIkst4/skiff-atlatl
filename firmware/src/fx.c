@@ -98,7 +98,37 @@ static struct {                          /* HALL's state (in the pool: no .bss) 
 #define rev_side (hl.sd)
 
 /* (Skiff 1.3) FX > INSERT's TYPEs (track_insert, below); (2.0, D 2A) the drives' and CRUSH's shapes are DRIVE's too */
-enum { IT_OFF, IT_SOFT, IT_HARD, IT_FOLD, IT_FUZZ, IT_CRUSH, IT_PHASER, IT_FLANGER, IT_CHORUS, IT_N };
+enum { IT_OFF, IT_SOFT, IT_HARD, IT_FOLD, IT_FUZZ, IT_CRUSH, IT_PHASER, IT_FLANGER, IT_CHORUS,
+       IT_DENS, IT_CONS, IT_TAPE, IT_N };   /* ((custom) after Airwindows (Chris Johnson, MIT): ins_aw below) */
+/* (custom) after Airwindows' saturations (https://github.com/airwindows/airwindows, MIT; no code taken, the curves in
+ * fixed point): aw_sin, x Q15 (a voice's full scale 1.0) through sin() with |x| held at pi / 2 (Density's and ToTape's
+ * bridge rectifier); aw_spiral, Console7's sin(x |x|) / |x| as x (1 - x^4 / 6), held at its top (x^4 = 6/5) */
+static inline int32_t aw_sin(int32_t x)
+{
+    int32_t a = x < 0 ? -x : x, y;
+    if (a > 51472)                                       /* (pi / 2) */
+        a = 51472;
+    y = sine_i((uint32_t)a * 20861u);                    /* (2^32 / (2 pi) / 32768 a Q15 radian) */
+    return x < 0 ? -y : y;
+}
+static inline int32_t aw_spiral(int32_t x)
+{
+    int32_t c = clamp(x, -34296, 34296), x2 = (c * c) >> 15, x4 = (x2 * x2) >> 15;   /* (1.047: the curve's top, 0.837) */
+    return c - (int32_t)(((int64_t)c * (x4 / 6)) >> 15);
+}
+/* the static curve of an Airwindows type (the graph, ins_aw): DENS DENSITY 1..5 sines over x; CONS the spiral at DRIVE;
+ * TAPE the sine at DRIVE */
+static inline int32_t aw_shape(uint32_t ty, int32_t x, int32_t a)
+{
+    if (ty == IT_DENS) {
+        int32_t dq = 256 + a * 1024 / 127, k;            /* (Q8: 1 .. 5 sines: at least one, so it stays bounded) */
+        for (k = 0; k < dq >> 8; k++)
+            x = aw_sin(x);
+        return x + (((aw_sin(x) - x) * (dq & 255)) >> 8);
+    }
+    x = clamp((int32_t)(((int64_t)x * (4096 + a * a)) >> 12), -262144, 262143);   /* DRIVE: 1x .. ~5x */
+    return ty == IT_CONS ? aw_spiral(x) + (aw_spiral(x) >> 2) : aw_sin(x);   /* (CONS x 1.25: the spiral's level) */
+}
 /* the drives' and CRUSH's shape of v (a voice's full scale 32768; v already through the drive): the curve the INSERT
  * and DRIVE graphs draw too (ui_pgraph.c graph_insert, graph_drive) */
 static inline int32_t ins_shape(uint32_t ty, int32_t v, uint32_t sh)
@@ -876,6 +906,40 @@ static __attribute__((noinline)) void ins_drive(ins_t *s, const track_t *t, int3
     }
 }
 
+/* (custom) after Airwindows: DENS (Density: DENSITY, HIGHPASS, LEVEL), CONS (Console7: DRIVE, TONE, LEVEL), TAPE
+ * (ToTape: DRIVE, BUMP the head bump ~90 Hz, TONE the high end's loss). The curve aw_shape, then each its filter */
+static __attribute__((noinline)) void ins_aw(ins_t *s, const track_t *t, int32_t *b, uint32_t n, int32_t tw)
+{
+    uint32_t i, ty = s->type;
+    int32_t a = t->p[P_IA], bb = clamp(t->p[P_IB], 0, 127), c = clamp(t->p[P_IC], 0, 127);
+    int32_t lvl = ty == IT_TAPE ? 4096 : LEVEL_Q12[c], hk = bb * 60, k = ins_lpk(ty == IT_TAPE ? c : 127 - (127 - bb) * (ty == IT_CONS));
+    for (i = 0; i < n; i++) {
+        int32_t x = b[i], y, v;
+        s->w += clamp(tw - s->w, -SL_SLOPE, SL_SLOPE);
+        if (ty == IT_DENS && hk) {                       /* HIGHPASS: a one-pole's low part out (Q8) */
+            s->hp += (int32_t)(((int64_t)((x << 8) - s->hp) * hk) >> 15);
+            x -= s->hp >> 8;
+        }
+        y = aw_shape(ty, clamp(x, -262144, 262143), a);
+        if (ty == IT_TAPE && bb) {                       /* BUMP: a band around ~90 Hz added (two one-poles' difference) */
+            s->lp1 += (y - s->lp1) >> 6;
+            s->hold += (s->lp1 - s->hold) >> 7;
+            y += ((s->lp1 - s->hold) * bb) >> 6;
+        }
+        if (ty != IT_DENS) {                             /* CONS TONE, TAPE's loss: a one-pole low-pass (x16), as INSERT's */
+            y <<= 4;
+            v = mulq16(y - s->lp2, (uint32_t)k);
+            y = v + s->lp2;
+            s->lp2 = y + v;
+            y = (y + 8) >> 4;
+        }
+        y = (y * lvl) >> 12;
+        s->dc += ((y << 8) - s->dc) >> 9;               /* DC blocker, ~14 Hz (as the drives') */
+        y -= s->dc >> 8;
+        b[i] = pf_mix(b[i], y, s->w);
+    }
+}
+
 /* PHASR, FLANG, CHOR: the sweep at RATE (one LFO per track), DEPTH, FDBK */
 static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int32_t *b, uint32_t n, int32_t tw)
 {
@@ -977,7 +1041,9 @@ static __attribute__((noinline)) void track_insert(track_t *t, int32_t *b, uint3
         memset(s, 0, sizeof *s);                        /* starting: no stale line or filter */
         s->type = (uint8_t)ty;
     }
-    if (s->type >= IT_PHASER)
+    if (s->type >= IT_DENS)
+        ins_aw(s, t, b, n, tw);
+    else if (s->type >= IT_PHASER)
         ins_swept(s, t, b, n, tw);
     else
         ins_drive(s, t, b, n, tw);

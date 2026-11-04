@@ -41,7 +41,8 @@ static const char *const N_LPOL[] = {"BI", "UNI"};
 static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
                                      "VOWEL"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
-static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR"};
+static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR",
+                                      "DENS", "CONS", "TAPE"};   /* ((custom) after Airwindows, appended: fx.c ins_aw) */
 /* the INSERT's CRUSH: BITS 1..16 and RATE (the held sample's rate, fx.c INS_HOLD) over the range in 16 even parts */
 /* (Skiff 1.3, from Felucca 1.5's #175) ENV SYNC (voice.c esync_coef): ATK DEC REL as note values of the tempo, shortest
  * first. 0..127 split evenly over these 25 (param_format's F_INT name list); ESYNC_UNITS: each in 1/384 of a bar of 4/4
@@ -255,17 +256,21 @@ static const param_desc_t GP[G_COUNT] = {
 /* (Skiff 1.3, from Felucca 1.5) the INSERT's A B C as its TYPE means them (TP's ranges and defaults): the drives DRIVE
  * TONE LEVEL, CRUSH BITS RATE LPF, the swept ones RATE DEPTH FDBK; OFF TP's own */
 #define PU(l, f, df, n, u) {l, n, 0, 127, df, f, u}
-static const param_desc_t INS_DESC[3][3] = {
+static const param_desc_t INS_DESC[6][3] = {
     {PU("DRIVE", F_PCT, 64, 0, 0), PU("TONE", F_CUTOFF, 96, 0, 0), PU("LEVEL", F_DB, 96, 0, 0)},
     {PU("BITS", F_INT, 64, N_IBITS, 0), PU("RATE", F_INT, 96, N_IRATE, U_HZ), PU("LPF", F_CUTOFF, 96, 0, 0)},
     {PU("RATE", F_LFOHZ, 64, 0, 0), PU("DEPTH", F_PCT, 96, 0, 0), PU("FDBK", F_PCT, 96, 0, 0)},
+    {PU("DENSITY", F_PCT, 64, 0, 0), PU("HIGHPASS", F_PCT, 96, 0, 0), PU("LEVEL", F_DB, 96, 0, 0)},   /* ((custom) DENS */
+    {PU("DRIVE", F_PCT, 64, 0, 0), PU("TONE", F_CUTOFF, 96, 0, 0), PU("LEVEL", F_DB, 96, 0, 0)},    /* CONS */
+    {PU("DRIVE", F_PCT, 64, 0, 0), PU("BUMP", F_PCT, 96, 0, 0), PU("TONE", F_CUTOFF, 96, 0, 0)},    /* TAPE) */
 };
 #undef PU
 static const param_desc_t *ins_desc(int32_t type, uint32_t k)
 {
     if (type <= 0 || type >= (int32_t)NELEM(N_ITYPE))
         return &TP[P_IA + k];
-    return &INS_DESC[type < 5 ? 0 : type == 5 ? 1 : 2][k];   /* (IT_SOFT .. IT_FUZZ, IT_CRUSH, the swept ones) */
+    return &INS_DESC[type < 5 ? 0 : type == 5 ? 1 : type < 9 ? 2 : type - 6][k];   /* (IT_SOFT .. IT_FUZZ, IT_CRUSH, the
+                                                         * swept ones; (custom) DENS CONS TAPE) */
 }
 
 /* (custom) the FILTER's CHAR as its TYPE means it (flt.c's table): TP's range and default, another label */

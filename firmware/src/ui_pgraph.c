@@ -360,14 +360,16 @@ static int32_t pg_ins_curve(const pg_curve_t *k, int32_t x)
     int32_t y;
     if (!k->type || !k->mix)
         return x;
-    if (k->type >= IT_PHASER) {                      /* (x: the place in the sweep's cycle) */
+    if (k->type >= IT_DENS)                          /* ((custom) after Airwindows: the curve, at LEVEL (TAPE: none)) */
+        y = (aw_shape(k->type, x, k->a) * (k->type == IT_TAPE ? 4096 : LEVEL_Q12[k->c & 127])) >> 12;
+    else if (k->type >= IT_PHASER) {                 /* (x: the place in the sweep's cycle) */
         uint32_t ph = (uint32_t)(x + 32768) << 16;      /* (one whole cycle across: the end wraps to the start) */
         int32_t s = k->type == IT_CHORUS ? osc_sine(ph) : (int32_t)ins_tri(ph) - 32768;
         if (k->type == IT_FLANGER)
             s = (int32_t)(((uint32_t)(s + 32768) * (uint32_t)(s + 32768)) >> 16) - 32768;
         return s * k->b / 127;
     }
-    if (k->type == IT_CRUSH)
+    else if (k->type == IT_CRUSH)
         y = ins_shape(IT_CRUSH, x, ins_bits_sh(k->a));
     else
         y = (ins_shape(k->type, ((x >> 3) * (4096 + k->a * k->a * 3)) >> 9, 0) * LEVEL_Q12[k->c & 127]) >> 12;
@@ -381,7 +383,9 @@ static void graph_insert(const track_t *t, uint16_t c)
     uint32_t hold = INS_HOLD[clamp(k.b, 0, 127) >> 3];
     for (i = 0; i < 176u; i++) {                     /* (the wave: a sine's cycle of 88 samples, its second pass) */
         int32_t x = sine_i(i * 48806447u) * 3 / 4, y;
-        if (ty >= IT_PHASER) {
+        if (ty >= IT_DENS) {
+            y = pg_ins_curve(&k, x);                 /* ((custom) after Airwindows: the wave through the curve) */
+        } else if (ty >= IT_PHASER) {
             y = pg_ins_curve(&k, (int32_t)((i % 44u) * 65536u / 44u) - 32768);   /* (two of its cycles) */
         } else {
             if (ty != IT_CRUSH || !(i % hold))
