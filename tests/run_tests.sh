@@ -461,8 +461,7 @@ EOF
         $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/smpmix_test" tests/smpmix_test.c -lm
         run "(#21) a user slot's sounds: LEVEL, REV, DLY, their store with the slot, old slots as uploaded; (#35) a slot as DRUM's KIT" "$OUT/smpmix_test"
     else
-        echo "== SLICE: build/ was made with FELUCCA_SLICE=0 (no BREAK); run ./build.sh without it first"
-        fail=1
+        echo "== SLICE: no built-in BREAK (FELUCCA_SLICE=0, or (custom) FELUCCA_BUILTIN_SAMPLES=0: no factory sample data); its tests skipped"
     fi
 else
     echo "== skip hostsim (run ./build.sh once)"

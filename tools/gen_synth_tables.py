@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""SYNTH's tables (eng_synth.c): the wavetable (8 waves x 3 band limits x 256 points, int16) and the additive engine's
+"""SYNTH's tables (eng_synth.c): the wavetable (8 waves x 2 band limits x 128 points, int16) and the additive engine's
 partial levels (33 brightness steps x 16 partials, Q15). Writes firmware/src/synth_tables.h"""
 import math, os
-N = 256
-LIMITS = (64, 16, 4)             # harmonics kept: low notes, mid, high (eng_synth.c picks by the pitch)
+N = 128
+LIMITS = (32, 8)             # harmonics kept: low notes, mid, high (eng_synth.c picks by the pitch)
 
 def wave(spec, lim):
     """spec: harmonic -> (amplitude, phase); summed up to lim harmonics, normalised to 32000"""

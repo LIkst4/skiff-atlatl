@@ -39,9 +39,9 @@ typedef struct md_trk {
 #define F_SEMI 0
 #define F_INT 0
 #define F_PCT 0
-typedef struct { const char *label; int8_t fmt; int16_t min, max, def; } md_pd_t;
-#define PD(l, f, mn, mx, df) {l, (int8_t)(f), mn, mx, df}
-#define PE(l, n, df) {l, 0, 0, (int16_t)(sizeof(n) / sizeof(n[0]) - 1), df}
+typedef struct { int8_t min, max, def; } md_pd_t;    /* (the knobs' ranges and designs only: flash) */
+#define PD(l, f, mn, mx, df) {mn, mx, df}
+#define PE(l, n, df) {0, (int8_t)(sizeof(n) / sizeof(n[0]) - 1), df}
 
 typedef struct { int32_t a1, a2, a3, k; } dsvf_t;
 #include "dm_state.h"
@@ -60,7 +60,7 @@ typedef struct {                 /* one drum voice (Hortator's dvoice_t, its sam
     dm_state_t ms;
 } dvoice_t;
 typedef struct {
-    const char *name;
+    const char *name;            /* (Hortator's: unused here, the linker keeps the 42 short names) */
     uint8_t voices, choke;
     md_pd_t edit[8];
     void (*trigger)(md_trk_t *t, dvoice_t *v);
@@ -91,12 +91,12 @@ static uint32_t dvage;
 /* the models, in the order MD_* names them (append only: the kits below store these numbers in no record, but keep
  * it stable anyway) */
 enum { MDM_K808, MDM_K909, MDM_S808, MDM_S909, MDM_C808, MDM_C909, MDM_HATC, MDM_HATO, MDM_CYMB, MDM_COWB, MDM_TOM, MDM_CONGA,
-       MDM_RIM, MDM_CLAVE, MDM_BOOM, MDM_PUNCH, MDM_SNAP, MDM_CRACK, MDM_METAL, MDM_HISS, MDM_FM, MDM_BDTRX, MDM_SDTRX, MDM_TMTRX,
+       MDM_RIM, MDM_CLAVE, MDM_BOOM, MDM_SNAP, MDM_CRACK, MDM_METAL, MDM_HISS, MDM_FM, MDM_BDTRX, MDM_SDTRX, MDM_TMTRX,
        MDM_CGTRX, MDM_CPTRX, MDM_RSTRX, MDM_CBTRX, MDM_CHTRX, MDM_OHTRX, MDM_CYTRX, MDM_SHTRX, MDM_CLTRX, MDM_B2TRX, MDM_BDEFM,
        MDM_SDEFM, MDM_TMEFM, MDM_CPEFM, MDM_RSEFM, MDM_CBEFM, MDM_HHEFM, MDM_CYEFM, MDM_N };
 static const dmodel_t MD_MODELS[MDM_N] = {
     DM_K808_DEF, DM_K909_DEF, DM_S808_DEF, DM_S909_DEF, DM_C808_DEF, DM_C909_DEF, DM_HATC_DEF, DM_HATO_DEF,
-    DM_CYMB_DEF, DM_COWB_DEF, DM_TOM_DEF, DM_CONGA_DEF, DM_RIM_DEF, DM_CLAVE_DEF, DM_KBOOM_DEF, DM_KPUNC_DEF,
+    DM_CYMB_DEF, DM_COWB_DEF, DM_TOM_DEF, DM_CONGA_DEF, DM_RIM_DEF, DM_CLAVE_DEF, DM_KBOOM_DEF,
     DM_SSNAP_DEF, DM_SCRAK_DEF, DM_HMETL_DEF, DM_HNOIS_DEF, DM_FM_DEF, DM_KTRX_DEF, DM_SDTRX_DEF, DM_XTTRX_DEF,
     DM_XCTRX_DEF, DM_CPTRX_DEF, DM_RSTRX_DEF, DM_CBTRX_DEF, DM_CHTRX_DEF, DM_OHTRX_DEF, DM_CYTRX_DEF, DM_MATRX_DEF,
     DM_CLTRX_DEF, DM_B2TRX_DEF, DM_BDEFM_DEF, DM_SDEFM_DEF, DM_XTEFM_DEF, DM_CPEFM_DEF, DM_RSEFM_DEF, DM_CBEFM_DEF,

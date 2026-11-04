@@ -5,8 +5,8 @@
  *     VA     a band-limited saw that turns into a square (SHAPE 0..63) and then narrows (64..127: 50 % .. 10 %);
  *            MOD (shown SUB) a square an octave below
  *     WAVE   a wavetable of 8 waves (SINE TRI SAW SQUARE PULSE ORGAN VOX DIGI, tools/gen_synth_tables.py), SHAPE scans
- *            them (each to the next, interpolated); MOD (shown WARP) bends the phase (a phase-distortion knee); three
- *            band limits picked by the pitch keep the top below Nyquist
+ *            them (each to the next, interpolated); MOD (shown WARP) bends the phase (a phase-distortion knee); two
+ *            band limits (32 and 8 harmonics, 128 points each) picked by the pitch
  *     ADD    additive: 16 partials, SHAPE their brightness (the slope k^-3 .. k^-0.3), MOD (shown ODD) takes the even
  *            ones out; partials above 18 kHz are left out
  *     NOISE  white noise darkened by SHAPE (a one-pole); MOD (shown PITCH) holds it at the note's rate (a pitched hiss)
@@ -49,10 +49,10 @@ static void synth_note_on(track_t *t, voice_t *v)
 /* the wavetable at phase ph: wave position pos (0 .. (SYN_WN - 1) << 8), band limit lim */
 static inline int32_t sy_wt(uint32_t ph, int32_t pos, uint32_t lim)
 {
-    uint32_t w = (uint32_t)pos >> 8, i = ph >> 24, fr = (ph >> 9) & 0x7FFFu;
+    uint32_t w = (uint32_t)pos >> 8, i = ph >> 25, fr = (ph >> 10) & 0x7FFFu;   /* (128 points) */
     const int16_t *a = SYN_WT[w][lim], *b = SYN_WT[w + 1u < SYN_WN ? w + 1u : w][lim];
-    int32_t x = a[i] + (((a[(i + 1u) & 255u] - a[i]) * (int32_t)fr) >> 15);
-    int32_t y = b[i] + (((b[(i + 1u) & 255u] - b[i]) * (int32_t)fr) >> 15);
+    int32_t x = a[i] + (((a[(i + 1u) & 127u] - a[i]) * (int32_t)fr) >> 15);
+    int32_t y = b[i] + (((b[(i + 1u) & 127u] - b[i]) * (int32_t)fr) >> 15);
     return x + (((y - x) * (pos & 255)) >> 8);
 }
 /* WARP: a knee in the phase (0: none); the knee at k (Q16 of the cycle), the first part squeezed */
@@ -98,8 +98,8 @@ static __attribute__((noinline)) void sy_osc(uint32_t md, uint32_t *ph, uint32_t
     }
     case SY_WAVE: {
         int32_t pos = sh * (SYN_WN - 1) / 127;               /* 0 .. (SYN_WN - 1) << 8 */
-        uint32_t lim = inc < 0x00B6C000u ? 0u : inc < 0x02DB0000u ? 1u : 2u;   /* 64 harmonics below ~340 Hz, 16 to
-                                                              * ~1.4 kHz, 4 above */
+        uint32_t lim = inc < 0x03B00000u ? 0u : 1u;            /* 32 harmonics below ~640 Hz, 8 above (flash: two band
+                                                              * limits of 128 points) */
         uint32_t k = mod ? 32768u - (uint32_t)mod * 240u : 0u;
         for (i = 0; i < n; i++, p += inc)
             y[i] += mulq15(sy_wt(sy_warp(p, k), pos, lim), g);

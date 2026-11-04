@@ -280,6 +280,12 @@ class Builder:
         self.alias[len(self.sets)] = orig
         self.sets.append(self.sets[orig])
 
+    def empty_set(self, name, kind):
+        """(custom) a built-in set without its data (FELUCCA_BUILTIN_SAMPLES=0): its name and index kept, one zone of
+        no samples over the keyboard, so SAMPLE and GRAIN say NO SAMPLE and play their sine, and every SET / USR
+        number stays where it was"""
+        self.add_set(name, kind, [dict(off=0, n=0, ls=0, le=0, looped=False, sr=TR, root16=960, pred=0, idx=0, key=None)])
+
     def cc0_set(self, name, kind):
         entries = []
         for k, (_, s, loop, root) in enumerate(cc0_entries(name, kind)):
@@ -414,10 +420,27 @@ def input_key(have_cc0):
     return h.hexdigest()
 
 
+def builtin_on():
+    """(custom) the factory sample data in the firmware: off unless FELUCCA_BUILTIN_SAMPLES=1 (the flash goes to the
+    engines; their sounds are synthesized instead: SYNTH's SY presets)"""
+    return os.environ.get("FELUCCA_BUILTIN_SAMPLES", "0") == "1"
+
+
 def main(out):
     have_cc0 = CC0.exists() and any(CC0.glob("*/*.wav"))
     if not have_cc0:
         print("samples: CC0 library not fetched (tools/fetch_cc0.py) - no SAMPLE sets")
+    if not builtin_on():
+        b = Builder()
+        for name, kind in CC0_SETS:                 # the sets' names and numbers, no data
+            if kind == "alias":
+                b.alias_set(name)
+            else:
+                b.empty_set(name, kind)
+        text = b.header()
+        Path(out).write_text(text)
+        print("samples: no factory sample data (FELUCCA_BUILTIN_SAMPLES=0): 5 sets named, 0 B; SLICE without BREAK and FUNK")
+        return
     key = input_key(have_cc0)
     try:
         ck, summary, text = CACHE.read_text().split("\n", 2)
