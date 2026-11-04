@@ -2241,7 +2241,7 @@ function makeMockDevice(opt = {}) {
         P("HARPSICHORD", [1, 44, 112, 76, 10, 127, 0, 24], [0, 100, 127, 50]),
         /* (Skiff phase 9) more for every engine (src/eng_*.c) */
         P("UPRIGHT", [1, 60, 60, 90, 20, 127, 0, 60], [0, 100, 127, 40], 1)] },
-    { name: "DRUM", titles: ["KIT", "HIT"], edit: [E("KIT", ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "STD", "STD", "STD", "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"], 0), D("PITCH", F.ST16, 0, 127, 64), D("TONE", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64), D("SNAP", F.PCT, 0, 127, 64), D("ACCENT", F.PCT, 0, 127, 100), E("KICK", ["PUNCH", "ROUND"], 0), D("DRIVE", F.PCT, 0, 127, 0)],
+    { name: "DRUM", titles: ["KIT", "HIT"], edit: [E("KIT", ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "STD", "STD", "STD", "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+", "626"], 0), D("PITCH", F.ST16, 0, 127, 64), D("TONE", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64), D("SNAP", F.PCT, 0, 127, 64), D("ACCENT", F.PCT, 0, 127, 100), E("KICK", ["PUNCH", "ROUND"], 0), D("DRIVE", F.PCT, 0, 127, 0)],
       presets: [
         P("DRUM KIT", [0, 64, 70, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 12, []),
         P("WAR DRUMS", [0, 40, 38, 108, 40, 110, 1, 24], [0, 100, 127, 100], 0, 0, []),
@@ -2272,6 +2272,7 @@ function makeMockDevice(opt = {}) {
         P("DX GLITCH", [22, 64, 70, 60, 64, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
         P("DX TRIBAL", [21, 64, 64, 64, 60, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
         P("DX LASER", [21, 64, 70, 64, 64, 64, 0, 10], [0, 100, 127, 100], 0, 0, []),
+        P("626 KIT", [23, 64, 64, 56, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, [[121,  5],  [122,  92],  [123,  116],  [124,  104]]),
       ] },
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
       presets: [] },

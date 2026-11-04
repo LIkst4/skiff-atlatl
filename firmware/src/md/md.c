@@ -110,7 +110,7 @@ static const char *const N_LMDL[] = {"KIT", "K808", "K909", "S808", "S909", "C80
 _Static_assert(sizeof N_LMDL / sizeof N_LMDL[0] == MDM_N + 1u, "a name for each model, and KIT");
 
 /* the MD kits: a model a lane (KICK SNARE CLAP CL HAT OP HAT TOM RIM BELL, eng_drum.c's lanes) */
-#define MD_NKIT 6
+#define MD_NKIT 7
 static const uint8_t MD_KIT[MD_NKIT][8] = {
     {MDM_K808, MDM_S808, MDM_C808, MDM_HATC, MDM_HATO, MDM_TOM, MDM_RIM, MDM_COWB},             /* 808 */
     {MDM_K909, MDM_S909, MDM_C909, MDM_HATC, MDM_HATO, MDM_TOM, MDM_RIM, MDM_CYMB},             /* 909 */
@@ -118,6 +118,8 @@ static const uint8_t MD_KIT[MD_NKIT][8] = {
     {MDM_BDEFM, MDM_SDEFM, MDM_CPEFM, MDM_HHEFM, MDM_CYEFM, MDM_TMEFM, MDM_RSEFM, MDM_CBEFM},   /* EFM: its FM family */
     {MDM_B2TRX, MDM_SDTRX, MDM_CLTRX, MDM_SHTRX, MDM_CYTRX, MDM_CGTRX, MDM_CLAVE, MDM_CBTRX},   /* TRX-P: its percussion */
     {MDM_BOOM, MDM_SNAP, MDM_CRACK, MDM_METAL, MDM_HISS, MDM_CONGA, MDM_RIM, MDM_FM},           /* MI: Plaits' drums */
+    {MDM_K909, MDM_SDTRX, MDM_C909, MDM_CHTRX, MDM_OHTRX, MDM_TMTRX, MDM_RSTRX, MDM_CBTRX},    /* (custom) 626: after the
+                                         * TR-626's PCM set, the 909's kick and clap, the TRX's crisp rest (KIT 626) */
 };
 
 /* a lane: the model's knobs and its voice (in the DRUM lane, eng_drum.c drum_lane_t) */

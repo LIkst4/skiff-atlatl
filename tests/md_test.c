@@ -20,7 +20,9 @@ static void ck(const char *w, int ok)
     printf("md: %-84s %s\n", w, ok ? "ok" : "FAIL");
     bad += !ok;
 }
-static const char *const KN[MD_NKIT] = {"808", "909", "TRX", "EFM", "TRX-P", "MI"};
+static const char *const KN[MD_NKIT] = {"808", "909", "TRX", "EFM", "TRX-P", "MI", "626"};
+/* (custom) the KIT value of MD kit k: 808 .. MI in a row, 626 after DX+ */
+#define MDK(k) ((int16_t)((k) + 1u < MD_NKIT ? DK_MD808 + (k) : DK_MD626))
 static const uint8_t LANE_NOTE[8] = {36, 38, 39, 42, 46, 45, 37, 56};   /* eng_drum.c DRUM_LANE_NOTE */
 
 static void kit_fresh(int16_t kit)
@@ -132,7 +134,7 @@ int main(int argc, char **argv)
             double mean;
             int32_t pk;
             uint32_t n;
-            kit_fresh((int16_t)(DK_MD808 + k));
+            kit_fresh(MDK(k));
             trk_note_on(&trk[0], LANE_NOTE[l], 110);
             trk_note_off(&trk[0], LANE_NOTE[l]);
             pk = blocks(FS / CTL, &mean, 0);            /* 1 s */
@@ -157,12 +159,12 @@ int main(int argc, char **argv)
         for (k = 0; k < MD_NKIT; k++) {
             int ok = 1;
             uint64_t h0 = 1469598103934665603ull;
-            kit_fresh((int16_t)(DK_MD808 + k));
+            kit_fresh(MDK(k));
             trk_note_on(&trk[0], 36, 110);
             blocks(FS / 2 / CTL, 0, &h0);
             for (i = 0; i < sizeof KNOB / sizeof KNOB[0]; i++) {
                 uint64_t h = 1469598103934665603ull;
-                kit_fresh((int16_t)(DK_MD808 + k));
+                kit_fresh(MDK(k));
                 trk[0].p[KNOB[i].id] = KNOB[i].v;
                 trk_note_on(&trk[0], 36, 110);
                 blocks(FS / 2 / CTL, 0, &h);
@@ -207,11 +209,11 @@ int main(int argc, char **argv)
     for (k = 0; k < MD_NKIT; k++) {
         double a, b;
         int32_t p1, p2;
-        kit_fresh((int16_t)(DK_MD808 + k));
+        kit_fresh(MDK(k));
         trk_note_on(&trk[0], 46, 110);
         blocks(FS / 10 / CTL, 0, 0);
         p1 = blocks(FS / 10 / CTL, &a, 0);
-        kit_fresh((int16_t)(DK_MD808 + k));
+        kit_fresh(MDK(k));
         trk_note_on(&trk[0], 46, 110);
         blocks(FS / 10 / CTL, 0, 0);
         trk_note_on(&trk[0], 42, 1);                    /* a closed hat, as quiet as can be */
@@ -219,7 +221,7 @@ int main(int argc, char **argv)
         p2 = blocks(FS / 20 / CTL, &b, 0);
         {
             int32_t pc;                                 /* the closed hat alone, the same window */
-            kit_fresh((int16_t)(DK_MD808 + k));
+            kit_fresh(MDK(k));
             blocks(FS / 10 / CTL, 0, 0);
             trk_note_on(&trk[0], 42, 1);
             blocks(FS / 20 / CTL, 0, 0);
@@ -241,7 +243,7 @@ int main(int argc, char **argv)
         if (!fp)
             continue;
         wav_hdr(fp, frames);
-        kit_fresh((int16_t)(DK_MD808 + k));
+        kit_fresh(MDK(k));
         for (f = 0; f < frames; f += CTL) {
             int32_t o[2 * CTL];
             uint32_t q;

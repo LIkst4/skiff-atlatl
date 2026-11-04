@@ -62,6 +62,7 @@ enum { DK_STD, DK_HAND, DK_CYM, DK_HCYM, DK_80, DK_10, DK_66, DK_55, DK_77, DK_D
        DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI,   /* (custom) the MD kits (md/md.c MD_KIT), appended */
        DK_DX, DK_DXP,           /* (custom) DRUM-X's voice (drumx_voice.c) on the project's kit (dx_kit; EDIT > SOUND):
                                  * DX clean, DX+ through FM and the folder (DRUM-X, retired: its sounds load as these) */
+       DK_MD626,                /* (custom) an MD kit after the TR-626 (md/md.c MD_KIT's last), appended after DX+ */
        DK_COUNT };   /* (stored values) */
 /* the kit a stored KIT value plays: HAND CYM H+CYM (retired after 1.0.4) -> 66 (a conga on TOM), 10 (a cymbal on
  * BELL), 77 (claves on RIM, a cymbal on BELL) */
@@ -80,15 +81,16 @@ enum { DK_STD, DK_HAND, DK_CYM, DK_HCYM, DK_80, DK_10, DK_66, DK_55, DK_77, DK_D
 static const uint8_t DK_PLAYS[DK_COUNT] = {DK_STD, DK_66, DK_10, DK_77, DK_80, DK_10, DK_66, DK_55, DK_77, DK_DEEP,
                                            DK_TIGHT, DK_PERC, DK_USR_PLAYS(DK_USR1), DK_USR_PLAYS(DK_USR2),
                                            DK_USR_PLAYS(DK_USR3),
-                                           DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI, DK_DX, DK_DXP};
-_Static_assert(DK_DX - DK_MD808 == MD_NKIT, "the MD kits: one KIT value each");
+                                           DK_MD808, DK_MD909, DK_MDTRX, DK_MDEFM, DK_MDTRXP, DK_MDMI, DK_DX, DK_DXP,
+                                           DK_MD626};
+_Static_assert(DK_DX - DK_MD808 + 1 == MD_NKIT, "the MD kits: one KIT value each (626 after DX+)");
 
 static uint32_t drum_kit_plays(int32_t v) { return DK_PLAYS[clamp(v, 0, DK_COUNT - 1)]; }
 /* (custom) an MD kit's number + 1 (md/md.c MD_KIT), 0 a kit of DRUM's own or a user's */
 static uint32_t drum_md(const int16_t *p)
 {
     uint32_t k = drum_kit_plays(p[P_E0]);
-    return k >= DK_MD808 && k < DK_DX ? k - DK_MD808 + 1u : 0u;
+    return k >= DK_MD808 && k < DK_DX ? k - DK_MD808 + 1u : k == DK_MD626 ? (uint32_t)MD_NKIT : 0u;
 }
 /* (custom) the MD model lane ln plays + 1: its own MODEL (P_LMDL0 + ln, any kit), else an MD kit's, else 0 */
 static uint32_t drum_lane_md(const int16_t *p, uint32_t ln)
@@ -148,7 +150,8 @@ typedef struct {
 
 /* 1..3 named as the kit they play: aliases, never shown or offered (EDITOR_PROTOCOL.md: retired values) */
 static const char *const N_DRUM_KIT[] = {"STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC",
-                                         DK_USR_NAME("USR1"), DK_USR_NAME("USR2"), DK_USR_NAME("USR3"), "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"};
+                                         DK_USR_NAME("USR1"), DK_USR_NAME("USR2"), DK_USR_NAME("USR3"), "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+",
+                                         "626"};
 static const char *const N_DRUM_KICK[] = {"PUNCH", "ROUND"};
 
 /* General MIDI notes 35..81 -> the drum (DVT_*; DVT_PUNCH: the kick KICK picks) and semitones from its
@@ -685,10 +688,13 @@ static const preset_t DRUM_PRESETS[] = {
     {"DX TRIBAL", {DK_DX, 64, 64, 64, 60, 64, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 35), TAG(PT_DRUM)},
     {"DX LASER", {DK_DX, 64, 70, 64, 64, 64, 0, 10}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 30, 25), TAG(PT_DRUM)},
 #endif
+    /* (custom) the 626 kit through the INSERT's CRUSH at 12 bits, 22 kHz: the TR-626's PCM */
+    {"626 KIT", {DK_MD626, 64, 64, 56, 64, 100, 0, 0}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 18),
+     MORE({P_ITYPE, 5}, {P_IA, 92}, {P_IB, 116}, {P_IC, 104}), TAG(PT_DRUM)},
 };
 #define DRUM_PDX (BOARD_SMK37 ? 0u : 19u)   /* (custom) DX KIT's place (the presets before it: 13, the MD kits' 6) */
 #define DRUM_NDX 10u
-_Static_assert(BOARD_SMK37 || NELEM(DRUM_PRESETS) == DRUM_PDX + DRUM_NDX, "the DX presets: the last ten");
+_Static_assert(BOARD_SMK37 || NELEM(DRUM_PRESETS) == DRUM_PDX + DRUM_NDX + 1u, "the DX presets: ten, then 626 KIT");
 
 /* (custom) a DX kit's knobs as DRUM-X named them (TONE COLOR, SNAP NOISE, ACCENT MORPH; KICK does nothing there) */
 static const char *const N_DX_KICK[] = {"-", "-"};

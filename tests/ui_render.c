@@ -1473,7 +1473,7 @@ static void setup(int s)
     case S_DX_SOUND3:                               /* switches, WAVE turned; the kick's COLR LEVL DRV (DRV ON, PMOD LONG) */
         sel_set(NTRK - 1u);
         eng(ENGI_DRUMX);
-        TSEL->p[P_E0] = 40;
+        TSEL->p[P_E0] = DK_DXP;                     /* ((custom) DX+: was 40, the top, before KIT 626) */
         dx_ui_seen = last_note;
         dx_ui_hits = last_hits;
         dx_ui_lane = s == S_DX_SOUND3 ? DV_KICK : DV_SNARE;
