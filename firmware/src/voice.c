@@ -227,8 +227,8 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
 {
     uint32_t i, np = trk_nvoice(t), best = np, low = np, nfree = 0;
     int32_t bd = 0x7FFFFFFF;
-    if (t->engine == ENGI_DRUM || t->engine == ENGI_DRUMX) {
-        voice_t *v = t->engine == ENGI_DRUM ? drum_reuse(t, note) : drumx_reuse(t, note);
+    if (t->engine == ENGI_DRUM) {                       /* ((custom) DRUM-X retired: its DX kits are DRUM's) */
+        voice_t *v = drum_reuse(t, note);
         if (v)
             return voice_reuse(t, v);
     }

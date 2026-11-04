@@ -77,6 +77,8 @@ static int compact_project(void)
     step_set_chance(&t->step[3], 25); t->p[P_FM1_LEVEL] = 80; t->p[P_ED_FLT] = -50;
     motion_set_event(t, 3, P_REV, 110);
     project_t before, after; project_store_t packed, corrupt;
+    for (uint32_t f = P_FTYPE; f <= P_FDRV; f++)        /* ((custom) the FILTER: SKF1 holds none, SYNTH's preset sets it */
+        t->p[f] = TP[f].def;
     project_capture(&before);
     proj_power_on(&before, PROJ_NT); before.sum = proj_sum(&before);   /* ((Skiff phase 6) SKF1 holds four tracks: the rest
                                                                         * come back as at power-on) */
@@ -543,6 +545,8 @@ static int lock_project(void)
         ok &= !before.motion.event[i].lock;
     bad += check("a project without locks: the bytes as before (ids < 128), the same round trip", ok);
     motion_set_lock(t, 2, P_REV, 101); motion_set_lock(t, 7, P_E4, 77);
+    for (i = P_FTYPE; i <= P_FDRV; i++)                  /* ((custom) the FILTER: SKF1 holds none) */
+        t->p[i] = TP[i].def;
     project_capture(&before);
     proj_power_on(&before, PROJ_NT); before.sum = proj_sum(&before);   /* ((Skiff phase 6) four tracks in SKF1) */
     ok = proj_pack(&a, &before) && proj_import(&after, &a, sizeof a) && !memcmp(&before, &after, sizeof before);
@@ -654,9 +658,10 @@ static int lock_ui(void)
     song.rec = 1;                                        /* armed, stopped: step recording */
     lk_down(kn);
     ok = ui.entry_open && lock_held() == 1u && t->step[0].n == 1u;
-    turn(EN_K3, 4);                                      /* ANALOG's HOME: E5 E6 ATK REL */
-    bad += check("the roll, armed (step recording): a note key held (the entry) is the step held; KNOB 3 locks ATK, TIME untouched", ok &&
-        motion_lock_get(t, 0, P_ATK, &v) && v == t->p[P_ATK] + 4 && t->step[0].time == ST_NOTE);
+    turn(EN_K3, 4);                                      /* ((custom) SYNTH's HOME: SHAPE A, CUTOFF, RESO, MIX */
+    bad += check("the roll, armed (step recording): a note key held (the entry) is the step held; KNOB 3 locks RESO, TIME untouched", ok &&
+        motion_lock_get(t, 0, ENGINES[t->eng_req]->knob[2], &v) && v == t->p[ENGINES[t->eng_req]->knob[2]] + 4 &&
+        t->step[0].time == ST_NOTE);
     lk_up(kn);
     bad += check("  let go: the note and the lock on step 1, the cursor on", ui.cursor == 1u && t->step[0].n == 1u &&
         motion_lock_count(t) == 1u && motion_lock_steps(0) == 1u);
@@ -830,6 +835,7 @@ static int auto_list(void)
     press(B_OCTUP);
     bad += check("  OCT+ on + ADD LOCK where one is: ALREADY LISTED, that row selected", motion_count(t) == 2u &&
         str_eq(ui.msg, "ALREADY LISTED") && ev_row(2u) == 0u);
+    turn(EN_K4, 5);                                      /* ((custom) off its lowest first: SYNTH's may sit there) */
     turn(EN_K4, -300);                                   /* (U2) KNOB 4 to the value's lowest, one more: DELETE */
     ok = !ui.ev_del && motion_count(t) == 2u;
     turn(EN_K4, -1);

@@ -1395,7 +1395,7 @@ static void retired(void)
             v = param_turn(d, v, 1);
         }
         if (SMP_SHOWN == SMP_USER_SLOTS)                /* ((custom) then the MD kits, held at the last) */
-            for (i = 0; i < MD_NKIT; i++) {
+            for (i = 0; i < MD_NKIT + 2; i++) {         /* (and the DX kits: DX, DX+) */
                 bad += v != DK_MD808 + i;
                 v = param_turn(d, v, 1);
             }

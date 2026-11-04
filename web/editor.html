@@ -2153,8 +2153,8 @@ function makeMockDevice(opt = {}) {
     D("SIZE", F.PCT, 0, 127, 90), D("DAMP", F.PCT, 0, 127, 60), D("RATE", F.LFOHZ, 0, 127, 40), D("DEPTH", F.PCT, 0, 127, 60),
     E("MIDI", ["USB", "TRS"], 0), E("SYNC", NDASH, 0), E("ROUTE", ["CH1-6", "SEL"], 0), D("CPU", F.INT, 0, 0, 0),
     D("SLOT", F.INT, 1, 4, 1), E("NAME", NDASH, 0), E("LOAD", NGO, 0), E("SAVE", NGO, 0),
-    E("ENGINE", ["ANALOG", "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL",
-      "GRAIN", "PHYS", "DRUM", "NOISE", "FM6", "SLICE", "DRUM-X", "SYNTH", "FMINI"], 0), E("SET", NGO, 0),
+    E("ENGINE", ["-", "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "-", "-", "GRAIN", "PHYS", "DRUM", "-", "FM6", "SLICE", "-", "SYNTH", "FMINI"], 0),   /* ((custom) ANALOG TRIO WHEEL NOISE DRUM-X retired: "-") */
+    E("SET", NGO, 0),
     E("CLRSQ", NGO, 0), E("INIT", NGO, 0),
     E("TYPE", ["ROOM", "SPRING", "HALL"], 0),       /* G_RTYPE (id 24, was G_DRCH): the reverb's model ((Skiff phase 9) HALL) */
     E("MODE", ["CHORUS", "FLANGER", "PHASER"], 0), D("FEEDBACK", F.PCT, 0, 127, 0),   /* 25, 26: (Skiff phase 9) the CHORUS bus
@@ -2164,30 +2164,8 @@ function makeMockDevice(opt = {}) {
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
   const P = (name, e, env = [10, 70, 90, 60], mono = 0, pat = 0, more = []) => ({ name, e, env, mono, pat, more });
   const ENG = [
-    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "SUB"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
-        D("NOISE", F.PCT, 0, 127, 0), D("CUTOFF", F.CUTOFF, 0, 127, 90), D("RES", F.PCT, 0, 127, 30), D("DRIVE", F.PCT, 0, 127, 0), D("KEYTRK", F.PCT, 0, 127, 64)],
-      presets: [P("SAW LEAD", [0, 12, 64, 0, 90, 30, 10, 64], [4, 70, 100, 50], 1, 4), P("SOFT PAD", [0, 20, 64, 4, 60, 10, 0, 32], [80, 90, 110, 95], 0, 5),
-        P("SQR BASS", [1, 0, 0, 0, 50, 70, 40, 64], [0, 60, 40, 30], 1, 2), P("PWM STR", [4, 8, 40, 0, 75, 20, 0, 48], [60, 80, 110, 85], 0, 5),
-        P("ACID", [0, 0, 0, 0, 50, 100, 25, 64], [0, 55, 20, 30], 1, 1), P("SINE KEY", [3, 6, 50, 0, 127, 0, 0, 0], [2, 80, 30, 70], 0, 6),
-        P("RAVE", [4, 30, 64, 0, 85, 20, 30, 64], [20, 80, 110, 60], 1, 13), P("SUB BASS", [3, 0, 0, 0, 40, 0, 20, 0], [0, 60, 100, 20], 1, 8),
-        P("SYNTH PLUCK", [0, 8, 50, 0, 30, 40, 0, 64], [0, 88, 0, 60], 0, 3), P("SYNTH BRASS", [0, 10, 64, 0, 45, 20, 10, 64], [35, 70, 90, 45], 0, 6),
-        P("WIND SWEEP", [0, 0, 0, 90, 30, 90, 0, 0], [60, 90, 60, 80], 0, 5), P("STRINGS", [4, 6, 64, 0, 92, 8, 0, 48], [48, 90, 118, 72], 0, 5, [[15, 20], [9, 72], [13, 8], [12, 80]]),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("BONE FLUTE", [2, 3, 30, 22, 84, 15, 0, 64], [56, 80, 110, 64], 1, 0, [[9, 84], [12, 90], [13, 8]]),
-        P("WAR HORN", [0, 5, 64, 4, 42, 12, 20, 64], [72, 80, 110, 80], 1, 0, [[9, 80], [12, 96], [13, 8]]),
-        P("DARK STRINGS", [1, 4, 64, 6, 40, 34, 22, 40], [100, 90, 120, 105], 0, 0, [[9, 30], [14, 8], [13, 8], [12, 110]]),
-        P("NIGHT BASS", [0, 7, 64, 0, 40, 35, 15, 64], [0, 64, 50, 30], 1),
-        P("NEON LEAD", [0, 14, 64, 0, 92, 25, 12, 64], [6, 70, 110, 55], 1, 0, [[9, 86], [12, 92], [13, 11], [38, 28]]),
-        P("SUNSET PAD", [4, 9, 55, 0, 74, 15, 0, 48], [78, 90, 115, 92], 0, 0, [[10, 1], [9, 52], [15, 48]]),
-        P("HERO BRASS", [0, 16, 64, 0, 50, 18, 8, 56], [50, 75, 95, 55]),
-        P("SYN TOM", [3, 0, 0, 6, 127, 0, 25, 0], [0, 76, 0, 60], 0, 0, [[6, 63]]),
-        P("QUANTA", [3, 0, 0, 0, 127, 0, 0, 0], [0, 64, 127, 50], 1, 0, [[10, 4], [9, 96], [13, 50]]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("REESE", [0, 40, 64, 0, 52, 15, 30, 32], [0, 64, 127, 30], 1, 0, [[9, 30], [14, 8]]),
-        P("DRIVE BASS", [0, 14, 64, 0, 62, 20, 10, 64], [0, 64, 64, 25], 1, 0, [[95, 1], [96, -32]]),
-        /* (1.3, from Felucca) WAVE SYNC and SUB */
-        P("HARD SYNC", [5, 36, 96, 0, 88, 24, 12, 64], [2, 70, 96, 40], 1, 0, [[7, 44], [38, 20]]),
-        P("SUB SAW", [6, 0, 80, 0, 70, 22, 6, 64], [0, 60, 110, 22], 1)] },
+    { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
+      presets: [] },
     /* 1: reserved (DIGITAL, retired: src/fm4_convert.c ENG_FM4_GONE; its sounds load as FM6, FM4 above) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 7, 0), D("-", F.INT, 0, 14, 1), D("-", F.INT, 0, 14, 1),
         D("-", F.INT, 0, 14, 1), D("-", F.PCT, 0, 127, 60), D("-", F.INT, 0, 127, 60), D("-", F.PCT, 0, 127, 0), NONE],
@@ -2234,29 +2212,10 @@ function makeMockDevice(opt = {}) {
         P("DREAM CHOIR", [0, 20, 0, 3, 55, 45, 55, 8], [80, 90, 118, 95]),
         /* (Skiff phase 9) more for every engine (src/eng_*.c) */
         P("ROBOT TALK", [20, 100, 40, -12, 110, 4, 90, 30], [0, 70, 100, 30], 1)] },
-    { name: "TRIO", titles: ["OSC", "TONE"], edit: [E("WAVE", ["SAW3", "PLS3", "PPT", "SST", "TRI3", "S&T", "P&S", "P+N", "NOIS", "SYNC", "SYNCP", "SYNC3",
-        "RING", "RING3", "R+S", "R+SP"], 0), D("PITCH2", F.SEMI, -24, 24, 0), D("PITCH3", F.SEMI, -24, 24, -12), D("DETUNE", F.INT, 0, 50, 6, null, "ct"),
-        E("MODE", ["LP", "BP", "HP", "NOT"], 0), D("CUTOFF", F.CUTOFF, 0, 127, 80), D("RES", F.PCT, 0, 127, 40), D("PW", F.PCT, 0, 127, 64)],
-      presets: [P("FAT BASS", [0, 0, -12, 9, 0, 62, 45, 64], [0, 62, 60, 25], 1, 2), P("ARP LEAD", [2, 12, 0, 4, 0, 88, 25, 32], [0, 60, 90, 30], 0, 13),
-        P("SYNC LEAD", [9, 9, 0, 0, 0, 82, 30, 64], [2, 70, 100, 40], 1, 4), P("RING BELL", [13, 0, 18, 6, 1, 96, 30, 64], [0, 92, 0, 80], 0, 7),
-        P("CHIP CHOIR", [1, 0, 12, 7, 1, 62, 95, 40], [70, 90, 110, 85], 0, 5),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("TURBO SYNC", [9, 7, 0, 3, 0, 92, 28, 64], [2, 72, 105, 45], 1, 0, [[38, 24], [9, 86], [12, 90], [13, 8]]),
-        P("NEON ARP", [1, 12, 0, 5, 0, 70, 35, 40], [0, 66, 0, 45]),
-        P("COLLIDER", [13, 0, 23, 9, 2, 60, 50, 64], [0, 70, 0, 55], 0, 0, [[6, 36]]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("DIRTY BASS", [1, -12, 0, 8, 1, 62, 85, 30], [0, 50, 50, 20], 1, 0, [[95, 1], [96, -10]])] },
-    { name: "WHEEL", titles: ["BARS", "TONE"], edit: [E("REG", ["FLUTE", "MELLOW", "HOLLOW", "SMOOTH", "3BAR", "BLUES", "GOSPEL", "ROCK",
-        "TOPS", "CLARI", "REED", "STRNG", "CHAPL", "BRITE", "BASS", "FULL"], 4), D("SUB", F.INT, -8, 8, 0), D("BODY", F.INT, -8, 8, 0), D("TOP", F.INT, -8, 8, 0),
-        E("PERC", ["OFF", "2ND", "3RD", "2SOFT", "3SOFT", "2SLOW", "3SLOW"], 0), D("CLICK", F.PCT, 0, 127, 40), D("DRIVE", F.PCT, 0, 127, 0), E("ROTOR", ["OFF", "SLOW", "FAST"], 1)],
-      presets: [P("FULL ORGAN", [15, 0, 0, 0, 0, 30, 20, 1], [0, 64, 127, 45], 0, 5), P("JAZZ PERC", [4, 0, 0, 0, 2, 50, 8, 1], [0, 64, 127, 40], 0, 3),
-        P("GOSPEL", [6, 0, 0, 0, 1, 60, 40, 2], [0, 64, 127, 45], 0, 6), P("SOFT FLUTE", [1, 0, -2, 0, 0, 10, 0, 1], [0, 64, 127, 55], 0, 5),
-        P("ROCK DRIVE", [7, 0, 0, 0, 0, 70, 100, 2], [0, 64, 127, 40], 0, 4),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("CATHEDRAL", [12, 2, 0, 0, 0, 6, 0, 0], [48, 64, 127, 72]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("PEDAL BASS", [14, 4, 0, -4, 0, 20, 10, 0], [0, 64, 127, 30], 1),
-        P("CLARINET", [9, 0, 2, -5, 0, 0, 14, 1], [24, 64, 120, 45], 1, 0, [[13, 8], [9, 89], [12, 70]])] },
+    { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
+      presets: [] },
+    { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
+      presets: [] },
     { name: "GRAIN", titles: ["GRAIN", "SPRAY"], edit: [E("SOURCE", ["PIANO", "PIANO", "FLUTE", "SAX", "PIANO", "USR1", "USR2", "USR3"], 0),
         D("POS", F.PCT, 0, 127, 32), D("SIZE", F.PCT, 0, 127, 80), D("DENSITY", F.PCT, 0, 127, 80),
         D("PITCH", F.SEMI, -24, 24, 0), D("SPREAD", F.PCT, 0, 127, 30), D("RANDOM", F.PCT, 0, 127, 10), D("TONE", F.PCT, 0, 127, 127)],
@@ -2280,45 +2239,40 @@ function makeMockDevice(opt = {}) {
         P("HARPSICHORD", [1, 44, 112, 76, 10, 127, 0, 24], [0, 100, 127, 50]),
         /* (Skiff phase 9) more for every engine (src/eng_*.c) */
         P("UPRIGHT", [1, 60, 60, 90, 20, 127, 0, 60], [0, 100, 127, 40], 1)] },
-    { name: "DRUM", titles: ["KIT", "HIT"], edit: [E("KIT", ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC",
-        "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI"], 0), D("PITCH", F.ST16, 0, 127, 64),   /* ((2.0, #35)
-        USR1..3: a user sample slot as the kit; (custom) the MD kits, Hortator's models) */
-        D("TONE", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64), D("SNAP", F.PCT, 0, 127, 64), D("ACCENT", F.PCT, 0, 127, 100),
-        E("KICK", ["PUNCH", "ROUND"], 0), D("DRIVE", F.PCT, 0, 127, 0)],
-      presets: [P("DRUM KIT", [0, 64, 70, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 12),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("WAR DRUMS", [0, 40, 38, 108, 40, 110, 1, 24], [0, 100, 127, 100]),
-        P("NEON KIT", [4, 60, 80, 56, 90, 100, 0, 20], [0, 100, 127, 100]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("BOOM KIT", [4, 58, 60, 100, 50, 100, 0, 10], [0, 100, 127, 100]),
-        P("CRISP KIT", [5, 64, 76, 60, 80, 100, 0, 0], [0, 100, 127, 100]),
-        P("RHYTHM BOX", [6, 66, 64, 56, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("ELECTRO KIT", [7, 64, 70, 60, 70, 100, 0, 15], [0, 100, 127, 100]),
-        P("STUDIO KIT", [8, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("TIGHT KIT", [0, 70, 80, 30, 100, 110, 0, 10], [0, 100, 127, 100]),
-        P("LOFI KIT", [0, 56, 30, 70, 40, 100, 1, 50], [0, 100, 127, 100]),
-        /* (1.3, from Felucca) its kits DEEP, TIGHT, PERC */
-        P("DEEP DRUMS", [9, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("SNAP KIT", [10, 64, 64, 56, 64, 100, 0, 16], [0, 100, 127, 100]),
-        P("PERC KIT", [11, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        /* (custom) the MD kits (src/md/md.c) */
-        P("808 KIT", [15, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("909 KIT", [16, 64, 64, 64, 64, 100, 0, 10], [0, 100, 127, 100]),
-        P("TRX KIT", [17, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("EFM KIT", [18, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("TRX PERC", [19, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100]),
-        P("MI DRUMS", [20, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100])] },
-    { name: "NOISE", titles: ["SOURCE", "MOVE"], edit: [E("MODE", ["ANLG", "DUST", "LFSR", "META"], 0), D("COLOR", F.PCT, 0, 127, 64),
-        D("CUTOFF", F.CUTOFF, 0, 127, 80), D("RES", F.PCT, 0, 127, 30), D("KEYTRK", F.PCT, 0, 127, 64), D("DENSITY", F.PCT, 0, 127, 0),
-        D("DRIFT", F.PCT, 0, 127, 0), D("CRUSH", F.PCT, 0, 127, 0)],
-      presets: [P("WIND", [0, 64, 70, 100, 127, 0, 70, 0], [90, 90, 110, 90], 0, 5), P("RAIN", [1, 30, 88, 80, 64, 105, 40, 0], [50, 90, 127, 70], 0, 5),
-        P("ARCADE", [2, 0, 127, 0, 127, 112, 0, 84], [0, 80, 0, 50], 0, 3), P("METAL", [3, 0, 100, 40, 100, 32, 0, 0], [0, 75, 40, 60], 0, 7),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("CAVE WIND", [0, 100, 70, 112, 127, 0, 100, 0], [100, 90, 120, 100]),
-        P("GEIGER", [1, 10, 100, 40, 64, 34, 0, 0], [0, 90, 127, 40]),
-        P("PLASMA", [3, 0, 90, 90, 100, 40, 80, 0], [60, 90, 110, 90], 0, 0, [[9, 56], [14, 18]]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("OCEAN", [0, 50, 60, 20, 0, 0, 40, 0], [100, 90, 120, 110], 0, 0, [[9, 20], [14, 40], [10, 1]])] },
+    { name: "DRUM", titles: ["KIT", "HIT"], edit: [E("KIT", ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"], 0), D("PITCH", F.ST16, 0, 127, 64), D("TONE", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64), D("SNAP", F.PCT, 0, 127, 64), D("ACCENT", F.PCT, 0, 127, 100), E("KICK", ["PUNCH", "ROUND"], 0), D("DRIVE", F.PCT, 0, 127, 0)],
+      presets: [
+        P("DRUM KIT", [0, 64, 70, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 12, []),
+        P("WAR DRUMS", [0, 40, 38, 108, 40, 110, 1, 24], [0, 100, 127, 100], 0, 0, []),
+        P("NEON KIT", [4, 60, 80, 56, 90, 100, 0, 20], [0, 100, 127, 100], 0, 0, []),
+        P("BOOM KIT", [4, 58, 60, 100, 50, 100, 0, 10], [0, 100, 127, 100], 0, 0, []),
+        P("CRISP KIT", [5, 64, 76, 60, 80, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("RHYTHM BOX", [6, 66, 64, 56, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("ELECTRO KIT", [7, 64, 70, 60, 70, 100, 0, 15], [0, 100, 127, 100], 0, 0, []),
+        P("STUDIO KIT", [8, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("TIGHT KIT", [0, 70, 80, 30, 100, 110, 0, 10], [0, 100, 127, 100], 0, 0, []),
+        P("LOFI KIT", [0, 56, 30, 70, 40, 100, 1, 50], [0, 100, 127, 100], 0, 0, []),
+        P("DEEP DRUMS", [9, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("SNAP KIT", [10, 64, 64, 56, 64, 100, 0, 16], [0, 100, 127, 100], 0, 0, []),
+        P("PERC KIT", [11, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("808 KIT", [15, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("909 KIT", [16, 64, 64, 64, 64, 100, 0, 10], [0, 100, 127, 100], 0, 0, []),
+        P("TRX KIT", [17, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("EFM KIT", [18, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("TRX PERC", [19, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("MI DRUMS", [20, 64, 64, 64, 64, 100, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX KIT", [21, 64, 70, 64, 64, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX HADRON", [22, 72, 90, 40, 80, 100, 0, 25], [0, 100, 127, 100], 0, 0, []),
+        P("DX FACTORY", [21, 64, 70, 64, 64, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX DEEP", [21, 60, 64, 62, 60, 64, 0, 10], [0, 100, 127, 100], 0, 0, []),
+        P("DX CLICK", [21, 64, 70, 64, 64, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX INDUSTRL", [22, 62, 70, 64, 70, 64, 0, 40], [0, 100, 127, 100], 0, 0, []),
+        P("DX SOFT", [21, 64, 56, 60, 56, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX GLITCH", [22, 64, 70, 60, 64, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX TRIBAL", [21, 64, 64, 64, 60, 64, 0, 0], [0, 100, 127, 100], 0, 0, []),
+        P("DX LASER", [21, 64, 70, 64, 64, 64, 0, 10], [0, 100, 127, 100], 0, 0, []),
+      ] },
+    { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
+      presets: [] },
     { name: "FM6", titles: ["OPS", "PATCH"], edit: [D("ALGO", F.INT, 0, 32, 0), D("FEEDBACK", F.INT, -7, 7, 0), D("MOD LVL", F.BIPCT, -64, 63, 0),
         D("RATIO", F.INT, -16, 16, 0), D("MOD ENV", F.BIPCT, -64, 63, 0), D("VEL MOD", F.INT, -7, 7, 0), D("DETUNE", F.PCT, 0, 127, 0),
         D("PATCH", F.INT, 0, FM6.FACTORY_PK.length, 0)],   /* F1..F8, then OWN (eng_fm6.c, 1.0.3) */
@@ -2347,48 +2301,64 @@ function makeMockDevice(opt = {}) {
         P("ROLL LOOP", [0, 3, 0, 0, 2, 0, 127, 127], [0, 127, 127, 20]),
         /* (Skiff phase 9) more for every engine (src/eng_*.c) */
         P("FUNK BREAK", [5, 1, 0, 0, 0, 0, 127, 127], [0, 127, 127, 30])] },
-    { name: "DRUM-X", titles: ["KIT", "HIT"], edit: [D("MORPH", F.PCT, 0, 127, 64), D("PITCH", F.ST16, 0, 127, 64),   /* (Skiff: JIANT FM's) */
-        D("COLOR", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64), D("NOISE", F.PCT, 0, 127, 64), D("FM", F.PCT, 0, 127, 0),
-        D("FOLD", F.PCT, 0, 127, 0), D("DRIVE", F.PCT, 0, 127, 0)],
-      presets: [P("OWN KIT", [64, 64, 70, 64, 64, 0, 0, 0], [0, 100, 127, 100], 0, 12),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("HADRON KIT", [100, 72, 90, 40, 80, 70, 60, 25], [0, 100, 127, 100]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("FACTORY KIT", [64, 64, 70, 64, 64, 0, 0, 0], [0, 100, 127, 100]),
-        P("DEEP KIT", [64, 60, 64, 62, 60, 0, 0, 10], [0, 100, 127, 100]),
-        P("CLICK KIT", [64, 64, 70, 64, 64, 0, 0, 0], [0, 100, 127, 100]),
-        P("INDUSTRIAL", [64, 62, 70, 64, 70, 20, 30, 40], [0, 100, 127, 100]),
-        P("SOFT KIT", [64, 64, 56, 60, 56, 0, 0, 0], [0, 100, 127, 100]),
-        P("GLITCH KIT", [64, 64, 70, 60, 64, 30, 20, 0], [0, 100, 127, 100]),
-        P("TRIBAL KIT", [64, 64, 64, 64, 60, 0, 0, 0], [0, 100, 127, 100]),
-        P("LASER KIT", [64, 64, 70, 64, 64, 10, 0, 10], [0, 100, 127, 100])] },
+    { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
+      presets: [] },
     /* (custom) SYNTH (src/eng_synth.c): two oscillators into a filter per voice, the track FILTER's parameters */
-    { name: "SYNTH", titles: ["OSC A", "OSC B"], edit: [E("OSC A", ["VA", "WAVE", "ADD", "NOISE"], 0), D("SHAPE A", F.PCT, 0, 127, 0),
-        D("MOD", F.PCT, 0, 127, 0), E("OSC B", ["OFF", "VA", "WAVE", "ADD", "NOISE"], 0), D("SHAPE B", F.PCT, 0, 127, 0),
-        D("B TUNE", F.INT, -24, 24, 0, null, "st"), D("DETUNE", F.INT, 0, 127, 0, null, "ct"), D("MIX", F.PCT, 0, 127, 64)],
+    { name: "SYNTH", titles: ["OSC A", "OSC B"], edit: [E("OSC A", ["VA", "WAVE", "ADD", "NOISE", "ORGAN"], 0), D("SHAPE A", F.PCT, 0, 127, 0), D("MOD", F.PCT, 0, 127, 0), E("OSC B", ["OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING"], 0), D("SHAPE B", F.PCT, 0, 127, 0), D("B TUNE", F.INT, -24, 24, 0, null, "st"), D("DETUNE", F.INT, 0, 127, 0, null, "ct"), D("MIX", F.PCT, 0, 127, 64)],
       presets: [
-        P("INIT SYNTH", [0,  0,  0,  0,  0,  0,  0,  64], [2,  80,  100,  40], 0, 0, [[138, 1], [139, 90], [140, 20], [141, 0]]),
-        P("OB BRASS", [0,  10,  0,  1,  12,  0,  18,  64], [30,  80,  100,  50], 0, 0, [[138, 5], [139, 60], [140, 40], [141, 0]]),
-        P("OB STRINGS", [0,  70,  0,  1,  90,  0,  30,  64], [70,  90,  115,  80], 0, 0, [[138, 5], [139, 72], [140, 25], [15, 30]]),
-        P("LADDER BASS", [0,  0,  60,  1,  0,  -12,  10,  50], [0,  60,  50,  30], 1, 0, [[138, 1], [139, 40], [140, 70], [142, 40]]),
-        P("ACID LINE", [0,  0,  0,  0,  0,  0,  0,  64], [0,  55,  20,  30], 1, 0, [[138, 7], [139, 40], [140, 105], [141, 40]]),
-        P("WAVE SCAN", [1,  20,  0,  2,  60,  12,  20,  50], [40,  90,  110,  70], 0, 0, [[138, 3], [139, 90], [140, 30], [15, 50]]),
-        P("VOX PAD", [1,  108,  0,  2,  100,  0,  25,  64], [80,  90,  118,  90], 0, 0, [[138, 9], [139, 64], [140, 70], [141, 30]]),
-        P("DIGI BELL", [1,  127,  40,  3,  90,  19,  0,  40], [0,  85,  0,  80], 0, 0, [[138, 3], [139, 110], [140, 10]]),
-        P("ORGAN WT", [1,  90,  0,  0,  0,  0,  0,  0], [0,  100,  127,  20], 0, 0, [[138, 2], [139, 110], [140, 0], [141, 127]]),
-        P("ADD GLASS", [2,  90,  0,  3,  110,  12,  8,  40], [5,  90,  60,  80], 0, 0, [[138, 3], [139, 120], [140, 0]]),
-        P("ADD CLARINET", [2,  70,  127,  0,  0,  0,  0,  0], [20,  80,  110,  40], 1, 0, [[138, 1], [139, 100], [140, 10], [13, 6]]),
-        P("SK SCREAM", [0,  30,  0,  1,  30,  7,  30,  64], [0,  70,  100,  40], 1, 0, [[138, 4], [139, 70], [140, 110], [142, 50]]),
-        P("OB24 POLY", [0,  0,  0,  1,  40,  0,  22,  64], [5,  80,  90,  45], 0, 0, [[138, 6], [139, 70], [140, 50], [141, 60]]),
-        P("COMB WIND", [3,  40,  0,  4,  100,  0,  0,  64], [90,  90,  110,  100], 0, 0, [[138, 9], [139, 50], [140, 100], [141, 64]]),
-        P("SY PIANO", [2,  84,  0,  3,  70,  12,  6,  30], [0,  84,  0,  70], 0, 0, [[138, 1], [139, 72], [140, 8], [142, 10]]),
-        P("SY LOFI PNO", [2,  70,  0,  3,  60,  12,  14,  30], [0,  80,  0,  64], 0, 0, [[138, 2], [139, 64], [140, 10], [13, 8]]),
-        P("SY FLUTE", [2,  28,  110,  4,  100,  0,  0,  14], [14,  80,  118,  50], 1, 0, [[138, 3], [139, 104], [140, 12], [13, 6]]),
-        P("SY FLUTE PAD", [2,  34,  100,  4,  90,  0,  0,  10], [80,  90,  120,  100], 0, 0, [[138, 3], [139, 96], [140, 10], [13, 4]]),
-        P("SY SAX", [0,  58,  0,  1,  40,  0,  9,  40], [10,  80,  116,  40], 1, 0, [[138, 9], [139, 66], [140, 58], [141, 22]]),
-        P("SY DARK SAX", [0,  50,  0,  1,  30,  -12,  9,  30], [22,  80,  120,  55], 1, 0, [[138, 9], [139, 52], [140, 50], [141, 60]]),
-        P("SY MUSICBOX", [1,  127,  30,  3,  110,  24,  0,  40], [0,  90,  0,  80], 0, 0, [[138, 3], [139, 118], [140, 0]]),
-        P("SY KOTO", [0,  20,  0,  2,  110,  12,  4,  34], [0,  72,  0,  50], 0, 0, [[138, 4], [139, 70], [140, 60], [6, 2]])] },
+        P("INIT SYNTH", [0, 0, 0, 0, 0, 0, 0, 64], [2, 80, 100, 40], 0, 0, [[138,  1],  [139,  90],  [140,  20],  [141,  0]]),
+        P("OB BRASS", [0, 10, 0, 1, 12, 0, 18, 64], [30, 80, 100, 50], 0, 0, [[138,  5],  [139,  60],  [140,  40],  [141,  0]]),
+        P("OB STRINGS", [0, 70, 0, 1, 90, 0, 30, 64], [70, 90, 115, 80], 0, 0, [[138,  5],  [139,  72],  [140,  25],  [15,  30]]),
+        P("LADDER BASS", [0, 0, 60, 1, 0, -12, 10, 50], [0, 60, 50, 30], 1, 0, [[138,  1],  [139,  40],  [140,  70],  [142,  40]]),
+        P("ACID LINE", [0, 0, 0, 0, 0, 0, 0, 64], [0, 55, 20, 30], 1, 0, [[138,  7],  [139,  40],  [140,  105],  [141,  40]]),
+        P("WAVE SCAN", [1, 20, 0, 2, 60, 12, 20, 50], [40, 90, 110, 70], 0, 0, [[138,  3],  [139,  90],  [140,  30],  [15,  50]]),
+        P("VOX PAD", [1, 108, 0, 2, 100, 0, 25, 64], [80, 90, 118, 90], 0, 0, [[138,  9],  [139,  64],  [140,  70],  [141,  30]]),
+        P("DIGI BELL", [1, 127, 40, 3, 90, 19, 0, 40], [0, 85, 0, 80], 0, 0, [[138,  3],  [139,  110],  [140,  10]]),
+        P("ORGAN WT", [1, 90, 0, 0, 0, 0, 0, 0], [0, 100, 127, 20], 0, 0, [[138,  2],  [139,  110],  [140,  0],  [141,  127]]),
+        P("ADD GLASS", [2, 90, 0, 3, 110, 12, 8, 40], [5, 90, 60, 80], 0, 0, [[138,  3],  [139,  120],  [140,  0]]),
+        P("ADD CLARINET", [2, 70, 127, 0, 0, 0, 0, 0], [20, 80, 110, 40], 1, 0, [[138,  1],  [139,  100],  [140,  10],  [13,  6]]),
+        P("SK SCREAM", [0, 30, 0, 1, 30, 7, 30, 64], [0, 70, 100, 40], 1, 0, [[138,  4],  [139,  70],  [140,  110],  [142,  50]]),
+        P("OB24 POLY", [0, 0, 0, 1, 40, 0, 22, 64], [5, 80, 90, 45], 0, 0, [[138,  6],  [139,  70],  [140,  50],  [141,  60]]),
+        P("COMB WIND", [3, 40, 0, 4, 100, 0, 0, 64], [90, 90, 110, 100], 0, 0, [[138,  9],  [139,  50],  [140,  100],  [141,  64]]),
+        P("SY PIANO", [2, 84, 0, 3, 70, 12, 6, 30], [0, 84, 0, 70], 0, 0, [[138,  1],  [139,  72],  [140,  8],  [142,  10]]),
+        P("SY LOFI PNO", [2, 70, 0, 3, 60, 12, 14, 30], [0, 80, 0, 64], 0, 0, [[138,  2],  [139,  64],  [140,  10],  [13,  8]]),
+        P("SY FLUTE", [2, 28, 110, 4, 100, 0, 0, 14], [14, 80, 118, 50], 1, 0, [[138,  3],  [139,  104],  [140,  12],  [13,  6]]),
+        P("SY FLUTE PAD", [2, 34, 100, 4, 90, 0, 0, 10], [80, 90, 120, 100], 0, 0, [[138,  3],  [139,  96],  [140,  10],  [13,  4]]),
+        P("SY SAX", [0, 58, 0, 1, 40, 0, 9, 40], [10, 80, 116, 40], 1, 0, [[138,  9],  [139,  66],  [140,  58],  [141,  22]]),
+        P("SY DARK SAX", [0, 50, 0, 1, 30, -12, 9, 30], [22, 80, 120, 55], 1, 0, [[138,  9],  [139,  52],  [140,  50],  [141,  60]]),
+        P("SY MUSICBOX", [1, 127, 30, 3, 110, 24, 0, 40], [0, 90, 0, 80], 0, 0, [[138,  3],  [139,  118],  [140,  0]]),
+        P("SY KOTO", [0, 20, 0, 2, 110, 12, 4, 34], [0, 72, 0, 50], 0, 0, [[138,  4],  [139,  70],  [140,  60],  [6,  2]]),
+        P("SAW LEAD", [0, 0, 0, 1, 0, 0, 25, 64], [4, 70, 100, 50], 1, 0, [[138,  1],  [139,  90],  [140,  30]]),
+        P("SOFT PAD", [0, 30, 0, 1, 30, 0, 30, 50], [80, 90, 110, 95], 0, 0, [[138,  1],  [139,  60],  [140,  10]]),
+        P("SQR BASS", [0, 64, 40, 0, 0, 0, 0, 0], [0, 60, 40, 30], 1, 0, [[138,  1],  [139,  50],  [140,  70]]),
+        P("PWM STR", [0, 90, 0, 1, 100, 0, 40, 64], [60, 80, 110, 85], 0, 0, [[138,  1],  [139,  75],  [140,  20],  [15,  30]]),
+        P("SUB BASS", [1, 0, 0, 0, 0, 0, 0, 0], [0, 60, 100, 20], 1, 0, [[138,  1],  [139,  50],  [140,  0]]),
+        P("SYNTH PLUCK", [0, 0, 0, 1, 0, 0, 16, 64], [0, 88, 0, 60], 0, 0, [[138,  1],  [139,  30],  [140,  40]]),
+        P("SYNTH BRASS", [0, 0, 0, 1, 0, 0, 20, 64], [35, 70, 90, 45], 0, 0, [[138,  5],  [139,  45],  [140,  20]]),
+        P("REESE", [0, 0, 0, 1, 0, 0, 100, 64], [0, 64, 127, 30], 1, 0, [[138,  1],  [139,  52],  [140,  15],  [14,  8]]),
+        P("HARD SYNC", [0, 0, 0, 6, 0, 12, 0, 100], [2, 70, 96, 40], 1, 0, [[138,  1],  [139,  88],  [140,  24],  [38,  20]]),
+        P("SUB SAW", [0, 0, 80, 0, 0, 0, 0, 0], [0, 60, 110, 22], 1, 0, [[138,  1],  [139,  70],  [140,  22]]),
+        P("SINE KEY", [1, 0, 0, 2, 0, 12, 0, 30], [2, 80, 30, 70], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("SYN TOM", [1, 0, 0, 0, 0, 0, 0, 0], [0, 76, 0, 60], 0, 0, [[138,  0],  [139,  127],  [140,  0],  [6,  63]]),
+        P("SYNC LEAD", [0, 0, 0, 6, 30, 9, 0, 110], [2, 70, 100, 40], 1, 0, [[138,  1],  [139,  82],  [140,  30]]),
+        P("RING BELL", [1, 0, 0, 7, 127, 18, 0, 127], [0, 92, 0, 80], 0, 0, [[138,  3],  [139,  96],  [140,  30]]),
+        P("CHIP CHOIR", [0, 100, 0, 1, 80, 12, 20, 50], [70, 90, 110, 85], 0, 0, [[138,  1],  [139,  62],  [140,  40]]),
+        P("FAT BASS", [0, 0, 0, 1, 0, -12, 22, 64], [0, 62, 60, 25], 1, 0, [[138,  1],  [139,  62],  [140,  45]]),
+        P("DIRTY BASS", [0, 64, 0, 1, 64, -12, 20, 64], [0, 50, 50, 20], 1, 0, [[138,  1],  [139,  62],  [140,  85],  [142,  80]]),
+        P("COLLIDER", [0, 0, 0, 7, 127, 23, 0, 127], [0, 70, 0, 55], 0, 0, [[138,  3],  [139,  60],  [140,  50],  [6,  36]]),
+        P("WIND", [3, 70, 0, 0, 0, 0, 0, 0], [90, 90, 110, 90], 0, 0, [[138,  3],  [139,  100],  [140,  120],  [14,  20]]),
+        P("RAIN", [3, 20, 0, 0, 0, 0, 0, 0], [50, 90, 127, 70], 0, 0, [[138,  3],  [139,  88],  [140,  40]]),
+        P("ARCADE", [3, 0, 127, 0, 0, 0, 0, 0], [0, 80, 0, 50], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("OCEAN", [3, 60, 0, 0, 0, 0, 0, 0], [100, 90, 120, 110], 0, 0, [[138,  1],  [139,  60],  [140,  20],  [14,  40]]),
+        P("METAL", [0, 127, 0, 7, 127, 7, 0, 127], [0, 75, 40, 60], 0, 0, [[138,  3],  [139,  100],  [140,  40]]),
+        P("FULL ORGAN", [4, 127, 0, 0, 0, 0, 0, 0], [0, 64, 127, 45], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("JAZZ PERC", [4, 34, 30, 0, 0, 0, 0, 0], [0, 64, 127, 40], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("GOSPEL", [4, 51, 70, 0, 0, 0, 0, 0], [0, 64, 127, 45], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("SOFT FLUTE", [4, 9, 0, 0, 0, 0, 0, 0], [0, 64, 127, 55], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("ROCK DRIVE", [4, 60, 0, 0, 0, 0, 0, 0], [0, 64, 127, 40], 0, 0, [[138,  1],  [139,  110],  [140,  0],  [142,  90]]),
+        P("CATHEDRAL", [4, 102, 0, 0, 0, 0, 0, 0], [48, 64, 127, 72], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("PEDAL BASS", [4, 119, 0, 0, 0, 0, 0, 0], [0, 64, 127, 30], 1, 0, [[138,  0],  [139,  127],  [140,  0]]),
+      ] },
     /* (custom) FMINI (src/eng_fmini.c): FMini-1's Minimoog voice, SLOT one of its 200 patches */
     { name: "FMINI", titles: ["FILTER", "PATCH"], edit: [D("CUT", F.PCT, 0, 127, 64), D("EMPH", F.PCT, 0, 127, 40), D("CNTR", F.PCT, 0, 127, 64), D("F.ATK", F.PCT, 0, 127, 0), D("F.DEC", F.PCT, 0, 127, 64), D("F.SUS", F.PCT, 0, 127, 40), D("MOD", F.PCT, 0, 127, 0), D("SLOT", F.SLOT, -64, 127, -64)],
       presets: [
@@ -2696,8 +2666,9 @@ function makeMockDevice(opt = {}) {
     st.p[37] = pr.mono ? 2 : 0;
     st.p[33] = 0; st.p[34] = 24; st.p[35] = 28; st.p[36] = 36;
     for (const [id, v] of pr.more) st.p[id] = v;  /* (Skiff) its LFO, GLIDE, .. (core.h preset_t more) */
-    if (e.name === "DRUM-X" && DRUMX_PKIT[pi])   /* ((Skiff phase 9) its kit, the project's: eng_drumx.c DRUMX_PKIT) */
-      st.kit = DX_KITS[DRUMX_PKIT[pi] - 1].map(([mode, x, y]) => ({ mode, a: x.slice(), b: y.slice() }));
+    if (e.name === "DRUM" && pi >= DRUM_PDX && DRUMX_PKIT[pi - DRUM_PDX])   /* ((Skiff phase 9) its kit, the project's:
+                                                   eng_drumx.c drum_pkit; (custom) DRUM's DX presets, DRUM-X's) */
+      st.kit = DX_KITS[DRUMX_PKIT[pi - DRUM_PDX] - 1].map(([mode, x, y]) => ({ mode, a: x.slice(), b: y.slice() }));
     if (st.engine === FM6_E) {                    /* eng_fm6.c fm6_track_loaded */
       const t = st.tracks[st.sel];
       t.own = null;
@@ -2719,8 +2690,17 @@ function makeMockDevice(opt = {}) {
     const k = FM6.FACTORY_PK.findIndex((pk) => pk.every((x, i) => x === t.fm6[i]));
     t.p[P_E0 + 7] = t.slot = k < 0 ? FM6_OWN : k;
   }
+  /* (custom) ANALOG TRIO WHEEL NOISE DRUM-X retired (src/retire.c): a preset of one -> SYNTH's for it (RETIRE_MAP), DRUM-X's
+     DRUM's DX presets (DRUM_PDX on); [engine, preset] */
+  const SYNTH_E = 15, DRUM_PDX = 19, DRUM_NDX = 10;
+  const RETIRE = { 0: [22, 23, 24, 25, 4, 32, 22, 26, 27, 28, 40, 2, 16, 1, 2, 3, 22, 23, 28, 33, 42, 29, 38, 30, 31],
+    6: [37, 22, 34, 35, 36, 34, 27, 39, 38], 7: [45, 46, 47, 48, 49, 50, 51, 10], 11: [40, 41, 42, 44, 13, 41, 13, 43] };
+  const retired = (e) => e === 14 || e in RETIRE;
+  const retireTo = (e, pi) => e === 14 ? [DRUM_E, DRUM_PDX + (pi < DRUM_NDX ? pi : 0)] :
+    [SYNTH_E, RETIRE[e][pi < RETIRE[e].length ? pi : 0]];
   function setEngine(ei) {
     if (ei % ENG.length === 1) { fm4Load(0); return; }   /* DIGITAL (retired): its first preset, as FM6 (ui.c set_engine_of) */
+    if (retired(ei % ENG.length)) { const [e, pi] = retireTo(ei % ENG.length, 0); setEngine(e); applyPreset(pi); return; }
     st.engine = ei % ENG.length;
     for (let i = 0; i < 8; i++) st.p[P_E0 + i] = ENG[st.engine].edit[i].def;
     applyPreset(0);
@@ -2766,15 +2746,15 @@ function makeMockDevice(opt = {}) {
       x.ties = a.length >= 17 && !x.hit && x.time !== 1 ? a[16] & ((1 << x.n) - 1) : 0;   /* editor of before) */
   }
   /* a few user presets to start with, each with its preset's suggested pattern stored (as UP_STORE would) */
-  [[0, 0, 0, "MY LEAD"], [1, FM6_E, 1, "GLASS BELL"], [2, 2, 3, "PHASE RESO"], [5, 3, 2, "8BIT ARP"]].forEach(([slot, e, p, name]) => {
+  [[0, 15, 22, "MY LEAD"], [1, FM6_E, 1, "GLASS BELL"], [2, 2, 3, "PHASE RESO"], [5, 3, 2, "8BIT ARP"]].forEach(([slot, e, p, name]) => {
     setEngine(e); applyPreset(p);
     if (ENG[e].presets[p].pat) loadPattern(ENG[e].presets[p].pat - 1);
     st.bank[slot] = snapshot(name);
     clearSteps(); st.p[29] = 16;
   });
-  /* the power-on sounds (engines.c TRK_DEF): ACID, PAD, PULSE LD, DRUM KIT, ((custom) SYNTH's SY PIANO: no factory
+  /* the power-on sounds (engines.c TRK_DEF): ((custom) SYNTH's) ACID LINE, PAD, PULSE LD, DRUM KIT, ((custom) SYNTH's SY PIANO: no factory
      samples), DRUM KIT */
-  [[1, FM6_E, 4], [2, 3, 0], [3, 10, 0], [4, 15, 14], [5, 10, 0], [0, 0, 4]].forEach(([i, e, p]) => { st.sel = i; setEngine(e); applyPreset(p); });
+  [[1, FM6_E, 4], [2, 3, 0], [3, 10, 0], [4, 15, 14], [5, 10, 0], [0, 15, 4]].forEach(([i, e, p]) => { st.sel = i; setEngine(e); applyPreset(p); });
   /* the device powers on with its sequencers empty; the mock starts as a little demo to look at: track 1 with
      the ACID pattern, track 4 with BEAT (as SEQ > PATTERNS would load them), pads left, lead right */
   st.sel = 3; loadPattern(11);
@@ -3257,8 +3237,9 @@ function makeMockDevice(opt = {}) {
         if (a.length < 2 || a[0] >= ENG.length) return null;
         if (a[0] === 1) fm4Load(a[1]);              /* a DIGITAL preset: its sound, as FM6 */
         else {
-          if (a[0] !== st.engine) setEngine(a[0]);
-          applyPreset(a[1]);
+          const [e, pi] = retired(a[0]) ? retireTo(a[0], a[1]) : [a[0], a[1]];   /* ((custom) retire.c) */
+          if (e !== st.engine) setEngine(e);
+          applyPreset(pi);
         }
         b(st.engine); b(st.preset);
         break;
@@ -3521,7 +3502,7 @@ function enumShown(d) {
    the engine numbers. engineOrder(names): the indices of names in that order, "-" (a reserved number) left out; a name
    the list does not know (another firmware) follows in index order */
 const ENGINE_ORDER = ["ANALOG", "SYNTH", "FMINI", "FM6", "DIGITAL", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL", "GRAIN", "PHYS", "NOISE",
-  "SLICE", "DRUM", "DRUM-X"];
+  "SLICE", "DRUM", "DRUM-X"];   /* ((custom) ANALOG TRIO WHEEL NOISE DRUM-X: retired here, "-"; kept for a firmware that has them) */
 function engineOrder(names) {
   const rank = (n) => { const k = ENGINE_ORDER.indexOf(n); return k < 0 ? ENGINE_ORDER.length : k; };
   return (names || []).map((n, i) => i).filter((i) => names[i] !== "-")

@@ -62,9 +62,16 @@ _Static_assert(NTRK <= 8 && NPART < NVOICE, "a track mask is a uint8_t; each par
 #define NENGINES_SKIFF 15u             /* (Skiff) DRUM-X (14) after SLICE (13): the other engines keep their numbers */
 #define ENGI_DIGITAL 1u          /* reserved without FELUCCA_FM4: never selectable (eng_ok), its sounds load as FM6 */
 #define ENGI_SLICE 13u           /* reserved without FELUCCA_SLICE, as DIGITAL is without FELUCCA_FM4 */
-#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - !FELUCCA_SLICE - !!FELUCCA_FM4)   /* ((custom) SYNTH: not with FM4, the
-                                                                     * EDIT layer has 15 white keys) */   /* the engines one can pick: PRESETS, the EDIT layer,
-                                                * the editor, in the display order of engines.c ENGINE_ORDER */
+/* (custom) retired: ANALOG TRIO WHEEL NOISE (SYNTH makes their sounds) and DRUM-X (DRUM's DX kits), their numbers
+ * reserved as DIGITAL's; a sound of one that arrives (a project, a user preset, the editor) loads as SYNTH or DRUM
+ * (retire.c) */
+#define ENGI_ANALOG 0u
+#define ENGI_TRIO 6u
+#define ENGI_WHEEL 7u
+#define ENGI_NOISE 11u
+#define NRETIRED 5u
+#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - !FELUCCA_SLICE - NRETIRED)   /* the engines one can pick: PRESETS, the EDIT
+                                                * layer, the editor, in the display order of engines.c ENGINE_ORDER */
 #define UP_SLOTS 32u             /* user presets (upreset.c) */
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
 

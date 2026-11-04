@@ -82,14 +82,14 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "DEPTH", "VEL", "TIME", "FCUT"};   /* ((1.3) the LFO's depth; at a note: VEL, TIME) */
-static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL", "GRAIN", "PHYS",
-                                             "DRUM", "NOISE", "FM6",
+static const char *const N_ENGNAME[] = {"-", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "SAMPLE", "VOICE", "-", "-", "GRAIN", "PHYS",
+                                             "DRUM", "-", "FM6",   /* ((custom) ANALOG TRIO WHEEL NOISE DRUM-X retired: "-") */
 #if FELUCCA_SLICE
                                              "SLICE",
 #else
                                              "-",
 #endif
-                                             "DRUM-X", "SYNTH", "FMINI",   /* ((custom) SYNTH 15, FMINI 16) */
+                                             "-", "SYNTH", "FMINI",   /* ((custom) SYNTH 15, FMINI 16) */
 };
 
 #define PD(l, f, mn, mx, df) {l, 0, mn, mx, df, f, 0}
@@ -295,6 +295,8 @@ static int32_t enum_orig(const param_desc_t *d, int32_t v)
 #endif
     if (d->names == N_DRUM_KIT)
         return v >= 0 && v < DK_COUNT ? (int32_t)DK_PLAYS[v] : v;
+    if (d->names == N_ENGNAME)                        /* ((custom) the reserved numbers, "-": one, the first) */
+        return v > 0 && v < (int32_t)NENGINES && N_ENGNAME[v][0] == '-' && !N_ENGNAME[v][1] ? 0 : v;
     return d->names == SMP_ALL_NAMES && v >= 0 && v < SMP_NSETS ? SMP_SET_ORIG[v] : v;
 }
 
@@ -636,4 +638,29 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     }
     *valp = &TSEL->p[id];
     return track_desc(TSEL, id);
+}
+
+/* (custom) a retired engine's sound (retire.c) in the values p, its preset pi, as retire_engine's: SYNTH's preset for
+ * it, its E values and its filter (the filter's values from TP, then the preset's MORE), the rest of the sound kept;
+ * DRUM-X's: DRUM's DX kit, the knobs where they were (MORPH on ACCENT; FM or FOLD: DX+). -> the preset there */
+static uint32_t retire_values(int16_t *p, uint32_t e, uint32_t pi)
+{
+    uint32_t sp = retire_preset(e, pi), i;
+    const preset_t *pr = &SYNTH_PRESETS[sp % NELEM(SYNTH_PRESETS)];
+    if (e % NENGINES == ENGI_DRUMX) {
+        int16_t x[8];
+        for (i = 0; i < 8u; i++)
+            x[i] = p[P_E0 + i];
+        p[P_E0] = (int16_t)(x[5] >= 15 || x[6] >= 15 ? DK_DXP : DK_DX);
+        p[P_E5] = x[0];                               /* MORPH */
+        p[P_E6] = 0;
+        return sp;                                    /* (TUNE COLOR DECAY NOISE DRV: E1 .. E4, E7 as they were) */
+    }
+    for (i = 0; i < 8u; i++)
+        p[P_E0 + i] = pr->e[i];
+    for (i = P_FTYPE; i <= P_FDRV; i++)
+        p[i] = TP[i].def;
+    for (i = 0; i < NELEM(pr->more) && pr->more[i].id; i++)
+        p[pr->more[i].id] = pr->more[i].v;
+    return sp;
 }

@@ -1224,36 +1224,7 @@ static void graph_slices(void)
 }
 #endif
 
-/* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
- * their footages under them */
-static void graph_wheel(const track_t *t, uint16_t c)
-{
-    uint32_t k;
-    static const char *const names[9] = {"16", "5.3", "8", "4", "2.7", "2", "1.6", "1.3", "1"};
-    for (k = 0; k < 9u; k++) {
-        int32_t x = 11 + (int32_t)k * 25, level = drw_level(t->p, k);
-        if (t->p[P_E4] && k == 8u) level = 0; /* DSP's percussion cancels the 1-foot bar. */
-        int hot = ui.hot_t && cur_page()->id[0] == P_E0 &&
-                  (ui.hot_col == 0u || ui.hot_col == (k < 2u ? 1u : k < 4u ? 2u : 3u));
-        if (ux.quark)                                /* (Skiff Q4) QUARK: a drawbar a calorimeter tower */
-            qk_tower(x + 4, 75, 10, 72, level * 9, hot ? T_ACCENT : c, 0);
-        else if (ux.neon)                            /* (Skiff N4) NEON: a drawbar a VU column as far out as it is */
-            ne_vu(x + 4, 75, 10, 72, level * 9, hot ? T_ACCENT : 0, ux_mix(T_SURF, T_TEXT, 8), 0);
-        else if (ux.crypt) {                         /* (Skiff) CRYPT: a drawbar a # column as far out as it is */
-            int32_t r;
-            for (r = 0; r < level; r++)
-                cr_ch(x + 7, 74 - r * 8, &AF_S, '#', hot ? T_ACCENT : c);
-            if (!level)
-                cr_ch(x + 7, 74, &AF_S, '.', hot ? T_ACCENT : T_DIM);
-        } else {
-        cv_rrect(x + 7, 2, 4, 73, 2, T_RAISE, T_SURF);
-        if (level) cv_rrect(x + 3, 75 - level * 8, 12, level * 8, 3, hot ? T_ACCENT : c, T_SURF);
-        else cv_rrect(x + 3, 73, 12, 2, 1, hot ? T_ACCENT : T_DIM, T_SURF);
-        }
-        GFX_HOOK_ALIGN(x + 7, 0, x + 11, 0, AL_H, "wheel footage under its drawbar");
-        cv_text_in(x + 3, 82, 12, &AF_S, names[k], T_MID, T_SURF);   /* under the bar, by its ink */
-    }
-}
+/* ((custom) WHEEL's drawbar graph went with WHEEL: retire.c) */
 /* The FM charts' parts: an operator box 21 x 17 (rows 23 px apart, columns 24), junction dots, Manhattan routes */
 #define FM_BH 17
 static void fm_dot(int32_t x, int32_t y, uint16_t c) { cv_rect(x - 1, y - 1, 3, 3, c); }
@@ -1559,11 +1530,6 @@ static void graph_title(void)
 
 #include "ui_home.c"                                  /* Skiff: HOME's four tracks (graph_tracks, home_sig) */
 
-/* (Skiff U5) an EDIT page of ANALOG (its own graphs: ui_pgraph.c graph_osc, graph_flt) */
-static int analog_page(const page_t *pg, const track_t *t)
-{
-    return pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_ANALOG;
-}
 
 static uint32_t graph_signature(void)
 {
@@ -1575,7 +1541,7 @@ static uint32_t graph_signature(void)
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
-    if ((pg->graph == GR_NONE && !analog_page(pg, t)) || pg->graph == GR_SMIX) h ^= ui.frame / 2u;   /* the scope; (#21)
+    if (pg->graph == GR_NONE || pg->graph == GR_SMIX) h ^= ui.frame / 2u;   /* the scope; (#21)
                                                       * SAMPLES' waveform as EDIT's */
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
@@ -1654,8 +1620,7 @@ static uint32_t graph_signature(void)
             h = (h ^ (bank_cur(i) | bank_next(i) << 8 | (uint32_t)trk_pid[i] << 16)) * 16777619u;
         h = (h ^ (sg.entry * 40503u + song_pick() * 769u + bank_gen() * 2654435761u)) * 16777619u;   /* ((2.0) COPY+) */
     }
-    if (pg->scope == SC_ENGINE && (ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL || t->eng_req % NENGINES == ENGI_FM6 ||
-                                   (FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL)))
+    if (pg->scope == SC_ENGINE && (t->eng_req % NENGINES == ENGI_FM6 || (FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL)))
         h ^= (ui.hot_t ? ui.hot_col + 1u : 0u) * 65537u;
     if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6)   /* the patch (PAT's algorithm, levels, FB) */
         h ^= (fm6_pgen[(t - trk) % NTRK] + 1u) * 2246822519u;
@@ -2728,15 +2693,9 @@ static void draw_graph(void)
             break;
 #endif
         default:
-            if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
-            else if ((pg->scope == SC_ENGINE || pg->graph == GR_SMIX) && ENGINES[t->eng_req % NENGINES] == &ENG_SAMPLE &&
+            if ((pg->scope == SC_ENGINE || pg->graph == GR_SMIX) && ENGINES[t->eng_req % NENGINES] == &ENG_SAMPLE &&
                      sample_wave.ready) graph_sample(c);   /* ((#21) SAMPLES: the sample's) */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c);   /* EDIT 1 and 2 */
-            else if (analog_page(pg, t)) {           /* (Skiff U5) ANALOG's OSC and FLT */
-                cv_oy = 0;
-                if (pg->id[0] == P_E0) graph_osc(t, c);
-                else graph_flt(t, c);
-            }
 #if FELUCCA_FM4
             else if ((pg->scope == SC_ENGINE || pg->id[0] == P_FM1_LEVEL) && t->eng_req % NENGINES == ENGI_DIGITAL)
                 graph_fm(t, c);                      /* (OP LEVEL too: the levels on the chart) */

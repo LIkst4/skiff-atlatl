@@ -170,8 +170,11 @@ static int projects(void)
     trk[3].step[5].hit = 0x81; trk[3].step[5].acc = 0x80; trk[3].step[5].time = ST_NOTE;
     step_set_ratchet(&trk[3].step[5], 4);
     project_capture(&before);
-    proj_power_on(&before, PROJ_NT); before.sum = proj_sum(&before);   /* ((Skiff phase 6) SKF1 holds four tracks: the rest
-                                                                        * come back as at power-on) */
+    proj_power_on(&before, PROJ_NT);                 /* ((Skiff phase 6) SKF1 holds four tracks: the rest as at power-on) */
+    for (k = 0; k < PROJ_NT; k++)                    /* ((custom) nor the FILTER: SYNTH's preset sets it on T1) */
+        for (i = P_FTYPE; i <= P_FDRV; i++)
+            before.t[k].p[i] = TP[i].def;
+    before.sum = proj_sum(&before);
     ok = proj_pack(&packed, &before) && proj_import(&after, &packed, sizeof packed) && !memcmp(&before, &after, sizeof before);
     for (i = 0; ok && i < 8u; i++)
         ok &= step_ratchet(&after.t[0].step[i]) == 1u + i % 4u && step_chance(&after.t[0].step[i]) == step_chance(&before.t[0].step[i]) &&
@@ -420,6 +423,8 @@ static int flam(void)
     ui_power_on();                                   /* a project: bit 7 of the step's meta byte */
     trk[0].step[3] = (step_t){{62}, 1, ST_NOTE, SF_ACCENT, 90};
     step_set_rflam(&trk[0].step[3], 5);
+    for (pos = P_FTYPE; pos <= P_FDRV; pos++)        /* ((custom) the FILTER: SKF1 holds none, T1's SYNTH sets it */
+        trk[0].p[pos] = TP[pos].def;
     project_capture(&before);
     proj_power_on(&before, PROJ_NT); before.sum = proj_sum(&before);   /* ((Skiff phase 6) four tracks in SKF1) */
     ok = proj_pack(&packed, &before) && proj_import(&after, &packed, sizeof packed) && !memcmp(&before, &after, sizeof before);

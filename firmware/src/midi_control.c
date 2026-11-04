@@ -224,9 +224,18 @@ static const uint8_t MIDI_CC_ENG[NENGINES] = {
     0x80, 0x30, 0x30, 0x34, 0x30,                     /* GRAIN TONE, PHYS BRIT, DRUM TONE, NOISE FREQ RES, FM6 MLVL */
     FELUCCA_SLICE ? 0x80 : 0x00,                      /* SLICE TONE */
     0x30,                                             /* DRUM-X TONE */
-    0x00,                                             /* (custom) SYNTH: its filter is FX > FILTER's */
+    0x00,                                             /* (custom) SYNTH: its filter is FX > FILTER's (cc_eng_id) */
     0x12,                                             /* (custom) FMINI CUT EMPH */
 };
+/* the parameter CC74 (cut, 1) or CC71 (0) sets on track t: the engine's own (MIDI_CC_ENG), (custom) SYNTH's the FILTER's
+ * CUTOFF / RESO; P_COUNT none */
+static uint32_t cc_eng_id(const track_t *t, int cut)
+{
+    uint32_t e = eng_idx(t->eng_req), n = MIDI_CC_ENG[e] >> (cut ? 4 : 0) & 15u;
+    if (e == ENGI_SYNTH)
+        return cut ? P_FCUT : P_FRES;
+    return n ? P_E0 + n - 1u : P_COUNT;
+}
 /* a CC sets parameter id of track t as a knob would: 0..127 over its range */
 static void midi_cc_set(track_t *t, uint32_t id, uint32_t value)
 {
@@ -287,13 +296,13 @@ static int __attribute__((noinline)) midi_learned(uint32_t cc, uint32_t value)
  * standard map's (CC74 / CC71 the engine's own), unless MIDI LEARN took that CC for another parameter; 0 none */
 static uint32_t cc_out_of(const track_t *t, uint32_t id)
 {
-    uint32_t i, j, c = 0, e = MIDI_CC_ENG[eng_idx(t->eng_req)];
+    uint32_t i, j, c = 0;
     for (i = 0; ml_tab && i < ML_N; i++)
         if (ml_tab[3u * i] && ml_id(ml_tab[3u * i]) == id && ml_tab[3u * i + 2u] == trk_index(t))
             return ml_tab[3u * i + 1u];
     for (i = 0; i < NELEM(MIDI_CC_MAP) && !c; i++) {
-        uint32_t p = MIDI_CC_MAP[i][1], n = p == MCC_CUT ? e >> 4 : e & 15u;
-        if ((p >= MCC_CUT ? n && P_E0 + n - 1u == id : p == id))
+        uint32_t p = MIDI_CC_MAP[i][1];
+        if ((p >= MCC_CUT ? cc_eng_id(t, p == MCC_CUT) == id : p == id))
             c = MIDI_CC_MAP[i][0];
     }
     for (j = 0; c && ml_tab && j < ML_N; j++)
@@ -311,7 +320,7 @@ static uint32_t cc_value(const track_t *t, uint32_t id)
 
 static void __attribute__((noinline)) midi_cc_map(track_t *t, uint32_t cc, uint32_t value)
 {
-    uint32_t i, id = 0xFFFFu, e;
+    uint32_t i, id = 0xFFFFu;
     if (midi_learned(cc, value))                /* (a learned CC is the user's: not the map's) */
         return;
     for (i = 0; i < NELEM(MIDI_CC_MAP); i++)
@@ -320,10 +329,9 @@ static void __attribute__((noinline)) midi_cc_map(track_t *t, uint32_t cc, uint3
     if (id >= MCC_CUT) {
         if (id == 0xFFFFu)
             return;
-        e = MIDI_CC_ENG[eng_idx(t->eng_req)] >> (id == MCC_CUT ? 4 : 0) & 15u;
-        if (!e)
+        id = cc_eng_id(t, id == MCC_CUT);
+        if (id >= P_COUNT)
             return;
-        id = P_E0 + e - 1u;
     }
     midi_cc_set(t, id, value);
 }

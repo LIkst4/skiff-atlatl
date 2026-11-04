@@ -635,9 +635,9 @@ static int page_visible(uint32_t i)
     const sheet_t *sh = sheet_of(PAGES[i].graph);
     uint32_t id = PAGES[i].id[0];
     if (sh)
-        return TSEL->eng_req % NENGINES == sh->eng;
+        return trk_sheet_eng(TSEL) == sh->eng;       /* ((custom) DRUM-X's SOUND: a DX kit's) */
     if (PAGES[i].graph == GR_LANES)
-        return TSEL->eng_req % NENGINES == ENGI_DRUM;
+        return TSEL->eng_req % NENGINES == ENGI_DRUM && !trk_dx(TSEL);
     if (PAGES[i].graph == GR_LMIX)                      /* ((2.0, #36) a kit's: DRUM, DRUM-X) */
         return drum_engine(TSEL->eng_req % NENGINES);
     if (PAGES[i].graph == GR_SMIX)                     /* ((#21) a SAMPLE track's on a USR set with samples) */
@@ -721,7 +721,7 @@ static uint32_t page_vis_first(uint32_t fam)
     return NPAGES;
 }
 /* (params.c page_desc: LANES' LEVEL; (2.0, #36) LANE MIX's: on DRUM-X the sound sheet's lane, ui_dx.c) */
-static uint8_t *page_lane_p(void) { return TSEL->eng_req % NENGINES == ENGI_DRUMX ? &dx_ui_lane : &ui.lane; }
+static uint8_t *page_lane_p(void) { return trk_dx(TSEL) ? &dx_ui_lane : &ui.lane; }
 static uint32_t page_lane(void) { return *page_lane_p() % 8u; }
 
 /* transient message in the top bar, right of the transport and the BPM: a + b, for MSG_T frames (a second one,
@@ -1476,7 +1476,7 @@ static uint32_t track_sig(const track_t *t)      /* the sound (an FM6 track's pa
     uint8_t id[3] = {t->eng_req, t->preset, t->user};
     uint32_t h = fnv(fnv(steps_sig(t), t->p, sizeof t->p), id, 3), k = trk_index(t);
     h = fnv(h, fm6_patch[k], sizeof fm6_patch[k]); /* (a patch the editor sent between two loads) */
-    if (t->eng_req % NENGINES == ENGI_DRUMX)     /* ((Skiff phase 9) a kit edited between two preset loads) */
+    if (trk_dx(t))                               /* ((Skiff phase 9) a kit edited between two preset loads) */
         h = fnv(h, dx_kit, sizeof dx_kit);
     for (uint32_t j = 0; j < motion.count; j++)
         if ((motion.event[j].place >> 6) == k) h = fnv(h, &motion.event[j], sizeof motion.event[j]);
@@ -1968,6 +1968,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
 {
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     uint32_t kit;
+    if (eng_retired(t->eng_req % NENGINES)) {                   /* ((custom) a retired engine's preset (the editor's PRESET, a stored
+                                                      * number): SYNTH's preset for it (retire.c) */
+        pi = retire_preset(t->eng_req, pi);
+        t->eng_req = (uint8_t)retire_engine(t->eng_req);
+        e = ENGINES[t->eng_req];
+    }
 #if !FELUCCA_FM4 && FELUCCA_LEGACY
     if (t->eng_req % NENGINES == ENGI_DIGITAL) {
         fm4_load_preset(t, pi);
@@ -1980,7 +1986,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
         return;                                       /* (core.h drum_from_perc; (2.0) PIANO's alias: PIANO) */
     }
 #endif
-    kit = t->eng_req % NENGINES == ENGI_DRUMX ? DRUMX_PKIT[pi % NELEM(DRUMX_PKIT)] : 0u;   /* ((phase 9) the kit + 1) */
+    kit = t->eng_req % NENGINES == ENGI_DRUM ? drum_pkit(pi) : 0u;   /* ((phase 9) the kit + 1; (custom) DRUM's DX presets */
     load_begin(t, UNDO_SOUND | (kit ? UNDO_KIT : 0u));
     panic_req |= (uint8_t)(1u << trk_index(t));       /* MONO/POLY may change: release what sounds */
     t->user = 0;
@@ -2013,6 +2019,13 @@ static int set_engine_of(track_t *t, uint32_t ei)
     if (ei % NENGINES == ENGI_DIGITAL)               /* ((2.0) DIGITAL (retired; the editor's SET, PRESET): FM6 */
         ei = ENGI_FM6;
 #endif
+    if (eng_retired(ei % NENGINES)) {                           /* ((custom) a retired engine (the editor's SET, MIDI): SYNTH with
+                                                      * the preset for its first (retire.c) */
+        if (set_engine_of(t, retire_engine(ei)))
+            return 1;
+        apply_preset_to(t, retire_preset(ei, 0));
+        return 0;
+    }
     e = ENGINES[ei % NENGINES];
     if (!eng_allowed(trk_index(t), ei)) {
         eng_refused(ei);
@@ -2043,11 +2056,13 @@ static int set_engine(uint32_t ei) { return set_engine_of(TSEL, ei); }
 static void sound_init(void)
 {
     track_t *t = TSEL;
-    int kit = t->eng_req % NENGINES == ENGI_DRUMX;
+    int kit = trk_dx(t);
     load_begin(t, UNDO_SOUND | (kit ? UNDO_KIT : 0u));   /* (set_engine's load nests in it) */
     set_engine(t->eng_req);
-    if (kit)
+    if (kit) {                                       /* ((custom) a DX kit stays one: DX KIT) */
+        apply_preset_to(t, DRUM_PDX);
         memcpy(dx_kit, DX_KIT_DEF, sizeof dx_kit);
+    }
     if (t->eng_req % NENGINES == ENGI_FM6) {
         uint8_t v[FP_SIZE + 1u];
         fm6_unpack(FM6_INIT, v);

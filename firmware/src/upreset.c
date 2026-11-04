@@ -455,12 +455,15 @@ static int up_load(uint32_t k)
     } else
 #endif
     {
+        uint32_t pr = 0;
+        if (eng_retired(r->engine))                     /* ((custom) a retired engine's sound: SYNTH's, DRUM's (retire.c) */
+            pr = retire_values(v, r->engine, 0);
         fm1_irq_off();                                  /* the audio ISR must not see half a sound */
-        t->eng_req = r->engine;
+        t->eng_req = (uint8_t)(eng_retired(r->engine) ? retire_engine(r->engine) : r->engine);
         for (i = 0; i < P_COUNT; i++)
             if (!param_kept(i))
                 t->p[i] = v[i];
-        t->preset = 0;
+        t->preset = (uint8_t)pr;
         fm1_irq_on();
         upf_track_load(t, k);                           /* FM6: the preset's own patch (up_fm6.c) */
     }
@@ -472,7 +475,11 @@ static int up_load(uint32_t k)
 }
 
 /* the engine a used slot's sound plays on (a DIGITAL record: FM6, without FELUCCA_FM4) */
-static uint32_t up_engine(uint32_t k) { return eng_ok(up_rec(k)->engine) ? up_rec(k)->engine : ENGI_FM6; }
+static uint32_t up_engine(uint32_t k)
+{
+    uint32_t e = up_rec(k)->engine;
+    return eng_ok(e) ? e : eng_retired(e) ? retire_engine(e) : ENGI_FM6;   /* ((custom) a retired engine's: SYNTH, DRUM) */
+}
 
 /* the PRESETS list's user presets (ui.c preset_all_*): the used slots, (Skiff phase 6) those the selected track may
  * play (engines.c eng_allowed: no PHYS or GRAIN sound on a light track) */

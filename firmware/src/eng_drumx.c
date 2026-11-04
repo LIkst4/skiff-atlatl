@@ -18,24 +18,12 @@
  * soft clip on every hit (x1..x4, the level kept). The knobs move a hit while it rings.
  *
  * State: 8 lanes per part in the part's shared engine area (engines.c eng_mem, eng_lite): each lane's hit. */
-#include "drumx_voice.c"
+/* ((custom) drumx_voice.c: eng_drum.c includes it, for the DX kits) */
 
 /* engine e plays a kit (DRUM, DRUM-X): a drum track (seq.c drum_track), its kick the duck's source (duck.c) */
 static inline int drum_engine(uint32_t e) { return e == ENGI_DRUM || e == ENGI_DRUMX; }
 
-/* General MIDI notes 35..81 -> the lane (DV_*, as drum_lane gives it) and semitones from the lane's pitch: congas on
- * TOM, claves on RIM, cymbals on BELL, each at its pitch from the lane's (JIANT's map) */
-static const int8_t DX_GM[47][2] = {
-    {DV_KICK, -2}, {DV_KICK, 0}, {DV_RIM, 0}, {DV_SNARE, 0}, {DV_CLAP, 0}, {DV_SNARE, 2},             /* 35 */
-    {DV_TOM, -7}, {DV_HATC, 0}, {DV_TOM, -4}, {DV_HATC, -2}, {DV_TOM, 0}, {DV_HATO, 0},               /* 41 */
-    {DV_TOM, 3}, {DV_TOM, 5}, {DV_BELL, 0}, {DV_TOM, 8}, {DV_BELL, -3}, {DV_BELL, 2},                 /* 47 */
-    {DV_BELL, 5}, {DV_HATC, 5}, {DV_BELL, 4}, {DV_BELL, 0}, {DV_BELL, 1}, {DV_RIM, -12},              /* 53 */
-    {DV_BELL, -2}, {DV_TOM, 10}, {DV_TOM, 7}, {DV_TOM, 5}, {DV_TOM, 5}, {DV_TOM, 0},                  /* 59 */
-    {DV_TOM, 10}, {DV_TOM, 7}, {DV_BELL, 7}, {DV_BELL, 3}, {DV_HATC, 3}, {DV_HATC, 7},                /* 65 */
-    {DV_RIM, 7}, {DV_RIM, 5}, {DV_HATC, -4}, {DV_HATC, -6}, {DV_RIM, 0}, {DV_RIM, -4},                /* 71 */
-    {DV_RIM, -7}, {DV_TOM, 12}, {DV_TOM, 8}, {DV_BELL, 12}, {DV_BELL, 12},                            /* 77 */
-};
-static uint32_t dx_gm_ix(uint32_t note) { return (note >= 35u && note <= 81u ? note : 36u + (note + 120u - 36u) % 12u) - 35u; }
+/* ((custom) DX_GM, dx_gm_ix: eng_drum.c, for its DX kits) */
 
 typedef struct {
     dx_voice_t x;                /* the hit */
@@ -239,6 +227,12 @@ static const dx_lane_t DX_KITS[][8] = {
 };
 static const uint8_t DRUMX_PKIT[] = {0, 0, 1, 2, 3, 4, 5, 6, 7, 8};
 _Static_assert(sizeof DRUMX_PKIT == NELEM(DRUMX_PRESETS), "a kit (or none) per DRUM-X preset");
+/* (custom) the factory kit + 1 DRUM's preset pi loads as the project's kit (its DX presets: DRUM-X's, in order), 0 none */
+static uint32_t drum_pkit(uint32_t pi)
+{
+    return !BOARD_SMK37 && pi >= DRUM_PDX && pi < DRUM_PDX + DRUM_NDX ? DRUMX_PKIT[pi - DRUM_PDX] : 0u;
+}
+_Static_assert(DRUM_NDX == NELEM(DRUMX_PRESETS), "DRUM's DX presets: DRUM-X's");
 _Static_assert(NELEM(DRUMX_PRESETS) <= 64u, "its favourites end before THEME CUSTOM's colours (ui.c CPAL_COLS)");
 _Static_assert(sizeof DX_KITS[0] == sizeof dx_kit, "a factory kit is a kit");
 

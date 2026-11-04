@@ -1827,12 +1827,11 @@ static __attribute__((noinline)) void mo_block_end(uint32_t pulse)
 #define MO_CCN (NELEM(MIDI_CC_MAP) + ML_N)
 static uint32_t mo_ccs(const track_t *t, uint8_t *cc, uint8_t *id, uint8_t *v)
 {
-    uint32_t i, j, n = 0, e = MIDI_CC_ENG[eng_idx(t->eng_req)], c, p;
+    uint32_t i, j, n = 0, c, p;
     for (i = 0; i < MO_CCN; i++) {
         if (i < NELEM(MIDI_CC_MAP)) {
             p = MIDI_CC_MAP[i][1];
-            c = p == MCC_CUT ? e >> 4 : e & 15u;
-            p = p < MCC_CUT ? p : c ? P_E0 + c - 1u : P_COUNT;
+            p = p < MCC_CUT ? p : cc_eng_id(t, p == MCC_CUT);   /* ((custom) SYNTH: the FILTER's) */
         } else
             p = ml_tab && ml_tab[3u * (i - NELEM(MIDI_CC_MAP)) + 2u] == trk_index(t) ?
                 ml_id(ml_tab[3u * (i - NELEM(MIDI_CC_MAP))]) : P_COUNT;

@@ -1239,9 +1239,12 @@ static int preset_more(void)
     for (i = 0; i < NELEM(w->more) && w->more[i].id; i++)
         ok &= TSEL->p[w->more[i].id] == w->more[i].v;
     bad += check("  a load sets them (the first with a vibrato)", ok);
-    a[0] = 0; a[1] = 0;                                   /* ANALOG SAW LEAD: none */
+    for (e = 0; e < NENGINES; e++)                        /* ((custom) the first preset with none (ANALOG SAW LEAD */
+        if (eng_ok(e) && eng_allowed(song.sel, e) && ENGINES[e]->npresets && !ENGINES[e]->presets[0].more[0].id)
+            break;                                        /* until ANALOG was retired) */
+    a[0] = (uint8_t)e; a[1] = 0;
     request(ED_PRESET, a, 2);
-    ok = TSEL->preset == 0u && !ENGINES[0]->presets[0].more[0].id;
+    ok = e < NENGINES && TSEL->eng_req == e && TSEL->preset == 0u;
     for (i = 0; i < NELEM(w->more) && w->more[i].id; i++)
         ok &= TSEL->p[w->more[i].id] == TP[w->more[i].id].def;
     bad += check("  the next preset (none of its own) puts them back to their defaults", ok);
@@ -1470,9 +1473,9 @@ static int song2_cmds(void)
     bad += check("(2.0) POOL EMPTY (in use too), CLEAR UNUSED (then nothing unused), playing refused; bad unanswered", ok);
     {   /* ((2.0, #30) INFO 58 01 bit 1) LIST2: each entry's sound after its REPS byte; op 9 SOUND puts one on (an engine
          * + 1 and its preset; 64 + a user slot), 0 0 takes it off; rc 1 for an empty entry or a sound it can't carry */
-        uint8_t b[5] = {9, 0, 0, 1, 2};               /* (T1 A: ANALOG's preset 3) */
-        ok = request(ED_LIST2, b, 5) && !host_wire[6] && lists.snd[0][0][0] == 1u && lists.snd[0][0][1] == 2u &&
-             host_wire[13] == 1u && host_wire[14] == 2u && strstr(ui.msg, "T1 A SOUND SQR BASS");
+        uint8_t b[5] = {9, 0, 0, ENGI_SYNTH + 1u, 2};   /* (T1 A: SYNTH's preset 3; (custom) ANALOG's until retired) */
+        ok = request(ED_LIST2, b, 5) && !host_wire[6] && lists.snd[0][0][0] == ENGI_SYNTH + 1u && lists.snd[0][0][1] == 2u &&
+             host_wire[13] == ENGI_SYNTH + 1u && host_wire[14] == 2u && strstr(ui.msg, "T1 A SOUND OB STRINGS");
         up_store(3, "EDSND");                         /* (a user sound in slot 4) */
         b[2] = 1; b[3] = 64 + 3; b[4] = 0;
         ok &= request(ED_LIST2, b, 5) && !host_wire[6] && lists.snd[0][1][0] == (0x80u | 3u) && !lists.snd[0][1][1] &&
@@ -1486,13 +1489,15 @@ static int song2_cmds(void)
         ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u;
         b[3] = 2;                                     /* (DIGITAL, retired) */
         ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u;
-        b[3] = 1; b[4] = 127;                         /* (no preset 128) */
+        b[3] = 1; b[4] = 0;                           /* ((custom) ANALOG, retired) */
+        ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u;
+        b[3] = ENGI_SYNTH + 1u; b[4] = 127;           /* (no preset 128) */
         ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u;
         b[3] = 64 + 20; b[4] = 0;                     /* (slot 21 empty) */
         ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u;
         lists.ent[4][0][0] = (uint8_t)(p1 + 1u);      /* (T5 A: a light track's entry, PHYS) */
         b[1] = 4; b[3] = ENGI_PHYS + 1u;
-        ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u && lists.snd[0][0][0] == 1u && !lists.snd[4][0][0];
+        ok &= request(ED_LIST2, b, 5) && host_wire[6] == 1u && lists.snd[0][0][0] == ENGI_SYNTH + 1u && !lists.snd[4][0][0];
         b[1] = 0; b[3] = 0; b[4] = 0;
         ok &= request(ED_LIST2, b, 5) && !host_wire[6] && !lists.snd[0][0][0] && !lists.snd[0][0][1] && strstr(ui.msg, "T1 A NO SOUND");
         ok &= !request(ED_LIST2, b, 4) && !request(ED_LIST, b, 5) && request(ED_LIST, 0, 0) == 219u;

@@ -976,8 +976,8 @@ static int midi_learn_channels(void)
     ok &= t->p[id] == d->min;
     bad += check("  OCT+ done; the CC sets it over its range, on any channel MIDI IN hears, not on one it ignores", ok);
     {   /* CC74 (the standard map's brightness): learned, it reaches no more than its own parameter */
-        uint32_t c74 = P_E0 + (MIDI_CC_ENG[eng_idx(t->eng_req)] >> 4) - 1u;
-        ok = (MIDI_CC_ENG[eng_idx(t->eng_req)] >> 4) != 0u && c74 != P_LEVEL;
+        uint32_t c74 = cc_eng_id(t, 1);                 /* ((custom) SYNTH's: the FILTER's CUTOFF) */
+        ok = c74 < P_COUNT && c74 != P_LEVEL;
         ok &= ml_learn(74, 0, P_LEVEL) == 1u;
         t->p[c74] = 5;
         midi_event(0xB0u, 0, 74, 127);

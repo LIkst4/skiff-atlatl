@@ -1413,10 +1413,10 @@ static int migrate(void)
     ok &= proj_migrate(1) == 0;                   /* (again: all SKF2 (SKF3 with six tracks), nothing to do) */
     bad += check("  slots A C and the autosave: SKF2 (SKF3), each track's entry A its pattern (T1 T2 one, shared), T3 none",
                  ok);
-    favorite_set(ENGI_DRUMX, 0, 1);               /* ((Skiff phase 7) row 14 is DRUM-X's favourites) */
-    ok = proj_migrate(1) == 0 && favorite_has(ENGI_DRUMX, 0);
-    favorite_set(ENGI_DRUMX, 0, 0);
-    bad += check("  a DRUM-X favourite (row 14) stays", ok);
+    favorite_set(ENGI_DRUM, 0, 1);                /* ((Skiff phase 7) row 14 was DRUM-X's; (custom) DRUM-X retired: */
+    ok = proj_migrate(1) == 0 && favorite_has(ENGI_DRUM, 0);   /* DRUM's row 10) */
+    favorite_set(ENGI_DRUM, 0, 0);
+    bad += check("  a DRUM favourite (row 10) stays", ok);
     for (k = 0; k < NTRK; k++)
         detach(k);
     project_load(0);

@@ -312,27 +312,31 @@ static void test_math(void)
     mod_end(t);
     check("every per-block value restored", t->p[P_DIST] == 64 && t->p[P_CHOR] == 64 && t->p[P_LRATE] == 100 && t->p[P_LD_PIT] == 0);
 
-    /* an engine parameter: its descriptor's range */
-    e_trio = eng_by_name("TRIO");
-    k_pw = edit_by_label(e_trio, "PW", 7);
-    fresh(e_trio, 0);
-    lfo_at(t, 32767);
-    t->p[P_E0 + k_pw] = 100;
-    slot(t, 0, MS_LFO, MD_E1 + (int32_t)k_pw, 40);
-    mod_begin(t);
-    check("LFO -> TRIO PW: clamped to its range (0..127)", t->p[P_E0 + k_pw] == 127);
-    mod_end(t);
-    t->p[P_E0 + 1] = 0;                            /* INT2: -24..24 */
-    slot(t, 0, MS_MODW, MD_E1 + 1, -32);
-    t->mw = 127;
-    mod_begin(t);
-    check("MODW -> E2 -32: half its range down (TRIO INT2 -24..24: -24)",
-          t->p[P_E0 + 1] == (((((127 * 258) * -32) >> 6) * (ENGINES[e_trio]->edit[1].max - ENGINES[e_trio]->edit[1].min)) >> 15) &&
-          t->p[P_E0 + 1] < -10);
-    mod_end(t);
-    check("the engine parameters restored", t->p[P_E0 + k_pw] == 100 && t->p[P_E0 + 1] == 0);
-    check("DST names: E1..E8 by the engine's labels", str_eq(mod_dst_name(t, MD_E1 + (int32_t)k_pw), "PW") &&
-                                                          str_eq(mod_dst_name(t, MD_CUT), "CUT"));
+    /* an engine parameter: its descriptor's range ((custom) SYNTH's SHAPE A 0..127 and B TUNE -24..24; TRIO's PW and
+     * INT2 until TRIO was retired) */
+    e_trio = eng_by_name("SYNTH");
+    k_pw = edit_by_label(e_trio, "SHAPE A", 1);
+    {
+        uint32_t kb = edit_by_label(e_trio, "B TUNE", 5);
+        fresh(e_trio, 0);
+        lfo_at(t, 32767);
+        t->p[P_E0 + k_pw] = 100;
+        slot(t, 0, MS_LFO, MD_E1 + (int32_t)k_pw, 40);
+        mod_begin(t);
+        check("LFO -> SYNTH SHAPE A: clamped to its range (0..127)", t->p[P_E0 + k_pw] == 127);
+        mod_end(t);
+        t->p[P_E0 + kb] = 0;                       /* B TUNE: -24..24 */
+        slot(t, 0, MS_MODW, MD_E1 + (int32_t)kb, -32);
+        t->mw = 127;
+        mod_begin(t);
+        check("MODW -> B TUNE -32: half its range down (SYNTH B TUNE -24..24: -24)",
+              t->p[P_E0 + kb] == (((((127 * 258) * -32) >> 6) * (ENGINES[e_trio]->edit[kb].max - ENGINES[e_trio]->edit[kb].min)) >> 15) &&
+              t->p[P_E0 + kb] < -10);
+        mod_end(t);
+        check("the engine parameters restored", t->p[P_E0 + k_pw] == 100 && t->p[P_E0 + kb] == 0);
+        check("DST names: E1..E8 by the engine's labels", str_eq(mod_dst_name(t, MD_E1 + (int32_t)k_pw), "SHAPE A") &&
+                                                              str_eq(mod_dst_name(t, MD_CUT), "CUT"));
+    }
 
     /* per-voice sources on a per-block destination: the latest note-on */
     fresh(0, 0);
@@ -579,15 +583,16 @@ static int demos(const char *dir)
         fclose(f);
         n++;
     }
-    /* LFO -> TRIO PW: TRIO ARP LEAD's pulse width swept by a triangle LFO */
-    e = eng_by_name("TRIO");
-    fresh(e, preset_by_name(e, "ARP LEAD"));
+    /* LFO -> SYNTH SHAPE A: SYNTH's PWM STR, its pulse width swept by a triangle LFO ((custom) TRIO ARP LEAD's PW until
+     * TRIO was retired) */
+    e = eng_by_name("SYNTH");
+    fresh(e, preset_by_name(e, "PWM STR"));
     t->p[P_LRATE] = 45;
     t->p[P_LWAVE] = 1;
     t->p[P_AMODE] = 0;
     t->p[P_VOICE] = V_POLY;
-    slot(t, 0, MS_LFO, MD_E1 + (int32_t)edit_by_label(e, "PW", 7), 40);
-    if ((f = demo_open(dir, "lfo_trio_pw", 5u * FS / CTL * CTL))) {
+    slot(t, 0, MS_LFO, MD_E1 + (int32_t)edit_by_label(e, "SHAPE A", 1), 40);
+    if ((f = demo_open(dir, "lfo_synth_pw", 5u * FS / CTL * CTL))) {
         trk_note_on(t, 57, 100);
         demo_blocks(f, 4u * FS / CTL);
         trk_note_off(t, 57);
@@ -595,12 +600,13 @@ static int demos(const char *dir)
         fclose(f);
         n++;
     }
-    /* AT -> WHEEL DRV: an organ chord, channel aftertouch pushes the drive up and down */
-    e = eng_by_name("WHEEL");
-    fresh(e, 0);
-    slot(t, 0, MS_AT, MD_E1 + (int32_t)edit_by_label(e, "DRIVE", 6), 63);
+    /* AT -> SYNTH ORGAN PERC: an organ chord, channel aftertouch pushes the percussion up and down ((custom) WHEEL's DRV
+     * until WHEEL was retired) */
+    e = eng_by_name("SYNTH");
+    fresh(e, preset_by_name(e, "FULL ORGAN"));
+    slot(t, 0, MS_AT, MD_E1 + 2, 63);
     slot(t, 1, MS_AT, MD_CUT, 20);
-    if ((f = demo_open(dir, "at_wheel_drv", 6u * FS / CTL * CTL))) {
+    if ((f = demo_open(dir, "at_organ_perc", 6u * FS / CTL * CTL))) {
         trk_note_on(t, 48, 100);
         trk_note_on(t, 55, 100);
         trk_note_on(t, 64, 100);
@@ -617,7 +623,7 @@ static int demos(const char *dir)
         fclose(f);
         n++;
     }
-    printf("mod: %u demos in %s (lfo_cut, vel_amp, modw_vib, lfo_trio_pw, at_wheel_drv)\n", n, dir);
+    printf("mod: %u demos in %s (lfo_cut, vel_amp, modw_vib, lfo_synth_pw, at_organ_perc)\n", n, dir);
     return n == 5u;
 }
 

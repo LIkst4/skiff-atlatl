@@ -294,7 +294,7 @@ static int cc_map_test(void)
     };
     int bad = 0, ok = 1; uint32_t i, e; int16_t before[P_COUNT];
     midi_test_reset();
-    bad += check("power-on parts: ANALOG, FM6, LOFI, DRUM, SAMPLE (custom: SYNTH without the factory samples), DRUM", trk[0].eng_req == 0u && trk[1].eng_req == ENGI_FM6 &&
+    bad += check("power-on parts: (custom) SYNTH, FM6, LOFI, DRUM, SYNTH (SAMPLE with the factory samples), DRUM", trk[0].eng_req == ENGI_SYNTH && trk[1].eng_req == ENGI_FM6 &&
                  trk[2].eng_req == 3u && trk[3].eng_req == ENGI_DRUM && trk[4].eng_req == (SMP_FACTORY ? ENGI_SAMPLE : ENGI_SYNTH) && trk[5].eng_req == ENGI_DRUM);
     for (i = 0; i < NELEM(COMMON); i++) {
         queued(0xB0, COMMON[i].cc, 127, 1);
@@ -310,7 +310,7 @@ static int cc_map_test(void)
     queued(0xB0, 10, 64, 1); ok &= trk[0].p[P_PAN] == 0;
     bad += check("CC10 PAN: 0 left, 64 centre, 127 right", ok);
     queued(0xB0, 74, 127, 1); queued(0xB0, 71, 0, 1);
-    bad += check("CC74 / CC71 on ANALOG: CUT / RES", trk[0].p[P_E4] == 127 && trk[0].p[P_E5] == 0);
+    bad += check("CC74 / CC71 on SYNTH: the FILTER's CUTOFF / RESO", trk[0].p[P_FCUT] == 127 && trk[0].p[P_FRES] == 0);
     queued(0xB1, 74, 64, 1); queued(0xB1, 74, 127, 1);
     bad += check("CC74 on FM6 (channel 2): MLVL, bipolar (127: +63)", trk[1].p[P_E2] == 63);
     memcpy(before, trk[1].p, sizeof before); queued(0xB1, 71, 99, 1);
@@ -326,7 +326,7 @@ static int cc_map_test(void)
         }
     }
     bad += check("every engine's CC74 / CC71 target is a continuous EDIT value (or none)", ok);
-    trk[2].eng_req = trk[2].engine = 7u;               /* WHEEL: no brightness, no resonance */
+    trk[2].eng_req = trk[2].engine = 7u;               /* WHEEL (retired, its number): no brightness, no resonance */
     memcpy(before, trk[2].p, sizeof before); queued(0xB2, 74, 3, 1); queued(0xB2, 71, 3, 1);
     bad += check("CC74 / CC71 on WHEEL: ignored", !memcmp(before, trk[2].p, sizeof before));
     memcpy(before, trk[0].p, sizeof before);
@@ -348,14 +348,14 @@ static int cc_map_test(void)
     song.rec = 1; seq_start(); events_block(CTL);
     queued(0xB0, 74, 20, 1);
     bad += check("armed and playing: CC74 records a motion event of CUT on the selected track", motion.count == 1u &&
-                 (motion.event[0].id == P_E4 && !motion.event[0].lock) && motion.event[0].value == 20 && (motion.event[0].place >> 6) == 0u);
+                 (motion.event[0].id == P_FCUT && !motion.event[0].lock) && motion.event[0].value == 20 && (motion.event[0].place >> 6) == 0u);
     queued(0xB1, 74, 20, 1);
     bad += check("  another track (channel 2, not selected): not recorded", motion.count == 1u && trk[1].p[P_E2] != 0);
     seq_stop(); events_block(CTL);
-    bad += check("  stopped: the patch's own CUT comes back", trk[0].p[P_E4] == ANALOG_PRESETS[trk[0].preset].e[4]);
+    bad += check("  stopped: the patch's own CUT comes back", trk[0].p[P_FCUT] == 40);   /* ((custom) SYNTH ACID LINE's FILTER */
     song.rec = 0;
     queued(0xB0, 74, 77, 1);
-    bad += check("not armed: the CC is the new value, no event", trk[0].p[P_E4] == 77 && motion.count == 1u);
+    bad += check("not armed: the CC is the new value, no event", trk[0].p[P_FCUT] == 77 && motion.count == 1u);
     return bad;
 }
 int main(void)

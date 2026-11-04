@@ -235,7 +235,7 @@ static void job_drums(const job_t *j)           /* every GM note through DRUM on
     finish();
 }
 
-/* the SLICER on the phrase (its clock free-running, no transport): arg 0 GATE (ANALOG ACID,
+/* the SLICER on the phrase (its clock free-running, no transport): arg 0 GATE ((custom) SYNTH ACID LINE, was ANALOG ACID,
  * pattern 6, 1/16), 1 STUT (DIGITAL PAD, pattern 7, 1/32, DEPTH 100 %) */
 static void job_slicer(const job_t *j)
 {
@@ -250,7 +250,7 @@ static void job_slicer(const job_t *j)
     phrase(t, 60);
 }
 
-/* the 4-track mix: T1 ANALOG ACID, T2 the power-on pad (TRK_DEF: FM6 PAD since DIGITAL was retired; DIGITAL PAD
+/* the 4-track mix: T1 ((custom) SYNTH ACID LINE, was ANALOG) ACID, T2 the power-on pad (TRK_DEF: FM6 PAD since DIGITAL was retired; DIGITAL PAD
  * before) (tied chords), T3 LOFI lead (12 steps against 16),
  * T4 DRUM drums (SAMPLE PERC until 1.0.2); 120 BPM, 4 bars (the hostsim TRACKS demo without the recording), stop, the tail.
  * arg 1: with the SLICER (GATE on the pad, STUT on the acid line and the drums, SWING 20 %) */
@@ -1068,7 +1068,7 @@ int main(int argc, char **argv)
         }
     add(J_SONG, "song/4track_mix");
     {   /* the SLICER */
-        job_t *j = add(J_SLICER, "slicer/gate/ANALOG_ACID");
+        job_t *j = add(J_SLICER, "slicer/gate/SYNTH_ACID");
         j->e = 0, j->pi = 4, j->arg = 0;
 #if FELUCCA_FM4                                     /* (DIGITAL: retired, built with FELUCCA_FM4=1 only) */
         j = add(J_SLICER, "slicer/stut/DIGITAL_PAD");

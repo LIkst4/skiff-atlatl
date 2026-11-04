@@ -267,7 +267,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "(2.1) chord follow: roots, KEY SCALE FIT, NOTE, the tick order, ties, keys MIDI ARP, recording, STOP, kits, ids" "$OUT/follow_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/speaker_test" tests/speaker_test.c -lm
     run "SPEAKER EQ: FLAT / LOWCUT / BASS+ responses, BASS+ harmonics of the bass, the sub cut, no offset after" "$OUT/speaker_test"
-    run "DSP render (ANALOG preset 0)" "$OUT/hostsim" 0 0 1 "$OUT/render.wav"
+    run "DSP render (engine 0 preset 0: (custom) SYNTH ACID LINE, ANALOG retired)" "$OUT/hostsim" 0 0 1 "$OUT/render.wav"
     mkdir -p build/tracks_demo
     run "TRACKS: 4-track pattern, live recording (lengths, swing), voice budget, engine switch, cost" env TRACKS=build/tracks_demo "$OUT/hostsim" 0 0 1 "$OUT/tracks.wav"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/project_test" tests/project_test.c -lm
@@ -445,9 +445,7 @@ EOF
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumx_test" tests/drumx_test.c -lm
     mkdir -p build/drumx_demo
     run "DRUM-X: every lane sounds and ends, MORPH, TUNE, the pitch envelope, hat choke, the knobs, FOLD, FM, a drum track, demos" "$OUT/drumx_test" build/drumx_demo
-    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/noise_test" tests/noise_test.c -lm
-    mkdir -p build/noise_demo
-    run "NOISE: colour slopes, key-tracked filter and clock, META period, DC, clipping, retrigger, cost, demos" "$OUT/noise_test" build/noise_demo
+    # ((custom) NOISE retired (retire.c): tests/noise_test.c no longer builds; SYNTH plays its sounds, tests/synth_test.c)
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_test" tests/fm6_test.c -lm
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo

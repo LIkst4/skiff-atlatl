@@ -598,6 +598,43 @@ static int proj_import_old(project_t *q, const void *b, int n);
 #endif
 static int proj_import_any(project_t *q, const void *b, int n);
 static const proj_fmt_t *proj_fmt_of(const void *b, int n);
+/* (custom) tracks of a retired engine (retire.c: ANALOG TRIO WHEEL NOISE DRUM-X) -> SYNTH with the preset for theirs
+ * (a default sound marker: the first's), its E values and filter, or DRUM-X's DRUM with a DX kit; the rest of the track
+ * kept. Their motion events on the E values go (another engine's meanings; DRUM-X's too, for simplicity). Whatever the
+ * format, on every load; idempotent */
+static void proj_retire(project_t *q)
+{
+    uint32_t k, i, n, hit = 0;
+    for (k = 0; k < NTRK; k++) {
+        proj_trk_t *d = &q->t[k];
+        uint32_t pr;
+        if (!eng_retired(d->engine))
+            continue;
+        pr = retire_values(d->p, d->engine, d->preset < PROJ_DEF_KEEP ? d->preset : 0u);
+        d->engine = (uint8_t)retire_engine(d->engine);
+        if (d->preset < PROJ_DEF_KEEP)
+            d->preset = (uint8_t)pr;
+        hit |= 1u << k;
+    }
+    if (!hit)
+        return;
+#if FELUCCA_LEGACY                                 /* (2.0: the motion is the patterns', bank.c) */
+    for (i = n = 0; i < q->motion.count && i < MOTION_MAX; i++) {
+        const motion_event_t *e = &q->motion.event[i];
+        if (((hit >> (e->place >> 6)) & 1u) && MOTION_ID(e) >= P_E0)
+            continue;
+        q->motion.event[n++] = *e;
+    }
+    for (i = n; i < q->motion.count && i < MOTION_MAX; i++)
+        memset(&q->motion.event[i], 0, sizeof q->motion.event[i]);
+    q->motion.count = (uint8_t)n;
+#else
+    (void)i;
+    (void)n;
+#endif
+    q->sum = proj_sum(q);
+}
+
 /* every track's engine one this firmware has (DIGITAL, 1, is one: it converts; (2.0) only with FELUCCA_LEGACY): a
  * project of another number is not one (it never was: no engine number past the last was ever stored) */
 static int proj_engines_ok(const project_t *q)
@@ -1485,6 +1522,7 @@ static int project_restore_runtime(const project_t *input)
     proj_fm4(p);                                        /* .. that had DIGITAL tracks */
     proj_perc(p);                                       /* .. or SAMPLE PERC tracks */
 #endif
+    proj_retire(p);                                     /* ((custom) .. or tracks of a retired engine) */
     transport_req = 2;
     panic_req = (1u << NTRK) - 1u;
     fm1_irq_off();                                      /* the audio ISR must not see half a project */

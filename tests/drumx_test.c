@@ -45,8 +45,8 @@ static track_t *kitx(int16_t morph, int16_t tune)
     track_t *t = &trk[0];
     uint32_t i;
     host_tracks_init();
-    host_preset(t, ENGI_DRUMX, 0);
-    t->p[P_E0] = morph;
+    host_preset(t, ENGI_DRUM, DRUM_PDX);              /* ((custom) DRUM-X retired: DRUM's DX KIT, MORPH on ACCENT (E5)) */
+    t->p[P_E5] = morph;
     t->p[P_E1] = tune;
     for (i = 0; i < 4u; i++)
         t->p[P_DIST + i] = 0;
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         check(nm, pk > 1036 && pk < 32000 && fabs(dc) < pk * 0.02 && ended, "peak %d, DC %.0f", pk, dc);
     }
     /* 1b (Skiff phase 9) every kit a preset loads (eng_drumx.c DRUMX_PKIT): the same, every lane at A and at B */
-    for (i = 2; i < ENG_DRUMX.npresets; i++) {
+    for (i = 2; i < DRUM_NDX; i++) {                     /* ((custom) DRUM's DX presets: DRUM-X's) */
         int32_t lo = 32767, hi = 0;
         int all = 1;
         char why[48] = "";
@@ -146,8 +146,8 @@ int main(int argc, char **argv)
             double dc = 0;
             uint32_t j;
             host_tracks_init();
-            host_preset(t, ENGI_DRUMX, i);
-            t->p[P_E0] = l < 8u ? 0 : 127;
+            host_preset(t, ENGI_DRUM, DRUM_PDX + i);
+            t->p[P_E5] = l < 8u ? 0 : 127;
             for (j = 0; j < 4u; j++)
                 t->p[P_DIST + j] = 0;
             strike(t, l & 7u, FS / 2u);
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
             hi = pk > hi ? pk : hi;
         }
         snprintf(nm, sizeof nm, "%s: every lane at A and B sounds, under full scale, no DC, ends",
-                 ENG_DRUMX.presets[i].name);
+                 ENG_DRUM.presets[DRUM_PDX + i].name);
         check(nm, all && !memcmp(dx_kit, DX_KITS[DRUMX_PKIT[i] - 1u], sizeof dx_kit), "peaks %d .. %d%s", lo, hi, why);
     }
 
@@ -200,7 +200,7 @@ int main(int argc, char **argv)
         for (i = 0; i < FS / 2u; i += CTL) {
             int32_t o[2 * CTL];
             uint32_t j;
-            t->p[P_E0] = (int16_t)(i * 127u / (FS / 2u));
+            t->p[P_E5] = (int16_t)(i * 127u / (FS / 2u));
             mix_block(o, CTL);
             for (j = 0; j < CTL; j++)
                 buf[i + j] = o[2 * j];
@@ -229,14 +229,14 @@ int main(int argc, char **argv)
     /* 4 */
     {
         track_t *t = kitx(64, 64);
-        const drumx_lane_t *K;
+        const drum_lane_t *K;
         trk_note_on(t, NOTE[4], 100);
         run(FS / 10u);
         trk_note_on(t, NOTE[3], 1);                      /* (a quiet closed hat: the open one's tail is measured) */
         run(FS / 50u);
-        K = drumx_kit_of(t);
-        check("the closed hat chokes the open one", !K[DV_HATO].x.live || K[DV_HATO].x.ea < (1 << 30) / 1000,
-              "open hat envelope %d", (int)K[DV_HATO].x.ea);
+        K = drum_kit_of(t);
+        check("the closed hat chokes the open one", !K[DV_HATO].dx.live || K[DV_HATO].dx.ea < (1 << 30) / 1000,
+              "open hat envelope %d", (int)K[DV_HATO].dx.ea);
     }
 
     /* 5 */
@@ -244,7 +244,8 @@ int main(int argc, char **argv)
         double r0, r1;
         uint32_t lw, ok2 = 1;
         track_t *t = kitx(64, 64);
-        ok = str_eq(ENG_DRUMX.edit[0].label, "MORPH") && str_eq(ENG_DRUMX.edit[4].label, "NOISE") && ENG_DRUMX.knob[0] == P_E0;   /* ((Skiff U4) the words) */
+        ok = str_eq(track_desc(t, P_E5)->label, "MORPH") && str_eq(track_desc(t, P_E4)->label, "NOISE") &&
+             str_eq(track_desc(t, P_E2)->label, "COLOR");   /* ((custom) a DX kit's knobs as DRUM-X named them) */
         t->p[P_E4] = 0;                                  /* NOIS: the snare's noise out, then all noise */
         strike(t, 1, FS / 4u);
         r0 = rms(FS / 20u, FS / 4u);
@@ -254,14 +255,14 @@ int main(int argc, char **argv)
         r1 = rms(FS / 20u, FS / 4u);
         check("the knobs: MRPH (KNOB 1), NOIS moves the noise of every lane", ok && fabs(r0 - r1) > 0.2 * (r0 > r1 ? r0 : r1),
               "snare tail RMS %.0f / %.0f", r0, r1);
-        for (lw = 0; lw < 8u; lw++) {                    /* FOLD 127, FM 40 and 120: another sound, every lane */
+        for (lw = 0; lw < 8u; lw++) {                    /* ((custom) DX+: FM and FOLD, another sound, every lane */
             static int32_t a0[FS / 8];
-            static const uint8_t KN[3][2] = {{P_E6, 127}, {P_E5, 40}, {P_E5, 120}};
+            static const uint8_t KN[1][2] = {{P_E0, DK_DXP}};
             uint32_t k;
             t = kitx(64, 64);
             strike(t, lw, FS / 8u);
             memcpy(a0, buf, sizeof a0);
-            for (k = 0; k < 3u; k++) {
+            for (k = 0; k < 1u; k++) {
                 int32_t pk = 0;
                 double d = 0;
                 t = kitx(64, 64);
@@ -274,7 +275,7 @@ int main(int argc, char **argv)
                 ok2 &= d / (FS / 8u) > 200 && pk < 32700 && !strike(t, lw, MAXN);
             }
         }
-        check("FOLD 127, FM 40 / 120: every lane another sound, under full scale, still ends", ok2, 0);
+        check("DX+ (FM, FOLD): every lane another sound, under full scale, still ends", ok2, 0);
     }
 
     /* 6 */
@@ -284,13 +285,13 @@ int main(int argc, char **argv)
         for (n = 0; n < 128u; n++)
             bad += (uint32_t)DX_GM[dx_gm_ix(n)][0] != drum_lane(n);
         ok = drum_track(t) && !bad && str_eq(drum_lane_name(t, DV_TOM), "TOM") && str_eq(drum_lane_abbr(t, DV_RIM), "RS") &&
-             eng_allowed(NTRK - 1u, ENGI_DRUMX) && str_eq(ENGINES[ENGI_DRUMX]->name, "DRUM-X");
+             eng_allowed(NTRK - 1u, ENGI_DRUM) && trk_dx(t);   /* ((custom) DRUM's DX kit */
         check("a drum track: the GM lanes drum_lane's, plain lane names, the light tracks", ok, "%u notes off", bad);
         {                                                /* the last track (with six: a light one, its eng_lite area) */
             track_t *z = &trk[NTRK - 1u];
             int32_t pk = 0;
             host_tracks_init();
-            host_preset(z, ENGI_DRUMX, 0);
+            host_preset(z, ENGI_DRUM, DRUM_PDX);
             for (i = 0; i < 4u; i++)
                 z->p[P_DIST + i] = 0;
             trk_note_on(z, NOTE[0], 100);

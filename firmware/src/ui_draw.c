@@ -1328,8 +1328,8 @@ static void confirm_text(char *a, char *b)
         break;
     case CF_INIT_SOUND:
         str_cpy(a, "INITIALIZE SOUND?", 24);
-        if (TSEL->eng_req % NENGINES == ENGI_DRUMX)    /* ((Skiff phase 7) the project's kit, every DRUM-X track's) */
-            str_cpy(b, "and the DRUM-X kit", 40);
+        if (trk_dx(TSEL))                            /* ((Skiff phase 7) the project's kit, every DX track's) */
+            str_cpy(b, "and the DX kit", 40);
         break;
     case CF_CLEAR_MOTION:
         str_cpy(a, "CLEAR T1 AUTOMATION?", 24); a[7] = (char)('1' + k % NTRK);

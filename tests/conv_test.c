@@ -525,15 +525,16 @@ int main(int argc, char **argv)
         ok = 1;
         for (id = 0; id < 32u; id++)
             ok &= !rc[id] && !needs(out, id);
-        ok &= trk[0].eng_req == 0u && trk[0].p[P_LSYNC] == 3 && trk[0].p[P_LTRIG] == 1 && trk[0].p[P_LPOL] == 1 &&
+        ok &= trk[0].eng_req == ENGI_SYNTH && trk[0].p[P_LSYNC] == 3 && trk[0].p[P_LTRIG] == 1 && trk[0].p[P_LPOL] == 1 &&
               motion_base_value(&trk[0], P_SPRD) == 40 && trk[0].p[P_ITYPE] == 2 && trk[0].p[P_IA] == 80 &&
               trk[0].p[P_IMIX] == 100 && trk[0].p[P_ESYNC] == 1 && trk[0].p[P_M1SRC] == 10 &&
-              motion_base_value(&trk[0], P_E0 + 4) == 50 && trk[0].p[P_SGATE] == 64 && trk[1].eng_req == ENGI_FM6 &&
+              trk[0].p[P_SGATE] == 64 && trk[1].eng_req == ENGI_FM6 &&
               trk[1].p[P_E7] == FM6_OWN && song.g[G_BPM] == 133 && song.g[G_SWING] == 10 && song.g[G_RTYPE] == 1 &&
               song.g[G_DTIME] == 3;
         fm6_pack(fm6_patch[1], pk);
         ok &= !memcmp(pk, fa.fm6[1], sizeof pk);
-        bad += check("a fresh unit takes them; the music's sounds by name (LFO SYNC, INSERT, S&H ..), B4 OWN", ok);
+        bad += check("a fresh unit takes them; the music's sounds by name (LFO SYNC, INSERT, S&H ..; (custom) ANALOG as "
+                     "SYNTH), B4 OWN", ok);
         ok = trk[0].step[0].note[0] == 60u && trk[0].step[0].nudge == -32 && trk[0].step[4].nudge == 28 &&
              trk[0].step[8].nudge == 0 && step_ratchet(&trk[0].step[8]) == 3u && trk[0].step[12].cond == TC_1_3 &&
              !trk[0].step[12].probability && trk[1].step[0].note[0] == 48u && !trk[1].step[0].nudge &&

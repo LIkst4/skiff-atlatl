@@ -50,5 +50,6 @@ jobs:
           path: |
             build/felucca.fwsc
             build/felucca.bin
+            build/felucca.dis
             build/flt_demo/*.wav
           if-no-files-found: warn

@@ -135,6 +135,53 @@ int main(int argc, char **argv)
         ck(w, ok);
     }
 
+    /* 2b (custom) OSC B's SYNC and RING: sound, bounded; SYNC's B TUNE moves the spectrum (the formant) at A's pitch;
+     * RING at SHAPE B 0 is A alone (dry), at 127 not */
+    for (k = SY_SYNC; k < SY_NB; k++) {
+        int ok = 1;
+        double r[2] = {0, 0};
+        for (i = 0; i < 2u; i++) {
+            stat_t s = {0};
+            fresh(0);
+            trk[0].p[P_E3] = (int16_t)(k + 1u);
+            trk[0].p[P_E5] = i ? 19 : 0;
+            trk[0].p[P_E4] = k == SY_RING ? 127 : 0;
+            trk[0].p[P_E7] = 127;
+            trk[0].p[P_FTYPE] = FT_OFF;
+            trk_note_on(&trk[0], 48, 120);
+            run(FS / 4 / CTL, &s, 0);
+            r[i] = rms(&s);
+            if (rms(&s) < 200 || s.pk > 2 * 32767 || fabs(mean(&s)) > 400)
+                ok = 0, printf("  B %s TUNE %d: RMS %.0f peak %d mean %.0f\n", N_SY_OSCB[k + 1u], i ? 19 : 0, rms(&s),
+                               (int)s.pk, mean(&s));
+        }
+        snprintf(w, sizeof w, "OSC B %-4s: at B TUNE 0 and +19: sounds, bounded, no DC (RMS %.0f / %.0f)", N_SY_OSCB[k + 1u],
+                 r[0], r[1]);
+        ck(w, ok);
+    }
+    {   /* ORGAN: PERC strikes (louder at the start than later), none at 0 */
+        double a[2][2];
+        uint32_t m;
+        for (m = 0; m < 2u; m++) {
+            stat_t s0 = {0}, s1 = {0};
+            fresh(0);
+            trk[0].p[P_E0] = SY_ORGAN;
+            trk[0].p[P_E1] = 0;                          /* FLUTE: the 8' alone */
+            trk[0].p[P_E2] = m ? 50 : 0;
+            trk[0].p[P_FTYPE] = FT_OFF;
+            trk[0].p[P_ATK] = 0;
+            trk_note_on(&trk[0], 60, 120);
+            run(FS / 20 / CTL, &s0, 0);
+            run(FS / 2 / CTL, 0, 0);
+            run(FS / 20 / CTL, &s1, 0);
+            a[m][0] = rms(&s0);
+            a[m][1] = rms(&s1);
+        }
+        snprintf(w, sizeof w, "ORGAN PERC: the first 50 ms %.0f, 0.55 s later %.0f (PERC 0: %.0f / %.0f)", a[1][0], a[1][1],
+                 a[0][0], a[0][1]);
+        ck(w, a[1][0] > a[1][1] * 1.3 && fabs(a[0][0] - a[0][1]) < a[0][1] * 0.25);
+    }
+
     /* 3 */
     for (k = 1; k < FT_N; k++) {
         stat_t s = {0};

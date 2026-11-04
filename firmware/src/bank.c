@@ -850,6 +850,8 @@ static int esnd_make(uint32_t k, const uint8_t *b, esnd_t *s)
         up_values(up_rec(u), s->p);
         s->eng = (uint8_t)up_engine(u);
         s->preset = 0;
+        if (eng_retired(up_rec(u)->engine))        /* ((custom) a retired engine's sound: SYNTH's, DRUM's (retire.c) */
+            s->preset = (uint8_t)retire_values(s->p, up_rec(u)->engine, 0);
         s->user = (uint8_t)(u + 1u);
         if (s->eng == ENGI_FM6) {                  /* (its own patch, SLOT as up_load shows it) */
             upf_patch(u, s->p[P_E7], s->f6);
@@ -858,15 +860,20 @@ static int esnd_make(uint32_t k, const uint8_t *b, esnd_t *s)
         }
         return 1;
     }
+    pi = b[1];
+    if (eng_retired(eng)) {                        /* ((custom) a retired engine's preset: SYNTH's / DRUM's for it) */
+        pi = retire_preset(eng, pi);
+        eng = retire_engine(eng);
+    }
     if (!eng_ok(eng) || !ENGINES[eng]->npresets || !eng_allowed(k, eng))   /* (eng_ok: not DIGITAL's, retired) */
         return 0;
-    pi = preset_orig(ENGINES[eng], b[1] % ENGINES[eng]->npresets);
+    pi = preset_orig(ENGINES[eng], pi % ENGINES[eng]->npresets);
     preset_fill(s->p, ENGINES[eng], pi);
     s->eng = (uint8_t)eng;
     s->preset = (uint8_t)pi;
     s->user = 0;
-    if (eng == ENGI_DRUMX)
-        s->kit = DRUMX_PKIT[pi % NELEM(DRUMX_PKIT)];
+    if (eng == ENGI_DRUM)                       /* ((custom) DRUM's DX presets: their kit) */
+        s->kit = (uint8_t)drum_pkit(pi);
     if (eng == ENGI_FM6 && s->p[P_E7] >= 0 && s->p[P_E7] < (int32_t)FM6_NFACTORY) {
         fm6_unpack(FM6_FACTORY[s->p[P_E7]], s->f6);
         s->fm6 = 1;

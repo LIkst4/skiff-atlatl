@@ -51,25 +51,25 @@ async function editorMock() {
   inp.onmidimessage = (e) => link.receive(e.data);
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
-  ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "SLICE" && info.engines[14] === "DRUM-X"
- && info.engines[5] === "VOICE" && info.engines[6] === "TRIO" && info.engines[7] === "WHEEL" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.pcount === 151 && info.pe0 === 143 && info.engines[4] === "SAMPLE",
-    "editor: INFO ((custom) P_COUNT 151, P_E0 143 from its wide-ids tag)");
+  ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "SLICE" && info.engines[14] === "-"
+ && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 151 && info.pe0 === 143 && info.engines[4] === "SAMPLE",
+    "editor: INFO ((custom) P_COUNT 151, P_E0 143 from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
   {
     /* (Skiff 1.3) wide ids: a track id from 128 on ((2.0) E0..E7 since P_E0 135, after the lane pans 127..134; (2.1) P_E0
        138, after the chord follow 135..137) goes as scope 2 and comes back whole (GET, SET, DESC), in TRACK_PARAM's track
        byte (bit 6) and in a MOTION record's step byte (bit 6); 127 (a lane's PAN) is still scope 0 */
-    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 146))).value;
-    const a = E.req.set(0, 146, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 146)));
+    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 144))).value;
+    const a = E.req.set(0, 144, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 144)));
     const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 150)));
     const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 145)));
     const e0 = E.req.get(0, 127);
     const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 147, value: 9 }, info.ntrk)));
-    ok(a[1][0] === 2 && a[1][1] === 18 && s.scope === 0 && s.id === 146 && s.value === 10 && g.id === 146 && g.value === 10 &&
-       d.scope === 0 && d.id === 150 && d.label === "KEYTRK" && tp.track === 3 && tp.id === 145 && e0[1][0] === 0 && e0[1][1] === 127 &&
+    ok(a[1][0] === 2 && a[1][1] === 16 && s.scope === 0 && s.id === 144 && s.value === 10 && g.id === 144 && g.value === 10 &&
+       d.scope === 0 && d.id === 150 && d.label === "MIX" && tp.track === 3 && tp.id === 145 && e0[1][0] === 0 && e0[1][1] === 127 &&
        mo.events.some((e) => e.step === 5 && e.param === 147 && e.value === 9),
-       "editor: wide ids: SET / GET 146 and DESC 150 as scope 2, TRACK_PARAM 145 (bit 6), a motion record of 147; 127 scope 0");
+       "editor: wide ids: SET / GET 144 and DESC 150 as scope 2, TRACK_PARAM 145 (bit 6), a motion record of 147; 127 scope 0");
     await rq(E.req.motion(0, 2, {}, info.ntrk));
-    await rq(E.req.set(0, 146, v0));
+    await rq(E.req.set(0, 144, v0));
   }
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -84,7 +84,7 @@ async function editorMock() {
     await rq(E.req.set(0, 45, 2));
     await rq(E.req.set(0, 46, 7));
     const on = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    await rq(E.req.preset(0, 1));
+    await rq(E.req.preset(15, 1));                   /* ((custom) SYNTH: ANALOG retired) */
     const off = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
     ok(on.p[45] === 2 && on.p[46] === 7 && off.p[45] === 2 && off.p[46] === 7 && off.preset === 1, "editor: a factory preset keeps the SLICER (the track's)");
     await rq(E.req.set(0, 45, 0));
@@ -102,7 +102,7 @@ async function editorMock() {
     await rq(E.req.set(0, 53, 12));
     await rq(E.req.set(0, 54, -30));
     const on = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    await rq(E.req.preset(0, 2));
+    await rq(E.req.preset(15, 2));
     const off = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
     ok(on.p[52] === 1 && on.p[53] === 12 && on.p[54] === -30 && off.p.slice(49, 61).every((v) => v === 0),
       "editor: a factory preset turns every matrix slot off");
@@ -116,7 +116,7 @@ async function editorMock() {
       "editor: the chord keys 81, 82 over DESC");
     await rq(E.req.set(0, 81, 2));
     await rq(E.req.set(0, 82, 4));
-    await rq(E.req.preset(0, 3));
+    await rq(E.req.preset(15, 3));
     const kept = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
     ok(kept.p[81] === 2 && kept.p[82] === 4 && kept.preset === 3, "editor: a factory preset keeps CHRD and VOIC (the track's)");
     await rq(E.req.set(0, 81, 0));
@@ -128,7 +128,7 @@ async function editorMock() {
       "editor: (2.1) the chord follow 135..137 over DESC");
     await rq(E.req.set(0, 135, 2));
     await rq(E.req.set(0, 136, 1));
-    await rq(E.req.preset(0, 2));
+    await rq(E.req.preset(15, 2));
     const fk = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
     ok(fk.p[135] === 2 && fk.p[136] === 1 && fk.preset === 2, "editor: a factory preset keeps the chord follow (the track's)");
     await rq(E.req.set(0, 135, 0));
@@ -142,19 +142,21 @@ async function editorMock() {
       "editor: the DRUM lane levels 83..90 over DESC (percent, 100 % default)");
     await rq(E.req.set(0, 84, 40));
     const lv = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    await rq(E.req.preset(0, 3));
+    await rq(E.req.preset(15, 3));
     const lv2 = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
     ok(lv.p[84] === 40 && lv2.p[84] === 127, "editor: a lane level is the sound's: a factory preset sets it back to 100 %");
     await rq(E.req.set(0, 82, 0));
-    /* (Skiff) a factory preset's other values (core.h preset_t more): ANALOG NEON LEAD (16) sets the LFO's RATE, FADE
-       and PIT and GLIDE (9, 12, 13, 38); the next preset puts them back to their defaults */
-    await rq(E.req.preset(0, 16));
+    /* (Skiff) a factory preset's other values (core.h preset_t more): ((custom) SYNTH HARD SYNC (30) sets GLIDE (38) and
+       its FILTER (138..140); REESE (29) the LFO's FLT depth (14); the next preset puts them back to their defaults */
+    await rq(E.req.preset(15, 30));
     const nl = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    await rq(E.req.preset(0, 0));
+    await rq(E.req.preset(15, 29));
+    const rs = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
+    await rq(E.req.preset(15, 0));
     const sl = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    ok(nl.preset === 16 && nl.p[9] === 86 && nl.p[12] === 92 && nl.p[13] === 11 && nl.p[38] === 28 &&
-       sl.p[9] === 60 && sl.p[12] === 0 && sl.p[13] === 0 && sl.p[38] === 0,
-      "editor: NEON LEAD sets its LFO and GLIDE, the next factory preset their defaults");
+    ok(nl.preset === 30 && nl.p[38] === 20 && nl.p[139] === 88 && rs.p[14] === 8 && rs.p[38] === 0 &&
+       sl.p[14] === 0 && sl.p[38] === 0,
+      "editor: HARD SYNC sets its GLIDE and FILTER, REESE its LFO, the next factory preset their defaults");
   }
   ok(E.CMD.SONG === 33 && E.CMD.UI_STATE === 34 && E.CMD.FAV_SET === 38, "editor: preferences preserve the existing SONG command");
   const baseInfo = [116,101,115,116,0, 0, 69, 27, 64, 61, 4];
@@ -176,13 +178,13 @@ async function editorMock() {
   ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 6))).rc === 1, "editor: out-of-range palette refused");   /* (5: QUARK) */
   ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(1, 1))).rc === 2, "editor: the retired font weight answers not supported");
   ok(E.parse[E.CMD.FAV_SET](await rq(E.req.favSet(info.nengines, 31, true))).rc === 1, "editor: empty user slot cannot be favorited");
-  await rq(E.req.favSet(0, 0, true));
+  await rq(E.req.favSet(15, 0, true));            /* ((custom) SYNTH: ANALOG retired) */
   await rq(E.req.uiSet(3, 1));
   prefs = await E.readDevicePreferences(rq, info, names, prefs);
-  ok(E.devicePresetRows(info, names, prefs).length === 1 && prefs.favorites[0][0], "editor: favorites filter follows device state");
-  m.state.favorites[0][0] = false; m.state.favorites[2][0] = true;
+  ok(E.devicePresetRows(info, names, prefs).length === 1 && prefs.favorites[15][0], "editor: favorites filter follows device state");
+  m.state.favorites[15][0] = false; m.state.favorites[2][0] = true;
   prefs = await E.readDevicePreferences(rq, info, names, prefs);
-  ok(!prefs.favorites[0][0] && prefs.favorites[2][0], "editor: panel-side favorite changes refresh");
+  ok(!prefs.favorites[15][0] && prefs.favorites[2][0], "editor: panel-side favorite changes refresh");
   await rq(E.req.upStore(31, "FAVORITE"));
   await rq(E.req.favSet(info.nengines, 31, true));
   prefs = await E.readDevicePreferences(rq, info, names, prefs);
@@ -196,16 +198,16 @@ async function editorMock() {
   {   /* the lists in the device's order (engines.c ENGINE_ORDER): FM6 second, DRUM then (Skiff) DRUM-X last, "-" never;
          the numbers stay */
     const shown = E.engineOrder(info.engines).map((i) => info.engines[i]);
-    ok(shown.join() === "ANALOG,SYNTH,FMINI,FM6,PHASE,LOFI,SAMPLE,VOICE,TRIO,WHEEL,GRAIN,PHYS,NOISE,SLICE,DRUM,DRUM-X" &&
-       E.engineOrder(info.engines)[1] === 15 && E.engineOrder(info.engines)[2] === 16 && E.engineOrder(info.engines)[3] === 12 &&
-       E.engineOrder(info.engines)[14] === 10 && E.engineOrder(info.engines)[15] === 14,   /* ((custom) SYNTH second) */
-       "editor: engines listed FM6 second, DRUM then DRUM-X last (indices kept)");
+    ok(shown.join() === "SYNTH,FMINI,FM6,PHASE,LOFI,SAMPLE,VOICE,GRAIN,PHYS,SLICE,DRUM" &&
+       E.engineOrder(info.engines)[0] === 15 && E.engineOrder(info.engines)[1] === 16 && E.engineOrder(info.engines)[2] === 12 &&
+       E.engineOrder(info.engines)[10] === 10,   /* ((custom) SYNTH first; ANALOG TRIO WHEEL NOISE DRUM-X retired: "-") */
+       "editor: engines listed SYNTH FMINI FM6 first, DRUM last (indices kept)");
     ok(E.engineOrder(["ANALOG", "X", "-", "DRUM", "FM6"]).join() === "0,4,3,1", "editor: an unknown engine follows the known ones");
     m.state.favorites[10][0] = m.state.favorites[12][0] = true;
     await rq(E.req.uiSet(3, 0));
     prefs = await E.readDevicePreferences(rq, info, names, prefs);
     const rows = E.devicePresetRows(info, names, prefs).filter((r) => !r.user), eng = [...new Set(rows.map((r) => r.engine))];
-    ok(eng[0] === 0 && eng[1] === 15 && eng[2] === 16 && eng[3] === 12 && eng[eng.length - 2] === 10 && eng[eng.length - 1] === 14,
+    ok(eng[0] === 15 && eng[1] === 16 && eng[2] === 12 && eng[eng.length - 1] === 10,
        "editor: device presets in the device's engine order");
   }
   const none = await E.readDevicePreferences(() => { throw new Error("unexpected request"); }, { uiCaps: 0 }, []);
@@ -406,12 +408,13 @@ async function editorSamplePresets() {
   const kitSet = [];
   for (const v of [1, 2, 3]) kitSet.push(E.parse[C.SET](await rq(E.req.set(0, info.pe0, v))).value);
   ok(eq(kitD.names, ["STD", "66", "10", "77", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3",
-        "808", "909", "TRX", "EFM", "TRX-P", "MI"]) &&
+        "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+"]) &&
      eq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((v) => E.aliasOf(kitD.names, v)), [0, 6, 5, 8, 4, 5, 6, 7, 8, 9, 10, 11]) &&
      eq(E.enumShown(kitD).filter((v) => E.aliasOf(kitD.names, v) === v).map((v) => kitD.names[v]),
-        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI"]) &&
+        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", "USR1", "USR2", "USR3", "808", "909", "TRX", "EFM", "TRX-P", "MI",
+         "DX", "DX+"]) &&
      eq(kitSet, [6, 5, 8]),
-    "DRUM: KIT 1..3 (once HAND CYM H+CYM) named 66 10 77, aliases of 6 5 8: hidden, a SET lands there; ((2.0, #35) USR1..3 after; (custom) the MD kits)");
+    "DRUM: KIT 1..3 (once HAND CYM H+CYM) named 66 10 77, aliases of 6 5 8: hidden, a SET lands there; ((2.0, #35) USR1..3 after; (custom) the MD kits, DX DX+)");
   const removed = E.parse[C.PRESET](await rq(E.req.preset(4, 4)));
   const kit = E.parse[C.DUMP](await rq(E.req.dump()), info);
   ok(removed.engine === 10 && removed.preset === 0 && kit.engine === 10 && eq(kit.p.slice(info.pe0), E.DRUM_KIT_E),
@@ -445,8 +448,8 @@ function mockTables() {
        ph.presets.length === 11 && !ph.presets.some((p) => p.name === "RAIN" || p.name === "DRUM KIT"),
        "editor: PHYS models MODAL STRNG MEMB SYMP (no DUST, no DRUM), 11 presets");
     ok(dr.name === "DRUM" && dr.edit.map((d) => d.label).join() === "KIT,PITCH,TONE,DECAY,SNAP,ACCENT,KICK,DRIVE" &&
-       dr.presets.length === 19 && dr.presets[0].name === "DRUM KIT",
-       "editor: DRUM engine 10 (KIT PITCH TONE DECAY SNAP ACCENT KICK DRIVE), DRUM KIT first of 19 ((custom) the MD kits')");
+       dr.presets.length === 29 && dr.presets[0].name === "DRUM KIT" && dr.presets[19].name === "DX KIT",
+       "editor: DRUM engine 10 (KIT PITCH TONE DECAY SNAP ACCENT KICK DRIVE), DRUM KIT first of 29 ((custom) the MD kits', DX)");
   }
   const dj = DESC;
   if (!existsSync(dj)) { console.log("editor: mock tables == firmware (no build/host/desc.json)        skip"); return; }
@@ -683,11 +686,11 @@ async function editorLibrarian() {
     && b.slots[31].slot === 31, "librarian: UP_LIST, 32 slots in 2 frames");
 
   const cap = (await E.capturePatch(rq, info, "acid test")).patch;
-  ok(cap.engine === 0 && cap.p.length === info.pcount && cap.pattern && cap.pattern[0][0] === 45 && cap.pattern[0][1] === 1,
+  ok(cap.engine === 15 && cap.p.length === info.pcount && cap.pattern && cap.pattern[0][0] === 45 && cap.pattern[0][1] === 1,
     "librarian: capture = DUMP + first 16 steps");
   let rc = await E.bank.put(rq, 10, cap);
   const g = await E.bank.get(rq, info, 10);
-  ok(rc === 0 && g.used && g.name === "acid test" && g.engine === 0 && eq(g.p, cap.p) && js(g.pattern) === js(cap.pattern),
+  ok(rc === 0 && g.used && g.name === "acid test" && g.engine === 15 && eq(g.p, cap.p) && js(g.pattern) === js(cap.pattern),
     "librarian: UP_PUT -> UP_GET round trip");
   const bad = E.parse[C.UP_PUT](await rq(E.req.upPut(60, cap), { timeout: 2500, retries: 0 }));
   ok(bad.rc === 1, "librarian: UP_PUT to a slot past the bank -> rc 1");
@@ -707,7 +710,7 @@ async function editorLibrarian() {
   const d2 = E.parse[C.DUMP](await rq(E.req.dump()), info);
   const st = [];
   for (let i = 0; i < 16; i++) st.push(E.parse[C.STEP_GET](await rq(E.req.stepGet(i))));
-  ok(rc === 0 && d2.engine === 0 && eq(d2.p.filter((_, i) => i !== 17), cap.p.filter((_, i) => i !== 17)) && d2.p[17] === 3
+  ok(rc === 0 && d2.engine === 15 && eq(d2.p.filter((_, i) => i !== 17), cap.p.filter((_, i) => i !== 17)) && d2.p[17] === 3
     && st.every((x) => !x.n) && cap.pattern, "librarian: UP_LOAD applies the sound only (steps and the track's ARP stay)");
   await rq(E.req.set(0, 17, 0));
   for (let i = 0; i < 16; i++) await rq(E.req.stepSet(i, E.stepsFromPattern(cap.pattern)[i]));   /* (for the captures below) */
@@ -779,14 +782,14 @@ async function editorLibrarian() {
   }
   /* a future firmware: one more parameter at id 5, engines in another order and one of them gone */
   const keys2 = [...keys.slice(0, 5), "NEW", ...keys.slice(5)];
-  const eng2 = ["PHASE", "ANALOG", "SAMPLE"];
+  const eng2 = ["PHASE", "SYNTH", "SAMPLE"];   /* ((custom) SYNTH: ANALOG retired) */
   const fut = E.readLibraryFile(file, { keys: keys2, engines: eng2 });
   const p0 = fut.patches[0].p;
   ok(fut.patches.length === 2 && p0.length === PC + 1 && p0[5] === null && p0[6] === cap.p[5] && p0[PC] === cap.p[PC - 1]
     && fut.patches[0].engine === 1 && fut.patches[1].engine === 0, "library file: other ids / engine order mapped by label and name");
   const lost = E.readLibraryFile({ ...file, patches: [{ ...file.patches[0], engineName: "WAVETABLE" }] }, ctx);
   ok(lost.patches.length === 0 && lost.skipped === 1, "library file: a patch for an unknown engine is skipped");
-  const bankFile = E.libraryFile("bank", [{ ...g, engineName: "ANALOG", slot: 10 }], ctx);
+  const bankFile = E.libraryFile("bank", [{ ...g, engineName: "SYNTH", slot: 10 }], ctx);
   ok(bankFile.kind === "bank" && bankFile.patches[0].slot === 10 && E.readLibraryFile(bankFile, ctx).patches[0].slot === 10, "library file: bank export keeps slot numbers");
   {   /* files from the 69-parameter firmware (P_E0 61): the engine's 8 land on E0..E7, FM op ENV, the
          chord keys, the lane levels, DIR and the ducking stay unset */
@@ -820,7 +823,7 @@ async function editorLibrarian() {
     ok(keys91[83] === "E0" && good(sp) && good(lp) && good(nk),
       "library file: 91-parameter files (1.0.x: patch, labelled, unlabelled) map the engine's 8 to E0..E7, the lane levels unset");
   }
-  const old = E.readLibraryFile({ format: "felucca-patch", version: 1, engine: 0, preset: 4, engineName: "ANALOG", presetName: "ACID", p: d2.p, steps: E.stepsFromPattern(cap.pattern) }, ctx);
+  const old = E.readLibraryFile({ format: "felucca-patch", version: 1, engine: 15, preset: 4, engineName: "SYNTH", presetName: "ACID LINE", p: d2.p, steps: E.stepsFromPattern(cap.pattern) }, ctx);
   ok(old.patches.length === 1 && eq(old.patches[0].p, d2.p) && js(old.patches[0].pattern) === js(cap.pattern), "library file: reads the old \"Save to file\" format");
   let threw = false;
   try { E.readLibraryFile({ format: "something" }, ctx); } catch (e) { threw = true; }
@@ -1132,19 +1135,19 @@ async function editorSong2() {
          it, COPY+ copies it */
     const snd = (k, e) => js(l.tracks[k].ent[e].snd);
     await rq(E.req.upStore(3, "MOCK SND"));                               /* (U04: the track's sound) */
-    l = P2(await rq(L2(9, 0, 0, [1, 2])));
-    ok(!l.rc && snd(0, 0) === "[1,2]" && snd(0, 1) === "[0,0]", "song2 (#30): op 9 puts ANALOG's preset 3 on T1 A");
+    l = P2(await rq(L2(9, 0, 0, [16, 2])));
+    ok(!l.rc && snd(0, 0) === "[16,2]" && snd(0, 1) === "[0,0]", "song2 (#30): op 9 puts SYNTH's preset 3 on T1 A ((custom) ANALOG retired)");
     l = P2(await rq(L2(9, 0, 1, [64 + 3, 0])));
     const user = !l.rc && snd(0, 1) === "[67,0]";
-    l = P2(await rq(L2(9, 0, 6, [1, 0])));
+    l = P2(await rq(L2(9, 0, 6, [16, 0])));
     let refused = l.rc === 1 && snd(0, 6) === "[0,0]";                   /* (G: empty) */
-    for (const s of [[63, 0], [2, 0], [1, 127], [64 + 20, 0]]) refused &&= P2(await rq(L2(9, 0, 0, s))).rc === 1;
+    for (const s of [[63, 0], [2, 0], [16, 127], [64 + 20, 0]]) refused &&= P2(await rq(L2(9, 0, 0, s))).rc === 1;
     await rq(L2(1, 4, 0, 65));                                             /* (T5 A: a REST, a light track) */
     l = P2(await rq(L2(9, 4, 0, [10, 0])));                                /* (PHYS) */
-    refused &&= l.rc === 1 && snd(4, 0) === "[0,0]" && snd(0, 0) === "[1,2]";
+    refused &&= l.rc === 1 && snd(4, 0) === "[0,0]" && snd(0, 0) === "[16,2]";
     ok(refused, "song2 (#30): refused: an empty entry, no such engine, DIGITAL's, no such preset or user sound, PHYS on T5");
     l = P2(await rq(L2(8, 0, 0)));                                         /* (COPY+ of A (01): into the first empty after) */
-    const f = l.tracks[0].ent.findIndex((en, j) => j > 0 && js(en.snd) === "[1,2]");
+    const f = l.tracks[0].ent.findIndex((en, j) => j > 0 && js(en.snd) === "[16,2]");
     l = P2(await rq(L2(4, 0, f)));
     ok(!l.rc && f > 0 && snd(0, f) === "[0,0]", "song2 (#30): COPY+ copies an entry's sound, CLEAR takes it");
     l = P2(await rq(L2(9, 0, 0, [0, 0])));
@@ -1312,7 +1315,7 @@ async function editorTracks() {
   const { m, rq, ev, done } = attachMock({ watchMs: 1000 });
   const info = E.parse[C.INFO](await rq(E.req.info()));
   const tr = E.parse[C.TRACK](await rq(E.req.track()));
-  ok(info.ntrk === 6 && tr.sel === 0 && tr.ntrk === 6 && tr.tracks[0].engine === 0 && tr.tracks[1].engine === 12
+  ok(info.ntrk === 6 && tr.sel === 0 && tr.ntrk === 6 && tr.tracks[0].engine === 15 && tr.tracks[1].engine === 12
     && tr.tracks[3].engine === 10 && tr.tracks[3].preset === 0 && tr.tracks[4].engine === 15 && tr.tracks[4].preset === 14
     && tr.tracks[5].engine === 10, "tracks: INFO NTRK, TRACK lists 6 parts (track 4: DRUM KIT; 5 SY PIANO (custom), 6 DRUM KIT)");
   {   /* (Skiff phase 6) INFO 54: the light tracks and the engines they may not play; MOTION's track bound is INFO's */
@@ -1329,7 +1332,7 @@ async function editorTracks() {
   await rq(E.req.set(0, 1, 77));
   const td0 = E.parse[C.TRACK_DUMP](await rq(E.req.trackDump(0)), info);
   const td1 = E.parse[C.TRACK_DUMP](await rq(E.req.trackDump(1)), info);
-  ok(t1.sel === 1 && d1.engine === 12 && d0.engine === 0 && td1.p[1] === 77 && td0.p[1] === d0.p[1] && td0.p[1] !== 77,
+  ok(t1.sel === 1 && d1.engine === 12 && d0.engine === 15 && td1.p[1] === 77 && td0.p[1] === d0.p[1] && td0.p[1] !== 77,
     "tracks: TRACK selects; DUMP / SET act on it, TRACK_DUMP reads any track");
   /* steps of a track that is not selected */
   const w = E.parse[C.TRACK_STEP](await rq(E.req.trackStep(2, 5, { n: 2, notes: [60, 67, 0, 0], time: 0, flags: 1, vel: 99 })));
