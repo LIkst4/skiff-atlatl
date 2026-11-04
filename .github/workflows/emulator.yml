@@ -29,12 +29,12 @@ jobs:
         run: |
           git clone https://github.com/$EMU_REPO emu
           git -C emu checkout $EMU_REF
-      - name: "Patch: a GOTO may end THEN with ELSE, as a register JUMP"
+      - name: "Patch - a GOTO may end THEN with ELSE, as a register JUMP"
         run: |
           sed -i 's/if (kind != PI32V2_END_JUMP) {/if (kind != PI32V2_END_JUMP \&\& kind != PI32V2_END_GOTO) {/' \
             emu/src/target/pi32v2/helper.c
           grep -n "PI32V2_END_GOTO) {" emu/src/target/pi32v2/helper.c
-      - name: Cache (the emulator's build: QEMU, GLib)
+      - name: "Cache (the emulator's build - QEMU, GLib)"
         uses: actions/cache@v4
         with:
           path: emu/.cache
@@ -54,7 +54,7 @@ jobs:
             gh release create emulator-linux -R "$GITHUB_REPOSITORY" --prerelease --title "FM-1 emulator (patched)" \
               --notes "simonjohansson/fm1-emulator at $EMU_REF, GPL-2.0-or-later, with the GOTO patch (.github/workflows/emulator.yml)"
           gh release upload emulator-linux -R "$GITHUB_REPOSITORY" emu/.cache/fm1-emulator-linux-amd64.tar.gz --clobber
-      - name: This branch's package (this commit's: waits for build.yml to publish it)
+      - name: "This branch's package (this commit's - waits for build.yml to publish it)"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
