@@ -1710,7 +1710,8 @@ const P_LPAN = Array.from({ length: 8 }, (_, i) => 127 + i);   /* (2.0, #36, P_C
                                                    DRUM lanes' PAN, sound parameters as the lane levels */
 const P_FILTER = [138, 139, 140, 141], P_FDRV = 142;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
 const P_SYNTH3 = [143, 144, 145, 146], P_303 = [147, 148, 149, 38], P_RTVEL = 150, P_MODAL = [151, 152];
-const P_LMDL = Array.from({ length: 8 }, (_, i) => 153 + i);   /* (custom, P_COUNT 169, P_E0 161) DRUM's lanes' MODEL */   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
+const P_LMDL = Array.from({ length: 8 }, (_, i) => 153 + i), P_POLYMOD = [161, 162, 163, 164];   /* (custom, P_COUNT 173, P_E0
+                                                                         * 165) SYNTH's POLY MOD */   /* (custom, P_COUNT 169, P_E0 161) DRUM's lanes' MODEL */   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
                                                        * X-MOD DRIFT; ACCENT ACC DEC MUFFLE and GLIDE (P_GLIDE 7) */
 const P_FOLLOW = [135, 136, 137];   /* (2.1, P_COUNT 146, P_E0 138) core.h P_FOLLOW P_FMODE P_FNOTE: the chord follow, the
                                      track's */
@@ -2670,7 +2671,9 @@ function makeMockDevice(opt = {}) {
     D("BRIGHT", F.PCT, 0, 127, 127), D("POSITION", F.PCT, 0, 127, 0));           /* 151, 152: SYNTH's MODAL */
   const N_LMDL = ["KIT", "K808", "K909", "S808", "S909", "C808", "C909", "HATC", "HATO", "CYMB", "COWB", "TOM", "CONGA", "RIM", "CLAVE", "BOOM", "SNAP", "CRACK", "METAL", "HISS", "FM", "BDTRX", "SDTRX", "TMTRX", "CGTRX", "CPTRX", "RSTRX", "CBTRX", "CHTRX", "OHTRX", "CYTRX", "SHTRX", "CLTRX", "B2TRX", "BDEFM", "SDEFM", "TMEFM", "CPEFM", "RSEFM", "CBEFM", "HHEFM", "CYEFM"];
   for (let i = 0; i < 8; i++) TP.push(E("MODEL", N_LMDL, 0));                   /* 153..160: (custom) a DRUM lane's MODEL */
-  const P_COUNT = 169, G_COUNT = 27, NSTEP = 64, P_E0 = 161, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("ENV AMT", F.BIPCT, -64, 63, 0), D("OSC B", F.PCT, 0, 127, 0),      /* 161..164: (custom) SYNTH's POLY MOD */
+    E("DEST", ["FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"], 0), E("B LOW", ["OFF", "ON"], 0));
+  const P_COUNT = 173, G_COUNT = 27, NSTEP = 64, P_E0 = 165, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -4311,6 +4314,7 @@ const LAYOUT = (pe0) => [
     ...(pe0 >= 143 ? [["FILTER", 0, P_FILTER], ["FILTER 2", 0, [P_FDRV]]] : []),   /* ((custom) the track FILTER) */
     ...(pe0 >= 150 && engName() === "SYNTH" ? [["SYNTH 3", 0, P_SYNTH3], ["303", 0, P_303]] : []),   /* ((custom) SYNTH's own) */
     ...(pe0 >= 153 && engName() === "SYNTH" ? [["MODAL", 0, P_MODAL]] : []),
+    ...(pe0 >= 165 && engName() === "SYNTH" ? [["POLY MOD", 0, P_POLYMOD]] : []),
     ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["INSERT 2", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT) */
     ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]]] },   /* G_RTYPE 24: ROOM / SPRING */
   { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]], ...(pe0 >= 83 ? [["CHORD", 0, P_CHORD]] : []),   /* CHRD VOIC 81, 82 */

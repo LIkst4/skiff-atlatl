@@ -844,11 +844,11 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         if (v->vel > 110)                               /* accent opens the filter with the env */
             m.cutoff += (m.envq15 * 24) >> 7;
         m.shape = (64 << 8) + ((lfo * p[P_LD_SHP]) >> 7) + ((m.envq15 * p[P_ED_SHP]) >> 7);
-        if (MOD(t).on) {                                   /* the modulation matrix (mod.c) */
-            if (MOD(t).env2)                               /* ((Skiff phase 9) a slot's ENV2) */
-                env2_tick(t, v);
+        if ((MOD(t).on && MOD(t).env2) ||                  /* ((Skiff phase 9) a slot's ENV2; (custom) SYNTH's POLY */
+            (t->engine == ENGI_SYNTH && p[P_SYPME]))       /* MOD's ENV AMT) */
+            env2_tick(t, v);
+        if (MOD(t).on)                                     /* the modulation matrix (mod.c) */
             mod_voice(t, v, &m, v->fine + tune_fine + bend_fine);
-        }
         if (t->lpan_on && t->p[P_LPAN0 + ((uint32_t)v->s[0] & 7u)])   /* ((2.0, #36) a lane off C: its share of the
                                                                       * sides (lpan_render) */
             lpan_render(t, v, out, n, &m);

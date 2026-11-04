@@ -315,8 +315,8 @@ int main(void)
     up_params(&r, v, def);
     ok = P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_CHRD &&
          P_VOIC + 1 == P_LN0 && P_LN7 + 1 == P_DIR && P_DKREL + 1 == P_DTYPE && P_LDECAY7 + 1 == P_LSYNC &&
-         P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_E0 &&
-         P_E0 == 161 && P_COUNT == 169;                      /* ((custom) the track FILTER, SYNTH's own) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
+         P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_E0 &&
+         P_E0 == 165 && P_COUNT == 173;                      /* ((custom) the track FILTER, SYNTH's own) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
                                                               * lanes; 1.3: LFO SYNC TRIG POL, SPREAD, INSERT, ENV SYNC;
                                                               * (2.0, #36) the lane pans; (2.1) the chord follow) */
     for (i = 0; i < 45u; i++)
@@ -395,8 +395,8 @@ int main(void)
             ok &= !six.sid[k];
         bad += check("v6: by stored id, round trip, the rest 0", ok);
         got = six;
-        got.np = (uint8_t)(SID_COUNT + 5u);                 /* a newer firmware's: five more ids */
-        memset(got.sid + SID_COUNT, 64 + 9, 5);
+        got.np = (uint8_t)UP_SIDS;                          /* a newer firmware's: more ids (as many as the record holds) */
+        memset(got.sid + SID_COUNT, 64 + 9, UP_SIDS - SID_COUNT);
         up_params(&got, v, def);
         ok = up_valid(&got) && !memcmp(v, s, sizeof s);
         got.np = 100;                                       /* an older one's: the first 100 */

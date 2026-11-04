@@ -2998,7 +2998,7 @@ static int test_fm6_lab(void)
 
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "SYNTH 3", "303", "MODAL", "VOICE", "VOICE 2", "EDIT 1"};   /* ((custom)
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "SYNTH 3", "303", "MODAL", "POLY MOD", "VOICE", "VOICE 2", "EDIT 1"};   /* ((custom)
                                                           * engine 0: SYNTH's, its own two pages) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "ALL OPS", "VOICE", "VOICE 2", "EDIT 1"};
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
@@ -8355,10 +8355,10 @@ static int test_u4(void)
         ui_power_on();
         go_title("EDIT 1"); frame();
         page_pos(ti);
-        ok = str_eq(page_head(), "OSC A") && str_eq(ti, "1/7");   /* ((custom) SYNTH's, ANALOG's OSC once; its own two */
+        ok = str_eq(page_head(), "OSC A") && str_eq(ti, "1/8");   /* ((custom) SYNTH's, ANALOG's OSC once; its own two */
         go_title("ENV"); frame();
         page_pos(ti);
-        bad += check("U4 L5: the header names the page (EDIT 1 on SYNTH: OSC A), the footer only where (1/7, ENV 1/2)",
+        bad += check("U4 L5: the header names the page (EDIT 1 on SYNTH: OSC A), the footer only where (1/8, ENV 1/2)",
                      ok && str_eq(page_head(), "ENV") && str_eq(ti, "1/2"));   /* ((2.0) ENV ENV 2: ENV DEST is MOD's) */
         set_engine_of(TSEL, ENGI_FM6);                  /* (#7) a sheet counts as any page (was SELECT: ROWS) */
         TSEL->engine = TSEL->eng_req;

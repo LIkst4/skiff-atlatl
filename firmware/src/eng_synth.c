@@ -21,6 +21,11 @@
  *     SWARM  (custom, after Plaits' swarm / the supersaw) seven saws spread around the note: SHAPE the spread (0 .. ~2
  *            semitones out), MOD (shown SIDES) the six around against the middle one
  *   (CHORD and SWARM keep their phases in the MODAL's area, synth_vc_t ma / mb: a model or the other)
+ *   POLY MOD (custom, the Prophet-5's): ENV AMT (ENV 2: its own page) and OSC B (B's signal, at any MIX) on DEST: FREQ A
+ *   (ENV: +-4 octaves; B: FM, A's rate +-2x at 127), PW A (SHAPE A), FILTER, FRQ+FLT or ALL. B moves PW A and FILTER
+ *   once a block (B LOW: an LFO's rate; at audio rates only FREQ A follows it); B's models only (not SYNC, RING). B
+ *   LOW: OSC B at 0.5 .. 8 Hz (B TUNE
+ *   from -24), the keys left out of it, as the Prophet's LOW FREQ with KEYBOARD off
  *   OSC B also (custom, after TRIO and ANALOG's sync, TRIO retired):
  *     SYNC   a saw at B's pitch restarted at each of A's cycles (hard sync: B TUNE sweeps the formant); SHAPE B: the
  *            saw .. a square, as VA's
@@ -69,6 +74,7 @@ typedef struct {
     uint32_t subph;              /* (custom) SUB's phase */
     int32_t walk;                /* DRIFT's random walk (cents x 16) */
     int32_t acc;                 /* the accent's envelope on the cutoff, Q15 (303) */
+    uint32_t fm;                 /* (custom) POLY MOD's OSC B -> FREQ A: A's phase pushed by B (the sum) */
     sy_modal_t ma, mb;           /* MODAL's modes, A's and B's */
 } synth_vc_t;
 
@@ -496,36 +502,61 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     uint32_t i, ma = (uint32_t)clamp(p[P_E0], 0, SY_N - 1), mb = sy_bmodel(clamp(p[P_E3], 0, SYB_N - 1));
     int32_t sha = (p[P_E1] << 8) + m->shape - (64 << 8);    /* the SHP routings around SHAPE A */
     uint32_t inca = m->inc, incb, sub = v->ph[2], pa0 = v->ph[0], vi = (uint32_t)(v - t->v) % NVOICE;
-    int32_t drift = p[P_SYDRFT], cm;
+    int32_t drift = p[P_SYDRFT], cm, pme = p[P_SYPME], pob = p[P_SYPMB], e15 = 0, dct = 0, bs = 0, brd = 0;
+    uint32_t pmd = (uint32_t)clamp(p[P_SYPMD], 0, 4), pfq = pmd == 0u || pmd >= 3u, ppw = pmd == 1u || pmd == 4u,
+             pfl = pmd >= 2u;
     if (!S || n > CTL)
         return;
+    if (pme)                                             /* (custom) POLY MOD's ENV: ENV 2 (voice.c ticks it) */
+        e15 = v->env2 >> 9;
     S->ma.bright = S->mb.bright = (uint8_t)clamp(p[P_SYMBRT], 0, 127);   /* (MODAL's, after Rings) */
     S->ma.pos = S->mb.pos = (uint8_t)clamp(p[P_SYMPOS], 0, 127);
     if (drift) {                                         /* (custom, OberVave's VINTAGE) DRIFT: the card's tune and a walk */
         int32_t r = (int32_t)(noise32(&v->s[0]) >> 22) - 512;   /* (a step of the walk, +-512) */
         S->walk = clamp(S->walk + (r >> 5) - (S->walk >> 7), -1600, 1600);   /* (cents x 16, held near 0) */
-        inca = cents_inc(m->pitch16, (SY_CARD_CT[vi] * 16 + S->walk / 16) * drift / (127 * 16) +
-                                         SY_CARD_CT[vi] * drift / 127, m->fine);
+        dct = (SY_CARD_CT[vi] * 16 + S->walk / 16) * drift / (127 * 16) + SY_CARD_CT[vi] * drift / 127;
     }
+    if (pme && pfq)                                      /* (POLY MOD) ENV -> FREQ A: +-48 semitones at +-63 */
+        dct += (e15 >> 5) * pme * 4800 / 64512;
+    if (pme && ppw)                                      /* .. -> PW A: SHAPE A +-63 */
+        sha += (e15 * pme) >> 7;
+    if (dct)
+        inca = cents_inc(m->pitch16, dct, m->fine);
     ga = mb == SY_BOFF ? 32767 : 32767 - mix;
     gb = mb == SY_BOFF ? 0 : mix;
     incb = mb != SY_BOFF ? cents_inc(clamp(m->pitch16 + p[P_E5] * 16, 0, 2047), (gb || p[P_SYXMOD]) ? p[P_E6] * 50 / 127 : 0,
                                   (gb || p[P_SYXMOD]) ? m->fine : 0) : 0u;
-    if (p[P_SYXMOD] && mb < SY_N) {                      /* (custom, OberVave's X-MOD) B first, its signal on A's phase */
+    if (mb != SY_BOFF && p[P_SYBLOW]) {                  /* (custom, the Prophet's LOW FREQ) B an LFO: 0.5 Hz x 2^(B TUNE
+                                                          * + 24) / 12, the keys out */
+        uint32_t st = (uint32_t)clamp(p[P_E5] + 24, 0, 48);
+        incb = (uint32_t)(((uint64_t)((1ull << 31) / FS) * SY_SEMI[st % 12u]) >> 16) << (st / 12u);
+    }
+    if ((p[P_SYXMOD] || pob) && mb < SY_N) {             /* (custom, OberVave's X-MOD; the Prophet's POLY MOD) B first */
         int32_t xm = p[P_SYXMOD] * 1032;                 /* (127: B at full scale moves A a whole cycle) */
+        int32_t kf = pfq ? (int32_t)((inca >> 10) * (uint32_t)pob / 64u) : 0;   /* (FM: +-2 x A's rate at 127) */
+        uint32_t fm = S->fm;
         for (i = 0; i < n; i++)
             yb[i] = 0;
         sy_osc(mb, &v->ph[1], incb, p[P_E4] << 8, p[P_E2], yb, n, 32767, &S->subb, &S->nb, &S->nlb, &S->hb, 0, &S->mb);
-        for (i = 0; i < n; i++)
-            pmb[i] = yb[i] * xm;
-        pm = pmb;
+        bs = yb[0];                                      /* (B's value this block: PW A, FILTER) */
+        if (xm || kf) {                                  /* X-MOD: B on A's phase; FREQ A: A's phase moved by B's sum */
+            for (i = 0; i < n; i++) {
+                fm += (uint32_t)(int32_t)(((int64_t)yb[i] * kf) >> 5);
+                pmb[i] = yb[i] * xm + (int32_t)fm;
+            }
+            pm = pmb;
+        }
+        S->fm = fm;
+        if (pob && ppw)                                  /* OSC B -> PW A (once a block) */
+            sha += (bs * pob) >> 7;
+        brd = 1;
     }
     for (i = 0; i < n; i++)
         ya[i] = 0;
     sy_osc(ma, &v->ph[0], inca, sha, p[P_E2], ya, n, 32767, &sub, &v->s[0], &v->s[1], &v->s[2], pm, &S->ma);
     for (i = 0; i < n; i++)
         y[i] = mulq15(ya[i], ga);
-    if (pm) {                                            /* (X-MOD: B rendered above) */
+    if (brd) {                                           /* (X-MOD, POLY MOD: B rendered above) */
         if (gb)
             for (i = 0; i < n; i++)
                 y[i] += mulq15(yb[i], gb);
@@ -548,6 +579,8 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         S->subph = q;
     }
     cm = (m->cutoff >> 5) + (((v->pitch16 - 60 * 16) * 9) >> 5);   /* the routings; half key tracking */
+    if (pfl)                                             /* (POLY MOD) -> FILTER: ENV +-~5 octaves, B +-~4 */
+        cm += ((e15 * pme) >> 6) + ((bs * pob) >> 13);
     if (drift)
         cm += SY_CARD_CUT[vi] * drift / 64;              /* (DRIFT: the card's filter a little apart) */
     if (p[P_SYACC]) {                                    /* (303) the accent's envelope and the track's sweep */

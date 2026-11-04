@@ -449,6 +449,43 @@ int main(int argc, char **argv)
         ck("SWARM: SHAPE 0 one saw (steady), spread the saws beat", b0 < 0.05 && b1 > 2 * b0);
 #undef SY_SET
     }
+    {   /* (custom, the Prophet-5's) POLY MOD, B LOW */
+        double z0, z1, b0, b1;
+#define PM_SET(e, b, d) (fresh(0), trk[0].p[P_E0] = SY_VA, trk[0].p[P_E1] = 0, trk[0].p[P_E2] = 0, \
+                         trk[0].p[P_FTYPE] = FT_OFF, trk[0].p[P_SYPME] = (e), trk[0].p[P_SYPMB] = (b), trk[0].p[P_SYPMD] = (d), \
+                         trk[0].p[P_EG2_ATK] = 0, trk[0].p[P_EG2_DEC] = 127, trk[0].p[P_EG2_SUS] = 127, trk[0].p[P_EG2_REL] = 60)
+        PM_SET(0, 0, 0);
+        zc_note(48, &z0, &b0);
+        PM_SET(24, 0, 0);                                /* ENV 2 held at its top: A up 24 x 48 / 63 ~ 18 semitones */
+        zc_note(48, &z1, &b1);
+        printf("synth: POLY MOD ENV -> FREQ A at C3: %.0f -> %.0f zero crossings a second\n", z0, z1);
+        ck("POLY MOD: ENV AMT moves FREQ A (ENV 2 held: ~18 semitones up)", z1 > 2.4 * z0 && z1 < 3.4 * z0);
+        PM_SET(0, 100, 0);
+        trk[0].p[P_E3] = 1 + SY_VA; trk[0].p[P_E7] = 0; trk[0].p[P_SYBLOW] = 1; trk[0].p[P_E5] = 0;   /* B LOW: ~2 Hz */
+        zc_note(48, &z1, &b1);
+        printf("synth: POLY MOD OSC B (LOW, 2 Hz) -> FREQ A: the RMS's movement %.3f, %.0f crossings\n", b1, z1);
+        ck("POLY MOD: OSC B LOW swings FREQ A (a vibrato: its crossings off the note's, B silent at MIX 0)", fabs(z1 - z0) > 10);
+        PM_SET(0, 0, 0);
+        trk[0].p[P_E3] = 1 + SY_VA; trk[0].p[P_E7] = 127; trk[0].p[P_SYBLOW] = 1; trk[0].p[P_E5] = 0;
+        zc_note(36, &z0, &b0);
+        zc_note(84, &z1, &b1);
+        printf("synth: B LOW alone at C2 and C6: %.0f, %.0f zero crossings a second\n", z0, z1);
+        ck("B LOW: OSC B an LFO (~2 Hz, B TUNE 0) whatever the key", z0 < 12 && z1 < 12);
+        PM_SET(40, 0, 2);
+        trk[0].p[P_FTYPE] = FT_LPMG; trk[0].p[P_FCUT] = 30;
+        {
+            stat_t a = {0}, b = {0};
+            trk_note_on(&trk[0], 48, 100);
+            run(FS / 2 / CTL, &a, 0);
+            PM_SET(0, 0, 2);
+            trk[0].p[P_FTYPE] = FT_LPMG; trk[0].p[P_FCUT] = 30;
+            trk_note_on(&trk[0], 48, 100);
+            run(FS / 2 / CTL, &b, 0);
+            printf("synth: POLY MOD ENV -> FILTER: RMS %.0f against %.0f without\n", rms(&a), rms(&b));
+            ck("POLY MOD: ENV AMT opens the FILTER (DEST FILTER)", rms(&a) > 1.5 * rms(&b));
+        }
+#undef PM_SET
+    }
     printf(bad ? "synth: %d FAILED\n" : "synth tests passed\n", bad);
     return bad != 0;
 }

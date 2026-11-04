@@ -39,6 +39,7 @@ static const char *const N_LSYNC[] = {"OFF", "4BAR", "2BAR", "1/1", "1/2", "1/4"
 static const char *const N_LTRIG[] = {"NOTE", "FREE"};
 static const char *const N_LPOL[] = {"BI", "UNI"};
 static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
+static const char *const N_SYPMD[] = {"FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"};   /* (custom) SYNTH's POLY MOD DEST */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
                                      "VOWEL"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR",
@@ -215,6 +216,10 @@ static const param_desc_t TP[P_COUNT] = {
     [P_RTVEL] = PD("RTRG VEL", F_BIPCT, -64, 63, 0),   /* (custom) 0: every part at the step's velocity, as before */
     [P_SYMBRT] = PD("BRIGHT", F_PCT, 0, 127, 127),   /* (custom) MODAL: 127 every mode at its level, as before */
     [P_SYMPOS] = PD("POSITION", F_PCT, 0, 127, 0),   /* (custom) MODAL: 0 off (every mode struck), as before */
+    [P_SYPME] = PD("ENV AMT", F_BIPCT, -64, 63, 0),  /* (custom, the Prophet's POLY MOD) ENV 2 on DEST */
+    [P_SYPMB] = PD("OSC B", F_PCT, 0, 127, 0),       /* .. OSC B on DEST */
+    [P_SYPMD] = PE("DEST", N_SYPMD, 0),
+    [P_SYBLOW] = PE("B LOW", N_ONOFF, 0),            /* OSC B at 0.5 .. 8 Hz (B TUNE), not keyed: an LFO */
 #define LMDL(k) [P_LMDL0 + k] = PE("MODEL", N_LMDL, 0)   /* (custom) a DRUM lane's MODEL: KIT, the kit's own (as before) */
     LMDL(0), LMDL(1), LMDL(2), LMDL(3), LMDL(4), LMDL(5), LMDL(6), LMDL(7),
 #undef LMDL
@@ -576,8 +581,9 @@ static const page_t PAGES[] = {
                                                                          * X-MOD (OberVave's), DRIFT (its VINTAGE) */
     {"303", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYACC, P_SYADEC, P_SYMUF, P_GLIDE}},
     {"MODAL", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYMBRT, P_SYMPOS, 0xFF, 0xFF}},   /* (custom) SYNTH only: MODAL's BRIGHT,
-                                                                         * POSITION (after Rings') */   /* (custom) SYNTH only: the Devil
-                                                                         * Fish's accent sweep and decay, MUFFLE, SLIDE */
+                                                                         * POSITION (after Rings') */
+    {"POLY MOD", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYPME, P_SYPMB, P_SYPMD, P_SYBLOW}},   /* (custom) SYNTH only: the
+                                                                         * Prophet-5's POLY MOD, OSC B's LOW */
     {"LANES", FAM_EDIT, SC_TRACK, GR_LANES, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM only: LANE, its LEVEL TUNE DECAY
                                                                          * (page_desc) */
     {"SOUND", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},     /* (Skiff phase 7, 8) DRUM-X only: a sound of the
