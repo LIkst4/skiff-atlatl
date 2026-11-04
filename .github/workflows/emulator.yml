@@ -41,12 +41,17 @@ jobs:
             [ "$sha" = "${GITHUB_SHA::7}" ] && break
             echo "waiting for $tag of ${GITHUB_SHA::7} (now: $sha)"; sleep 30
           done
-          curl --fail --location --retry 3 -o emu/fw.fwsc \
-            "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/skiff-atlatl-emu.fwsc"
+          for i in $(seq 1 20); do      # (the assets are replaced in place: a moment without them)
+            curl --fail --location --retry 3 -o emu/fw.fwsc \
+              "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/skiff-atlatl-emu.fwsc" && break
+            sleep 30
+          done
+          test -s emu/fw.fwsc
       - name: "Stress (60 guest seconds of random input)"
+        id: stress
         working-directory: emu
         run: mise run stress -- fw.fwsc --seconds 60 --seed 1
       - name: "Panel smoke (presets, function buttons)"
-        if: always()
+        if: success() || failure() && steps.stress.outcome == 'failure'
         working-directory: emu
         run: mise run panel_smoke -- fw.fwsc --presets 64
