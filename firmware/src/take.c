@@ -14,7 +14,8 @@ typedef struct { uint16_t pass; uint8_t trk, step, note, vel; int8_t feel; } tak
                                                        * feel: where it was played, its step's NUDGE with FEEL */
 typedef struct { uint16_t pass; uint8_t trk, step, param; int16_t value; } take_kv_t;
 static take_ev_t take_ev[TAKE_EV] __attribute__((section(".ramx")));   /* (after the RAM code: app.ld) */
-static take_kv_t take_kv[TAKE_KV] __attribute__((section(".ramx")));
+static take_kv_t take_kv[TAKE_KV];                    /* ((custom) in the main RAM: .ramx past the RAM code was full,
+                                                       * 8 undo copies of a P_COUNT grown to 169) */
 static volatile uint32_t take_ev_n;                   /* entries ever written (the slot: n % TAKE_EV) */
 static uint32_t take_kv_n;                            /* (main loop only) */
 static volatile uint16_t take_pass[NTRK];             /* each track's pass since PLAY, from 1 (seq_tick: its step 0;
