@@ -222,6 +222,23 @@ static const preset_t SYNTH_PRESETS[] = {
      MORE(SYF(FT_OB24, 70, 50), {P_FCHR, 60}), TAG(PT_KEYS)},
     {"COMB WIND", {SY_NOISE, 40, 0, 1 + SY_NOISE, 100, 0, 0, 64}, {90, 90, 110, 100}, 30, 0, FX(0, 30, 30, 90),
      MORE(SYF(FT_VOWEL, 50, 100), {P_FCHR, 64}), TAG(PT_FX)},
+    /* the factory samples' sounds, synthesized (the firmware holds no sample data by default: FELUCCA_BUILTIN_SAMPLES) */
+    {"SY PIANO", {SY_ADD, 84, 0, 1 + SY_ADD, 70, 12, 6, 30}, {0, 84, 0, 70}, 34, 0, FX(0, 10, 0, 30),
+     MORE(SYF(FT_LPMG, 72, 8), {P_FDRV, 10}), TAG(PT_KEYS)},
+    {"SY LOFI PNO", {SY_ADD, 70, 0, 1 + SY_ADD, 60, 12, 14, 30}, {0, 80, 0, 64}, 28, 0, FX(30, 20, 10, 40),
+     MORE(SYF(FT_LD, 64, 10), {P_LD_PIT, 8}), TAG(PT_KEYS)},
+    {"SY FLUTE", {SY_ADD, 28, 110, 1 + SY_NOISE, 100, 0, 0, 14}, {14, 80, 118, 50}, 6, 1, FX(0, 10, 15, 45),
+     MORE(SYF(FT_SVF, 104, 12), {P_LD_PIT, 6}), TAG(PT_LEAD)},
+    {"SY FLUTE PAD", {SY_ADD, 34, 100, 1 + SY_NOISE, 90, 0, 0, 10}, {80, 90, 120, 100}, 0, 0, FX(0, 60, 25, 90),
+     MORE(SYF(FT_SVF, 96, 10), {P_LD_PIT, 4}), TAG(PT_PAD)},
+    {"SY SAX", {SY_VA, 58, 0, 1 + SY_VA, 40, 0, 9, 40}, {10, 80, 116, 40}, 30, 1, FX(10, 10, 15, 40),
+     MORE(SYF(FT_VOWEL, 66, 58), {P_FCHR, 22}), TAG(PT_LEAD)},
+    {"SY DARK SAX", {SY_VA, 50, 0, 1 + SY_VA, 30, -12, 9, 30}, {22, 80, 120, 55}, 24, 1, FX(0, 15, 20, 60),
+     MORE(SYF(FT_VOWEL, 52, 50), {P_FCHR, 60}), TAG(PT_LEAD)},
+    {"SY MUSICBOX", {SY_WAVE, 127, 30, 1 + SY_ADD, 110, 24, 0, 40}, {0, 90, 0, 80}, 0, 0, FX(0, 30, 40, 60),
+     MORE(SYF(FT_SVF, 118, 0)), TAG(PT_PLUCK)},
+    {"SY KOTO", {SY_VA, 20, 0, 1 + SY_WAVE, 110, 12, 4, 34}, {0, 72, 0, 50}, 50, 0, FX(0, 0, 25, 30),
+     MORE(SYF(FT_SK, 70, 60), {P_ED_PIT, 2}), TAG(PT_PLUCK)},
 };
 #undef SYF
 

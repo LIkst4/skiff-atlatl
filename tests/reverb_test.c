@@ -87,10 +87,10 @@ static void ref_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_
             y += (c0 + (((c1 - c0) * f) >> 8)) << 1;
         }
         rf.cho_w++;
-        x = ref_dly[(rf.dly_w - dl) & (DLY_LEN - 1u)];
+        x = ref_dly[dly_at(rf.dly_w, dl)];               /* ((custom) the line's wrap: fx.c dly_at) */
         rf.dly_lp += mulq15(x - rf.dly_lp, col);
-        ref_dly[rf.dly_w & (DLY_LEN - 1u)] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(rf.dly_lp, fb), -32768, 32767);
-        rf.dly_w++;
+        ref_dly[rf.dly_w] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(rf.dly_lp, fb), -32768, 32767);
+        rf.dly_w = dly_next(rf.dly_w);
         y += mulq15(x << 1, dmix);
         a = 0;
         {

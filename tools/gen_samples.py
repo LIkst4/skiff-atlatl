@@ -321,6 +321,7 @@ class Builder:
             L.append('    {"NONE", 0, 1},')
         L.append("};")
         L.append(f"#define SMP_NSETS {max(1, len(sets))}")
+        L.append(f"#define SMP_FACTORY {1 if blob else 0}   /* (custom) the factory sets hold their samples (FELUCCA_BUILTIN_SAMPLES) */")
         named = sets or [("NONE", 0, 0)]
         perc = PERC_SLOT if len(named) > PERC_SLOT else len(named)
         # (Skiff phase 9) the variations follow PERC's slot, only with the CC0 sets their SET values name (PERC's

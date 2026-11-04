@@ -2380,7 +2380,15 @@ function makeMockDevice(opt = {}) {
         P("ADD CLARINET", [2,  70,  127,  0,  0,  0,  0,  0], [20,  80,  110,  40], 1, 0, [[138, 1], [139, 100], [140, 10], [13, 6]]),
         P("SK SCREAM", [0,  30,  0,  1,  30,  7,  30,  64], [0,  70,  100,  40], 1, 0, [[138, 4], [139, 70], [140, 110], [142, 50]]),
         P("OB24 POLY", [0,  0,  0,  1,  40,  0,  22,  64], [5,  80,  90,  45], 0, 0, [[138, 6], [139, 70], [140, 50], [141, 60]]),
-        P("COMB WIND", [3,  40,  0,  4,  100,  0,  0,  64], [90,  90,  110,  100], 0, 0, [[138, 9], [139, 50], [140, 100], [141, 64]])] },
+        P("COMB WIND", [3,  40,  0,  4,  100,  0,  0,  64], [90,  90,  110,  100], 0, 0, [[138, 9], [139, 50], [140, 100], [141, 64]]),
+        P("SY PIANO", [2,  84,  0,  3,  70,  12,  6,  30], [0,  84,  0,  70], 0, 0, [[138, 1], [139, 72], [140, 8], [142, 10]]),
+        P("SY LOFI PNO", [2,  70,  0,  3,  60,  12,  14,  30], [0,  80,  0,  64], 0, 0, [[138, 2], [139, 64], [140, 10], [13, 8]]),
+        P("SY FLUTE", [2,  28,  110,  4,  100,  0,  0,  14], [14,  80,  118,  50], 1, 0, [[138, 3], [139, 104], [140, 12], [13, 6]]),
+        P("SY FLUTE PAD", [2,  34,  100,  4,  90,  0,  0,  10], [80,  90,  120,  100], 0, 0, [[138, 3], [139, 96], [140, 10], [13, 4]]),
+        P("SY SAX", [0,  58,  0,  1,  40,  0,  9,  40], [10,  80,  116,  40], 1, 0, [[138, 9], [139, 66], [140, 58], [141, 22]]),
+        P("SY DARK SAX", [0,  50,  0,  1,  30,  -12,  9,  30], [22,  80,  120,  55], 1, 0, [[138, 9], [139, 52], [140, 50], [141, 60]]),
+        P("SY MUSICBOX", [1,  127,  30,  3,  110,  24,  0,  40], [0,  90,  0,  80], 0, 0, [[138, 3], [139, 118], [140, 0]]),
+        P("SY KOTO", [0,  20,  0,  2,  110,  12,  4,  34], [0,  72,  0,  50], 0, 0, [[138, 4], [139, 70], [140, 60], [6, 2]])] },
     /* (custom) FMINI (src/eng_fmini.c): FMini-1's Minimoog voice, SLOT one of its 200 patches */
     { name: "FMINI", titles: ["FILTER", "PATCH"], edit: [D("CUT", F.PCT, 0, 127, 64), D("EMPH", F.PCT, 0, 127, 40), D("CNTR", F.PCT, 0, 127, 64), D("F.ATK", F.PCT, 0, 127, 0), D("F.DEC", F.PCT, 0, 127, 64), D("F.SUS", F.PCT, 0, 127, 40), D("MOD", F.PCT, 0, 127, 0), D("SLOT", F.SLOT, -64, 127, -64)],
       presets: [
@@ -2764,8 +2772,9 @@ function makeMockDevice(opt = {}) {
     st.bank[slot] = snapshot(name);
     clearSteps(); st.p[29] = 16;
   });
-  /* the power-on sounds (engines.c TRK_DEF): ACID, PAD, PULSE LD, DRUM KIT, (Skiff phase 6) PIANO, DRUM KIT */
-  [[1, FM6_E, 4], [2, 3, 0], [3, 10, 0], [4, 4, 0], [5, 10, 0], [0, 0, 4]].forEach(([i, e, p]) => { st.sel = i; setEngine(e); applyPreset(p); });
+  /* the power-on sounds (engines.c TRK_DEF): ACID, PAD, PULSE LD, DRUM KIT, ((custom) SYNTH's SY PIANO: no factory
+     samples), DRUM KIT */
+  [[1, FM6_E, 4], [2, 3, 0], [3, 10, 0], [4, 15, 14], [5, 10, 0], [0, 0, 4]].forEach(([i, e, p]) => { st.sel = i; setEngine(e); applyPreset(p); });
   /* the device powers on with its sequencers empty; the mock starts as a little demo to look at: track 1 with
      the ACID pattern, track 4 with BEAT (as SEQ > PATTERNS would load them), pads left, lead right */
   st.sel = 3; loadPattern(11);

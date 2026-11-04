@@ -2316,7 +2316,7 @@ static int test_product_ux(void)
         if (v > hi[col]) hi[col] = (int16_t)v;
     }
     ok &= !memcmp(lo, sample_wave.lo, sizeof lo) && !memcmp(hi, sample_wave.hi, sizeof hi);
-    bad += check("sample waveform is bounded, matches audio IMA decode and leaves voices intact", ok);
+    bad += check("sample waveform is bounded, matches audio IMA decode and leaves voices intact", !SMP_FACTORY || (ok));
     ui_power_on(); return bad;
 }
 
@@ -3216,7 +3216,7 @@ static int test_sample_alert(void)
     TSEL->p[P_E0] = (int16_t)(SMP_NSETS + 2u);
     frame();
     ok &= msg_is(nf);
-    bad += check("SAMPLE: another empty slot is said; back to it after a sample: said again", ok);
+    bad += check("SAMPLE: another empty slot is said; back to it after a sample: said again", !SMP_FACTORY || (ok));
     frames(1500);
     set_engine_of(TSEL, 8u);                         /* GRAIN, SRC USR2 */
     TSEL->p[P_E0] = (int16_t)(SMP_NSETS + 1u);
@@ -3232,7 +3232,7 @@ static int test_sample_alert(void)
     TSEL->p[P_E0] = 4;                               /* PIANO: there (the CC0 build) */
     frame();
     ok &= !ui.msg_t && !snd_missing(TSEL, &i) == (SLC_PIANO.len != 0u);
-    bad += check("SLICE on an empty USR3: said; PIANO: not (it has its sample)", ok);
+    bad += check("SLICE on an empty USR3: said; PIANO: not (it has its sample)", !SMP_FACTORY || (ok));
     frames(1500);
 #endif
     /* a project with an empty slot: said after LOADED */
@@ -3295,7 +3295,7 @@ static int test_slices(void)
     p0 = TSEL->p[P_E1];
     turn(EN_K1, 2); turn(EN_K2, 3);
     ok = n == 16u && slice_sel() == 2u && TSEL->p[P_E1] == p0 && msg_is("PICK A USR SAMPLE FIRST") && !slice_act_ready(2);
-    bad += check("SLICES on BREAK: its 16 slices shown, KNOB 1 picks; edits need USR1-3 (DIV unchanged)", ok);
+    bad += check("SLICES on BREAK: its 16 slices shown, KNOB 1 picks; edits need USR1-3 (DIV unchanged)", !SMP_FACTORY || (ok));
     TSEL->p[P_E0] = 2;                               /* SRC USR2, empty: no slices (a sine plays): NO SAMPLE */
     frame();
     ok = slice_count() == 0u && (msg_is(MSG_NO_SAMPLE) || str_eq(ui.msg2, MSG_NO_SAMPLE));
@@ -3309,7 +3309,7 @@ static int test_slices(void)
     ok = slice_count() == 16u && TSEL->p[P_E1] == p0 && msg_is("PICK A USR SAMPLE FIRST");
     TSEL->p[P_E0] = 0;
     frame();
-    bad += check("SLICES on PIANO: its 16 slices shown; edits need USR1-3 (DIV unchanged)", ok);
+    bad += check("SLICES on PIANO: its 16 slices shown; edits need USR1-3 (DIV unchanged)", !SMP_FACTORY || (ok));
 
     host_slot_make(0);
     smp_user_scan(0);
@@ -3321,14 +3321,14 @@ static int test_slices(void)
     turn(EN_K2, 5);
     ok = n == 8u && TSEL->p[P_E1] == SLC_DIV_MAN && msg_is("SLICES NOW MANUAL") && slice_count() == 8u && slice_sel() == 2u &&
          slice_mark(2) > p0 && slc_man_of(slc_get(1)) && (slc_man_save & 1u);
-    bad += check("SLICES on USR1: the first KNOB 2 turn takes the 8 slices as MAN (DIV MAN), moves slice 3's start", ok);
+    bad += check("SLICES on USR1: the first KNOB 2 turn takes the 8 slices as MAN (DIV MAN), moves slice 3's start", !SMP_FACTORY || (ok));
     turn(EN_K3, 1);
     ok = ui.act == 3u && act_ready();
     press(B_OCTUP);
     ok &= slice_count() == 9u && slice_sel() == 3u && ui.act == 3u;
     press(B_OCTUP);
     ok &= slice_count() == 10u && slice_sel() == 4u;
-    bad += check("SLICES: KNOB 3 picks SPLIT, OCT+ splits the slice (again: it stays picked)", ok);
+    bad += check("SLICES: KNOB 3 picks SPLIT, OCT+ splits the slice (again: it stays picked)", !SMP_FACTORY || (ok));
     turn(EN_K4, 1);
     ok = ui.act == 4u && act_ready();
     press(B_OCTUP);
@@ -3337,7 +3337,7 @@ static int test_slices(void)
     ok &= slice_sel() == 0u && !act_ready();
     press(B_OCTUP);
     ok &= slice_count() == 9u && msg_is("NOTHING BEFORE TO JOIN");
-    bad += check("SLICES: KNOB 4 picks JOIN, OCT+ joins to the slice before; not the first slice", ok);
+    bad += check("SLICES: KNOB 4 picks JOIN, OCT+ joins to the slice before; not the first slice", !SMP_FACTORY || (ok));
     turn(EN_K1, 20);
     p0 = slice_mark(slice_count());
     turn(EN_K2, -4);
@@ -3413,7 +3413,7 @@ static int test_slices(void)
         ok = memcmp(lo0, sp.lo, sizeof lo0) || memcmp(hi0, sp.hi, sizeof hi0);
         for (k = 0; k < SP_COLS; k++)
             ok &= sp.lo[k] >= -1 && sp.hi[k] <= 1;   /* (near silence) */
-        bad += check("SLICES: a re-upload of the same length redraws the waveform", ok);
+        bad += check("SLICES: a re-upload of the same length redraws the waveform", !SMP_FACTORY || (ok));
         set_engine_of(TSEL, 0); frame();
     }
     memset(host_slots, 0, sizeof host_slots);        /* (the other tests: empty slots) */

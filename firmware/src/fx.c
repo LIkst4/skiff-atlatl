@@ -2,7 +2,11 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Effects: per-track DIST insert, then sends into three
  * shared buses (chorus, tempo delay, reverb). Mono buses (HALL with its stereo difference), stereo dry mix. */
-#define DLY_LEN 65536u           /* 1.49 s: 1/4 at 40 BPM fits */
+#define DLY_LEN 61440u           /* 1.39 s: 1/4 at 43 BPM fits ((custom) 65536 before: 8 KB of the pool for the
+                                  * engines; no longer a power of two, the index wraps by a compare: dly_at) */
+/* (custom) the delay line's index dl samples behind the write index w (both inside the line, dl < DLY_LEN) */
+static inline uint32_t dly_at(uint32_t w, uint32_t dl) { return w >= dl ? w - dl : w + DLY_LEN - dl; }
+static inline uint32_t dly_next(uint32_t w) { return w + 1u >= DLY_LEN ? 0u : w + 1u; }
 #define CHO_LEN 2048u
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
@@ -647,10 +651,10 @@ static __attribute__((noinline)) void cho_mode(const int32_t *cho_in, const int3
         wet[i] = fx.cho_y << 1;
     }
     for (i = 0; i < n; i++) {                           /* the delay as in fx_buses */
-        int32_t x = dly_buf[(fx.dly_w - dl) & (DLY_LEN - 1u)];
+        int32_t x = dly_buf[dly_at(fx.dly_w, dl)];
         fx.dly_lp += mulq15(x - fx.dly_lp, col);
-        dly_buf[fx.dly_w & (DLY_LEN - 1u)] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(fx.dly_lp, dfb), -32768, 32767);
-        fx.dly_w++;
+        dly_buf[fx.dly_w] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(fx.dly_lp, dfb), -32768, 32767);
+        fx.dly_w = dly_next(fx.dly_w);
         wet[i] += mulq15(x << 1, dmix);
     }
 }
@@ -729,11 +733,11 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         }
         fx.cho_w++;
         /* delay with a low-passed feedback */
-        x = dly_buf[(fx.dly_w - dl) & (DLY_LEN - 1u)];
+        x = dly_buf[dly_at(fx.dly_w, dl)];
         fx.dly_lp += mulq15(x - fx.dly_lp, col);
-        dly_buf[fx.dly_w & (DLY_LEN - 1u)] =
+        dly_buf[fx.dly_w] =
             (int16_t)clamp((dly_in[i] >> 1) + mulq15(fx.dly_lp, fb), -32768, 32767);
-        fx.dly_w++;
+        fx.dly_w = dly_next(fx.dly_w);
         y += mulq15(x << 1, dmix);
         wet[i] = y;
     }

@@ -185,5 +185,7 @@ static uint32_t eng_step_for(uint32_t k, uint32_t e, int32_t dir)   /* eng_step 
 
 /* the parts at power-on (engine, preset; the sequencers empty): bass, pad, lead, drums, (phase 6) a sample sound
  * and a second kit: ANALOG ACID, FM6 PAD (was DIGITAL PAD), LOFI PULSE LD, DRUM KIT, PIANO, DRUM KIT */
-static const uint8_t TRK_DEF[NPART][2] = {{0, 4}, {ENGI_FM6, 4}, {3, 0}, {ENGI_DRUM, 0}, {ENGI_SAMPLE, 0}, {ENGI_DRUM, 0}};
+/* ((custom) without the factory samples (SMP_FACTORY 0) track 5 plays SYNTH's SY PIANO, the PIANO synthesized) */
+static const uint8_t TRK_DEF[NPART][2] = {{0, 4}, {ENGI_FM6, 4}, {3, 0}, {ENGI_DRUM, 0},
+                                          {SMP_FACTORY ? ENGI_SAMPLE : ENGI_SYNTH, SMP_FACTORY ? 0 : 14}, {ENGI_DRUM, 0}};
 static uint32_t trk_def_engine(uint32_t i) { return TRK_DEF[i % NPART][0]; }

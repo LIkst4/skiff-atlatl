@@ -1313,8 +1313,8 @@ async function editorTracks() {
   const info = E.parse[C.INFO](await rq(E.req.info()));
   const tr = E.parse[C.TRACK](await rq(E.req.track()));
   ok(info.ntrk === 6 && tr.sel === 0 && tr.ntrk === 6 && tr.tracks[0].engine === 0 && tr.tracks[1].engine === 12
-    && tr.tracks[3].engine === 10 && tr.tracks[3].preset === 0 && tr.tracks[4].engine === 4 && tr.tracks[4].preset === 0
-    && tr.tracks[5].engine === 10, "tracks: INFO NTRK, TRACK lists 6 parts (track 4: DRUM KIT; 5 PIANO, 6 DRUM KIT)");
+    && tr.tracks[3].engine === 10 && tr.tracks[3].preset === 0 && tr.tracks[4].engine === 15 && tr.tracks[4].preset === 14
+    && tr.tracks[5].engine === 10, "tracks: INFO NTRK, TRACK lists 6 parts (track 4: DRUM KIT; 5 SY PIANO (custom), 6 DRUM KIT)");
   {   /* (Skiff phase 6) INFO 54: the light tracks and the engines they may not play; MOTION's track bound is INFO's */
     const heavy = 1 << info.engines.indexOf("GRAIN") | 1 << info.engines.indexOf("PHYS");
     let threw = false;
