@@ -3,7 +3,6 @@
 # Rewritten by BUDGET_UPDATE=1.
 phase_render 79
 lofi_render 123
-sample_render 126
 formant_render 314
 grain_render 1731
 grain_block 139
@@ -31,10 +30,8 @@ dv_cym_run 67
 dv_out 35
 dv_metal_mix 16
 slicer_track 558
-slice_render 453
-slc_rev 120
 fm1_alnk0_irq 1266
-fm1_timer5_irq 24139
+fm1_timer5_irq 26685
 events_block 821
 keyboard_block 1244
 ep1_tx 40
@@ -75,4 +72,3 @@ mod_depth 25
 smx_render 17
 lpan_render 11
 lpan_mix 64
-drum_smp 139

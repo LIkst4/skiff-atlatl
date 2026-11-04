@@ -51,7 +51,9 @@ FUNCS = ["digital_render", "digital_render_legacy", "digital_render_custom", "ph
 # built only with FELUCCA_FM4=1 (DIGITAL, src/eng_digital.c; not in the default build, so not in BUDGET): absent,
 # they are skipped; present, checked against these (their budget lines until the engine was retired in 1.0)
 OPTIONAL = {"digital_render": 12, "digital_render_legacy": 333, "digital_render_custom": 558,
-            "uac_tap48": 504}           # (absent from a FELUCCA_UAC_48K=0 or FELUCCA_UAC=0 build)
+            "uac_tap48": 504,           # (absent from a FELUCCA_UAC_48K=0 or FELUCCA_UAC=0 build)
+            "sample_render": 126, "slice_render": 453, "slc_rev": 120, "drum_smp": 139}   # ((custom) the sampler's:
+                                        # FELUCCA_SAMPLER=1 builds only)
 TOL = 0.10                      # exact (no noise): small edits pass, a grown render loop does not
 DIV_W = 8                       # a divide weighs 1 + 8 instructions
 NEST = 4                        # an instruction in a loop inside a loop weighs 4, two deep 16, ...
