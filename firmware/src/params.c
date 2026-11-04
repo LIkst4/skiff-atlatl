@@ -211,6 +211,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_SYACC] = PD("ACCENT", F_PCT, 0, 127, 0),
     [P_SYADEC] = PD("ACC DEC", F_PCT, 0, 127, 40),
     [P_SYMUF] = PD("MUFFLE", F_PCT, 0, 127, 0),
+    [P_RTVEL] = PD("RTRG VEL", F_BIPCT, -64, 63, 0),   /* (custom) 0: every part at the step's velocity, as before */
+    [P_SYMBRT] = PD("BRIGHT", F_PCT, 0, 127, 127),   /* (custom) MODAL: 127 every mode at its level, as before */
+    [P_SYMPOS] = PD("POSITION", F_PCT, 0, 127, 0),   /* (custom) MODAL: 0 off (every mode struck), as before */
 };
 
 static const param_desc_t GP[G_COUNT] = {
@@ -563,7 +566,9 @@ static const page_t PAGES[] = {
     {"ALL OPS", FAM_EDIT, SC_TRACK, GR_FMALL, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (FM6 LAB) FM6 only: the voice's (ui_fm6.c) */
     {"SYNTH 3", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT}},   /* (custom) SYNTH only: SUB,
                                                                          * X-MOD (OberVave's), DRIFT (its VINTAGE) */
-    {"303", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYACC, P_SYADEC, P_SYMUF, P_GLIDE}},   /* (custom) SYNTH only: the Devil
+    {"303", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYACC, P_SYADEC, P_SYMUF, P_GLIDE}},
+    {"MODAL", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYMBRT, P_SYMPOS, 0xFF, 0xFF}},   /* (custom) SYNTH only: MODAL's BRIGHT,
+                                                                         * POSITION (after Rings') */   /* (custom) SYNTH only: the Devil
                                                                          * Fish's accent sweep and decay, MUFFLE, SLIDE */
     {"LANES", FAM_EDIT, SC_TRACK, GR_LANES, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM only: LANE, its LEVEL TUNE DECAY
                                                                          * (page_desc) */
@@ -599,6 +604,8 @@ static const page_t PAGES[] = {
                                                          * the grid, LANE HIT ACC VELOCITY); PRESETS the step */
     {"FEEL", FAM_SEQ, SC_STEP, GR_FEEL, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"PATTERN", FAM_SEQ, SC_TRACK, GR_STEPS, {P_SLEN, P_SDIV, P_SSWING, P_SGATE}},   /* (2.0) PRESETS: the track's DIR */
+    {"RETRIG", FAM_SEQ, SC_TRACK, GR_NONE, {P_RTVEL, 0xFF, 0xFF, 0xFF}},   /* (custom, after the Syntakt's) RATCH's
+                                                                         * parts' velocity ramp */
     {"AUTOMATION", FAM_SEQ, SC_TRACK, GR_EVENTS, {0xFF, 0xFF, 0xFF, 0xFF}},   /* 1.1.5's AUTO LIST: the locks and events */
     {"SONG", FAM_SEQ, SC_TRACK, GR_SONG, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (Skiff phase 5) the lists (ui_input.c song_knob) */
 };

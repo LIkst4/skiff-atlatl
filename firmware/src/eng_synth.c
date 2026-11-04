@@ -42,10 +42,12 @@ static uint32_t sy_bmodel(int32_t b)
     return b <= 0 ? SY_BOFF : b < SYB_SYNC ? (uint32_t)b - 1u : b == SYB_SYNC ? SY_SYNC : b == SYB_RING ? SY_RING : SY_MODAL;
 }
 
-#define SY_NMODE 6               /* MODAL's modes */
+#define SY_NMODE 8               /* MODAL's modes ((custom) 8, after Rings': was 6) */
 typedef struct {
     int32_t y[2 * SY_NMODE];     /* each mode's last two outputs */
     int32_t exc;                 /* the strike: samples left */
+    int32_t lp;                  /* (after Rings) the strike's low-pass (BRIGHT) */
+    uint8_t bright, pos;         /* (after Rings) BRIGHT, POSITION: the render sets them each block (P_SYMBRT, P_SYMPOS) */
 } sy_modal_t;
 
 typedef struct {
@@ -66,10 +68,10 @@ static int32_t sy_sweep[NTRK];
 static const int8_t SY_CARD_CT[NVOICE] = {3, -5, 1, 6, -2, -6, 4, -1};
 static const int8_t SY_CARD_CUT[NVOICE] = {-6, 4, 8, -3, 2, -8, 5, -1};
 /* MODAL: the modes' ratios of three bodies, SHAPE morphing string -> bar -> bell (x 1024), their levels (Q15) */
-static const uint16_t SY_MODE_R[3][SY_NMODE] = {{1024, 2048, 3072, 4096, 5120, 6144},     /* a string */
-                                                {1024, 2822, 5534, 9147, 13660, 19087},   /* a free bar */
-                                                {1024, 1219, 1536, 2048, 2580, 3072}};   /* a bell */
-static const uint16_t SY_MODE_A[SY_NMODE] = {32767, 20000, 14000, 10000, 7000, 5000};
+static const uint16_t SY_MODE_R[3][SY_NMODE] = {{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192},       /* a string */
+                                                {1024, 2822, 5534, 9147, 13660, 19087, 25406, 32635},   /* a free bar */
+                                                {1024, 1219, 1536, 2048, 2580, 3072, 3686, 4301}};      /* a bell */
+static const uint16_t SY_MODE_A[SY_NMODE] = {32767, 20000, 14000, 10000, 7000, 5000, 3500, 2500};
 
 /* (custom) ORGAN: WHEEL's 16 registrations, one digit per bar: 16' 5 1/3' 8' 4' 2 2/3' 2' 1 3/5' 1 1/3' 1'; the bars'
  * harmonics of the 16' (x 1 3 2 4 6 8 10 12 16); a bar's level 0..8 -> Q15, 3 dB a step (eng_wheel.c, retired) */
@@ -173,12 +175,27 @@ static __attribute__((noinline)) void sy_modal(sy_modal_t *mm, uint32_t inc, int
         a1[k] = (int32_t)(((int64_t)r30 * c) >> 14);     /* 2 r cos w, Q30 */
         a2[k] = (int32_t)(((uint64_t)r30 * r30) >> 30);   /* r^2 */
         sw[k] = mulq15(sn < 0 ? -sn : sn, SY_MODE_A[k]);   /* the strike scaled by sin w: each mode at its level */
+        if (mm->bright < 127u) {                         /* (after Rings) BRIGHT: the higher modes softer, k steps of */
+            int32_t b = 11500 + mm->bright * 167, w = 32767, j;   /* 0.35 .. 1 (Q15) */
+            for (j = 0; j < k; j++)
+                w = mulq15(w, b);
+            sw[k] = mulq15(sw[k], w);
+        }
+        if (mm->pos) {                                   /* (after Rings) POSITION: struck at pos of its length, mode k
+                                                          * by |sin(pi (k + 1) pos)|, pos 0 .. 0.5 */
+            int32_t q = sine_i((uint32_t)(k + 1) * mm->pos * 8454660u);   /* (2^31 / 254) */
+            sw[k] = mulq15(sw[k], q < 0 ? -q : q);
+        }
     }
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = 0, out = 0;
         if (mm->exc > 0) {                               /* the strike: noise, falling */
             x = (((int32_t)(noise32(nz) >> 17) - 16384) * mm->exc) >> 4;
             mm->exc--;
+            if (mm->bright < 127u) {                     /* (BRIGHT: a softer mallet, its noise low-passed) */
+                mm->lp += mulq15(x - mm->lp, 1500 + mm->bright * 246);
+                x = mm->lp;
+            }
         }
         for (k = 0; k < m; k++) {
             int32_t *s = &mm->y[2 * k], yk;
@@ -375,6 +392,8 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     int32_t drift = p[P_SYDRFT], cm;
     if (!S || n > CTL)
         return;
+    S->ma.bright = S->mb.bright = (uint8_t)clamp(p[P_SYMBRT], 0, 127);   /* (MODAL's, after Rings) */
+    S->ma.pos = S->mb.pos = (uint8_t)clamp(p[P_SYMPOS], 0, 127);
     if (drift) {                                         /* (custom, OberVave's VINTAGE) DRIFT: the card's tune and a walk */
         int32_t r = (int32_t)(noise32(&v->s[0]) >> 22) - 512;   /* (a step of the walk, +-512) */
         S->walk = clamp(S->walk + (r >> 5) - (S->walk >> 7), -1600, 1600);   /* (cents x 16, held near 0) */

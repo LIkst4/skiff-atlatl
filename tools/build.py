@@ -230,6 +230,7 @@ def build_app():
     v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
         flags.append(f"-DFELUCCA_USB_LAYOUT={v}")
+    flags += os.environ.get("FELUCCA_EXTRA_CFLAGS", "").split()   # (custom) e.g. the emulator's variant (CI)
     flags.append(f'-DFELUCCA_ID="{PRODUCT}"')
     if VERSION:
         flags.append(f'-DFELUCCA_VERSION="{VERSION}"')

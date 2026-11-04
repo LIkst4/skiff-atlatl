@@ -387,17 +387,25 @@ static volatile uint8_t seq_fill;                   /* Skiff: FILL held (GLO + F
  * first pass since PLAY is 1; ahead 1: the next pass, a step played early (NUDGE) before its pass starts); a step
  * without one always does. No random number taken (the CHANCE roll after it).
  * Not inlined, and called only for a step that has one: kept out of the audio ISR's loop (tests/target_budget.py) */
+static uint8_t tc_pre[NTRK];                       /* (custom) the track's last condition passed (PRE): 1 */
 static __attribute__((noinline)) int step_cond_ok(const track_t *t, const step_t *s, uint32_t ahead)
 {
-    static const uint8_t A[TC_COUNT] = {0, 0, 0, 1, 2, 1, 2, 3, 1, 2, 3, 4};
-    static const uint8_t B[TC_COUNT] = {1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
-    uint32_t c = s->cond, p;
+    static const uint8_t A[TC_PRE] = {0, 0, 0, 1, 2, 1, 2, 3, 1, 2, 3, 4};
+    static const uint8_t B[TC_PRE] = {1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4};
+    uint32_t c = s->cond, p = take_pass[trk_index(t)] + ahead, k = trk_index(t);
+    int ok;
     if (c == TC_NONE || c >= TC_COUNT)
         return 1;
-    if (c == TC_FILL || c == TC_NFILL)
-        return (c == TC_FILL) == (seq_fill != 0u);
-    p = take_pass[trk_index(t)] + ahead;
-    return p > 0u && (p - 1u) % B[c] + 1u == A[c];
+    if (c == TC_PRE || c == TC_NPRE)                  /* (custom) the last one's result (not changed by this) */
+        return (c == TC_PRE) == (tc_pre[k] != 0u);
+    if (c == TC_1ST || c == TC_N1ST)
+        ok = (c == TC_1ST) == (p == 1u);
+    else if (c == TC_FILL || c == TC_NFILL)
+        ok = (c == TC_FILL) == (seq_fill != 0u);
+    else
+        ok = p > 0u && (p - 1u) % B[c] + 1u == A[c];
+    tc_pre[k] = (uint8_t)ok;
+    return ok;
 }
 #include "motion.c"
 
@@ -1496,6 +1504,14 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
     if (grace)                                      /* (Skiff) the grace: 9/16 of the velocity */
         for (i = 0; i < m; i++)
             vv[i] = (uint8_t)(vv[i] * 9u / 16u + 1u);
+    if (hits > 1u && t->p[P_RTVEL]) {               /* ((custom, the Syntakt's) RETRIG VEL: part j of the parts from
+                                                     * soft to the step's velocity (+) or from it to soft (-)) */
+        int32_t r = t->p[P_RTVEL], j = (int32_t)(hits - 1u - (skip & SEQ_REP ? t->rat_left : hits - 1u));
+        int32_t x = r > 0 ? (int32_t)hits - 1 - j : j, a = r < 0 ? -r : r;   /* (x: parts from the full one) */
+        int32_t g = 128 - a * 2 * x / ((int32_t)hits - 1);   /* Q7: 1 .. 1 - |r| / 64 */
+        for (i = 0; i < m; i++)
+            vv[i] = (uint8_t)clamp(vv[i] * g / 128, 1, 127);
+    }
     /* what sounds into it (a slide, (2.0) or notes going on: tn) carries over: its tied notes still sounding go on
      * (no note-on), a tied one not sounding stays silent, the rest of what sounded ends; else everything ends first.
      * Its own notes start (none on a miss). A RATCH part ends the part before's own notes first, as it retriggers.
@@ -1613,8 +1629,13 @@ static __attribute__((noinline)) void seq_fire(track_t *t, uint32_t idx, uint32_
      * automation and the locks before the notes, so a note-on reads them (eng_drum's KIT, ..) */
     if (s->cond && !step_cond_ok(t, s, ahead))      /* (Skiff) its trig condition first: not this pass, no roll */
         skip = SEQ_MISS;
-    else if (step_chance(s) < 100u && rng() % 100u >= step_chance(s))
-        skip = SEQ_MISS;
+    else if (step_chance(s) < 100u) {
+        int hit = rng() % 100u < step_chance(s);
+        if (s->cond != TC_PRE && s->cond != TC_NPRE)   /* ((custom) a CHANCE is a condition too: PRE reads it) */
+            tc_pre[trk_index(t)] = (uint8_t)hit;
+        if (!hit)
+            skip = SEQ_MISS;
+    }
     mo_motion(t, idx, skip == SEQ_ROLLED);
     if (t->rskip_n && t->rskip_idx == idx) {
         for (k = 0; k < t->rskip_n; k++) {

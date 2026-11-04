@@ -555,9 +555,67 @@ static int nudge(void)
     return bad;
 }
 
+/* (custom) the conditions after Elektron's: 1ST / !1ST (the first pass since PLAY or not), PRE / !PRE (the track's last
+ * condition, or CHANCE, passed or not) */
+static int conds(void)
+{
+    int bad = 0;
+    track_t *t = one_step(1, 0);
+    t->step[0].cond = TC_1ST;
+    seq_start();
+    bad += check("(custom) 1ST: only the first pass of 4 plays", run(t, passes(t, 4), 0, 0, 0) == 1u);
+    t = one_step(1, 0);
+    t->step[0].cond = TC_N1ST;
+    seq_start();
+    bad += check("  !1ST: the passes after the first (3 of 4)", run(t, passes(t, 4), 0, 0, 0) == 3u);
+    {   /* two steps: step 1 1:2 (passes 1 3 ..), step 2 PRE (as step 1 went) / !PRE (the other passes) */
+        uint32_t k, n[2];
+        for (k = 0; k < 2u; k++) {
+            t = one_step(1, 0);
+            t->p[P_SLEN] = 2;
+            t->step[1] = t->step[0];
+            t->step[0].cond = TC_1_2;
+            t->step[1].cond = k ? TC_NPRE : TC_PRE;
+            seq_start();
+            n[k] = run(t, (8u * step_len(t, 0)) / CTL - 1u, 0, 0, 0);   /* 4 passes of 2 steps */
+        }
+        bad += check("  PRE after 1:2: both on passes 1 and 3 (4 notes in 4 passes); !PRE: the other two passes (2 + 2)",
+                     n[0] == 4u && n[1] == 4u);
+    }
+    t = one_step(1, 0);
+    t->p[P_SLEN] = 2;
+    t->step[1] = t->step[0];
+    t->step[0].probability = 101;                    /* (CHANCE 0: never) */
+    t->step[1].cond = TC_PRE;
+    seq_start();
+    bad += check("  PRE after a CHANCE 0 step: never", run(t, (8u * step_len(t, 0)) / CTL - 1u, 0, 0, 0) == 0u);
+    {   /* RETRIG VEL (the Syntakt's): x4 at -64 falls from the step's velocity, at +63 rises to it; 0 as before */
+        uint32_t r, b, n, vel[3][4];
+        static const int16_t RV[3] = {0, -64, 63};
+        for (r = 0; r < 3u; r++) {
+            t = one_step(4, 0);
+            t->step[0].vel = 120;
+            t->p[P_RTVEL] = RV[r];
+            seq_start();
+            for (b = n = 0; b < passes(t, 1) && n < 4u; b++) {
+                uint32_t v0 = vage, i;
+                seq_tick(t, CTL);
+                for (; v0 < vage && n < 4u; v0++)
+                    for (i = 0; i < NVOICE; i++)
+                        if (t->v[i].age == v0 + 1u)
+                            vel[r][n++] = t->v[i].vel;
+            }
+        }
+        bad += check("  (custom) RETRIG VEL: 0 all 120; -64 falling from 120; +63 rising to 120",
+                     vel[0][0] == 120u && vel[0][3] == 120u && vel[1][0] == 120u && vel[1][1] < vel[1][0] &&
+                     vel[1][3] < vel[1][2] && vel[1][3] <= 2u && vel[2][3] == 120u && vel[2][0] < vel[2][1] && vel[2][0] < 10u);
+    }
+    return bad;
+}
+
 int main(void)
 {
-    int bad = play() + projects() + presets() + screens() + flam() + nudge();
+    int bad = play() + projects() + presets() + screens() + flam() + nudge() + conds();
     printf("%s\n", bad ? "RATCHET TEST FAILED" : "ratchet tests passed");
     return bad != 0;
 }

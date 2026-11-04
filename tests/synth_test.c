@@ -261,6 +261,37 @@ int main(int argc, char **argv)
                      rms(&e1), rms(&d0), rms(&d1), (int)e0.pk);
             ck(w, rms(&e0) > 300 && rms(&e1) < rms(&e0) && rms(&d1) < rms(&d0) * 0.5 && e0.pk < 2 * 32767);
         }
+        {   /* (custom, after Rings) MODAL's BRIGHT: lower, the strike's highs softer (less energy in the differences);
+             * POSITION: another spectrum (the waveform apart); both bounded */
+            double hf[2] = {0, 0}, dpos = 0;
+            int32_t o[2][2 * CTL], prev = 0;
+            uint32_t r, q;
+            for (r = 0; r < 2u; r++) {
+                fresh(0);
+                trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_MODAL; trk[0].p[P_E1] = 64; trk[0].p[P_E2] = 20;
+                trk[0].p[P_SYMBRT] = r ? 10 : 127;
+                trk_note_on(&trk[0], 60, 120);
+                for (q = 0; q < 40u; q++) {
+                    uint32_t k;
+                    mix_block(o[0], CTL);
+                    for (k = 0; k < CTL; k++, prev = o[0][2 * k])
+                        hf[r] += fabs((double)o[0][2 * k] - prev);
+                }
+            }
+            for (r = 0; r < 2u; r++) {
+                fresh(0);
+                trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_MODAL; trk[0].p[P_E1] = 0; trk[0].p[P_E2] = 20;
+                trk[0].p[P_SYMPOS] = r ? 64 : 0;
+                trk_note_on(&trk[0], 60, 120);
+                for (q = 0; q < 20u; q++)
+                    mix_block(o[r], CTL);
+            }
+            for (q = 0; q < 2u * CTL; q++)
+                dpos += fabs((double)o[0][q] - o[1][q]);
+            snprintf(w, sizeof w, "MODAL BRIGHT 10: the highs down (%.0f -> %.0f); POSITION 64: the sound apart (%.0f)", hf[0],
+                     hf[1], dpos / (2 * CTL));
+            ck(w, hf[1] < hf[0] * 0.85 && dpos / (2 * CTL) > 100);
+        }
         {   /* ACCENT: the same note, accented (127) and not (100), LP MG half shut: brighter, more so after a run */
             stat_t na = {0}, ac = {0};
             fresh(0);
