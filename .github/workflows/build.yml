@@ -18,11 +18,11 @@ jobs:
           node-version: "20"
       - name: Python packages
         run: pip install Pillow fonttools mido
-      - name: JieLi toolchain (pi32v2 clang 4.0.1)
+      - name: "JieLi toolchain (pi32v2 clang 4.0.1)"
         run: |
           sh tools/get_toolchain.sh "$HOME/.jieli"
           echo "JIELI_TOOLCHAIN=$HOME/.jieli/toolchain" >> "$GITHUB_ENV"
-      - name: JieLi AC79 SDK (Apache-2.0: three files of it go into the package)
+      - name: "JieLi AC79 SDK (Apache-2.0, three of its files go into the package)"
         run: |
           git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
             https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
