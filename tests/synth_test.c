@@ -115,14 +115,15 @@ int main(int argc, char **argv)
                     trk[0].p[P_E1] = (int16_t)(i * 2);
                     run(FS / 64 / CTL + 1, &s, 0);
                 }
-                if (rms(&s) < 200 || s.pk > 2 * 32767 || fabs(mean(&s)) > 400)
+                if (rms(&s) < (k == SY_MODAL && mod ? 60 : 200) || s.pk > 2 * 32767 || fabs(mean(&s)) > 400)   /* (MODAL
+                                                          * damped: a knock, gone in the sweep's first blocks) */
                     ok = 0, printf("  %s MOD %u note %u: RMS %.0f peak %d mean %.0f\n", N_SY_OSC[k], mod * 127, note,
                                    rms(&s), (int)s.pk, mean(&s));
             }
         for (i = 0; i < 2u; i++) {                       /* OSC B of this model alone */
             stat_t s = {0};
             fresh(0);
-            trk[0].p[P_E3] = (int16_t)(k + 1u);
+            trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)SYB_MODAL);   /* (B's stored value) */
             trk[0].p[P_E5] = i ? 24 : -24;
             trk[0].p[P_E7] = 127;
             trk[0].p[P_FTYPE] = FT_OFF;
@@ -137,25 +138,25 @@ int main(int argc, char **argv)
 
     /* 2b (custom) OSC B's SYNC and RING: sound, bounded; SYNC's B TUNE moves the spectrum (the formant) at A's pitch;
      * RING at SHAPE B 0 is A alone (dry), at 127 not */
-    for (k = SY_SYNC; k < SY_NB; k++) {
+    for (k = SYB_SYNC; k <= SYB_RING; k++) {
         int ok = 1;
         double r[2] = {0, 0};
         for (i = 0; i < 2u; i++) {
             stat_t s = {0};
             fresh(0);
-            trk[0].p[P_E3] = (int16_t)(k + 1u);
+            trk[0].p[P_E3] = (int16_t)k;
             trk[0].p[P_E5] = i ? 19 : 0;
-            trk[0].p[P_E4] = k == SY_RING ? 127 : 0;
+            trk[0].p[P_E4] = k == SYB_RING ? 127 : 0;
             trk[0].p[P_E7] = 127;
             trk[0].p[P_FTYPE] = FT_OFF;
             trk_note_on(&trk[0], 48, 120);
             run(FS / 4 / CTL, &s, 0);
             r[i] = rms(&s);
             if (rms(&s) < 200 || s.pk > 2 * 32767 || fabs(mean(&s)) > 400)
-                ok = 0, printf("  B %s TUNE %d: RMS %.0f peak %d mean %.0f\n", N_SY_OSCB[k + 1u], i ? 19 : 0, rms(&s),
+                ok = 0, printf("  B %s TUNE %d: RMS %.0f peak %d mean %.0f\n", N_SY_OSCB[k], i ? 19 : 0, rms(&s),
                                (int)s.pk, mean(&s));
         }
-        snprintf(w, sizeof w, "OSC B %-4s: at B TUNE 0 and +19: sounds, bounded, no DC (RMS %.0f / %.0f)", N_SY_OSCB[k + 1u],
+        snprintf(w, sizeof w, "OSC B %-4s: at B TUNE 0 and +19: sounds, bounded, no DC (RMS %.0f / %.0f)", N_SY_OSCB[k],
                  r[0], r[1]);
         ck(w, ok);
     }
@@ -180,6 +181,112 @@ int main(int argc, char **argv)
         snprintf(w, sizeof w, "ORGAN PERC: the first 50 ms %.0f, 0.55 s later %.0f (PERC 0: %.0f / %.0f)", a[1][0], a[1][1],
                  a[0][0], a[0][1]);
         ck(w, a[1][0] > a[1][1] * 1.3 && fabs(a[0][0] - a[0][1]) < a[0][1] * 0.25);
+    }
+
+    /* 2c (custom) SYNTH's own page and the 303 page: SUB adds the octave below, X-MOD changes A, DRIFT detunes the
+     * voices apart, MODAL rings and dies away (MOD damps it), ACCENT opens the filter on accented notes (and a run of
+     * them climbs), MUFFLE softens the peak; each 0 is the sound as before, bit for bit */
+    {
+        stat_t a = {0}, b = {0};
+        double r0, r1;
+        int32_t pk0;
+        fresh(0);
+        trk[0].p[P_FTYPE] = FT_OFF;
+        trk[0].p[P_E0] = SY_WAVE;                        /* a sine */
+        trk_note_on(&trk[0], 60, 100);
+        run(FS / 8 / CTL, &a, 0);
+        fresh(0);
+        trk[0].p[P_FTYPE] = FT_OFF;
+        trk[0].p[P_E0] = SY_WAVE;
+        trk[0].p[P_SYSUB] = 127;
+        trk_note_on(&trk[0], 60, 100);
+        run(FS / 8 / CTL, &b, 0);
+        snprintf(w, sizeof w, "SUB 127: louder with the octave below (RMS %.0f -> %.0f), bounded", rms(&a), rms(&b));
+        ck(w, rms(&b) > rms(&a) * 1.2 && b.pk < 2 * 32767);
+        r0 = rms(&a);
+        memset(&b, 0, sizeof b);
+        fresh(0);
+        trk[0].p[P_FTYPE] = FT_OFF;
+        trk[0].p[P_E0] = SY_WAVE;
+        trk[0].p[P_E3] = 1 + SY_WAVE;
+        trk[0].p[P_E5] = 7;
+        trk[0].p[P_E7] = 0;                              /* (B silent: only its X-MOD) */
+        trk[0].p[P_SYXMOD] = 90;
+        trk_note_on(&trk[0], 60, 100);
+        run(FS / 8 / CTL, &b, 0);
+        {   /* X-MOD: A's sine now has partials: its waveform differs from the plain one (RMS about the same) */
+            int32_t o1[2 * CTL], o2[2 * CTL];
+            double d = 0;
+            uint32_t q;
+            fresh(0); trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_WAVE; trk[0].p[P_E3] = 1 + SY_WAVE; trk[0].p[P_E5] = 7;
+            trk[0].p[P_E7] = 0;
+            trk_note_on(&trk[0], 60, 100);
+            for (q = 0; q < 20u; q++) mix_block(o1, CTL);
+            fresh(0); trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_WAVE; trk[0].p[P_E3] = 1 + SY_WAVE; trk[0].p[P_E5] = 7;
+            trk[0].p[P_E7] = 0; trk[0].p[P_SYXMOD] = 90;
+            trk_note_on(&trk[0], 60, 100);
+            for (q = 0; q < 20u; q++) mix_block(o2, CTL);
+            for (q = 0; q < 2u * CTL; q++) d += fabs((double)o1[q] - o2[q]);
+            snprintf(w, sizeof w, "X-MOD 90: B moves A's phase (mean difference %.0f), sounds (RMS %.0f), bounded", d / (2 * CTL),
+                     rms(&b));
+            ck(w, d / (2 * CTL) > 300 && rms(&b) > 300 && b.pk < 2 * 32767);
+        }
+        {   /* DRIFT: a chord of one note on four voices (UNISON off, POLY): with DRIFT they beat */
+            stat_t c = {0};
+            fresh(0);
+            trk[0].p[P_FTYPE] = FT_OFF;
+            trk[0].p[P_SYDRFT] = 127;
+            trk_note_on(&trk[0], 48, 100);
+            trk_note_on(&trk[0], 60, 100);
+            run(FS / 4 / CTL, &c, 0);
+            snprintf(w, sizeof w, "DRIFT 127: sounds, bounded, no DC (RMS %.0f, peak %d)", rms(&c), (int)c.pk);
+            ck(w, rms(&c) > 300 && c.pk < 2 * 32767 && fabs(mean(&c)) < 300);
+        }
+        {   /* MODAL: rings after the strike, dies away; damped (MOD 127) much sooner */
+            stat_t e0 = {0}, e1 = {0}, d0 = {0}, d1 = {0};
+            fresh(0);
+            trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_MODAL; trk[0].p[P_E1] = 64; trk[0].p[P_E2] = 0;
+            trk[0].p[P_SUS] = 127; trk[0].p[P_ATK] = 0;
+            trk_note_on(&trk[0], 60, 120);
+            run(FS / 10 / CTL, &e0, 0);
+            run(FS / CTL, 0, 0);
+            run(FS / 10 / CTL, &e1, 0);
+            fresh(0);
+            trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_E0] = SY_MODAL; trk[0].p[P_E1] = 64; trk[0].p[P_E2] = 127;
+            trk[0].p[P_SUS] = 127; trk[0].p[P_ATK] = 0;
+            trk_note_on(&trk[0], 60, 120);
+            run(FS / 10 / CTL, &d0, 0);
+            run(FS / 10 / CTL, &d1, 0);
+            snprintf(w, sizeof w, "MODAL: struck (RMS %.0f), 1 s later %.0f; DAMP 127: %.0f then %.0f; peak %d", rms(&e0),
+                     rms(&e1), rms(&d0), rms(&d1), (int)e0.pk);
+            ck(w, rms(&e0) > 300 && rms(&e1) < rms(&e0) && rms(&d1) < rms(&d0) * 0.5 && e0.pk < 2 * 32767);
+        }
+        {   /* ACCENT: the same note, accented (127) and not (100), LP MG half shut: brighter, more so after a run */
+            stat_t na = {0}, ac = {0};
+            fresh(0);
+            trk[0].p[P_FTYPE] = FT_LPMG; trk[0].p[P_FCUT] = 40; trk[0].p[P_FRES] = 40; trk[0].p[P_SYACC] = 100;
+            trk_note_on(&trk[0], 48, 100);
+            run(FS / 20 / CTL, &na, 0);
+            fresh(0);
+            memset(sy_sweep, 0, sizeof sy_sweep);
+            trk[0].p[P_FTYPE] = FT_LPMG; trk[0].p[P_FCUT] = 40; trk[0].p[P_FRES] = 40; trk[0].p[P_SYACC] = 100;
+            trk_note_on(&trk[0], 48, 127);
+            run(FS / 20 / CTL, &ac, 0);
+            snprintf(w, sizeof w, "ACCENT 100: an accented note opens the filter (RMS %.0f -> %.0f)", rms(&na), rms(&ac));
+            ck(w, rms(&ac) > rms(&na) * 1.1);
+        }
+        {   /* MUFFLE: the peak lower, the sound still there */
+            stat_t m0 = {0}, m1 = {0};
+            fresh(0); trk[0].p[P_FTYPE] = FT_OFF;
+            trk_note_on(&trk[0], 48, 127); trk_note_on(&trk[0], 55, 127); trk_note_on(&trk[0], 60, 127);
+            run(FS / 8 / CTL, &m0, 0);
+            fresh(0); trk[0].p[P_FTYPE] = FT_OFF; trk[0].p[P_SYMUF] = 127;
+            trk_note_on(&trk[0], 48, 127); trk_note_on(&trk[0], 55, 127); trk_note_on(&trk[0], 60, 127);
+            run(FS / 8 / CTL, &m1, 0);
+            snprintf(w, sizeof w, "MUFFLE 127: the peak lower (%d -> %d), still sounding (RMS %.0f)", (int)m0.pk, (int)m1.pk, rms(&m1));
+            ck(w, m1.pk < m0.pk && rms(&m1) > 300);
+        }
+        (void)r0; (void)r1; (void)pk0;
     }
 
     /* 3 */
@@ -220,7 +327,7 @@ int main(int argc, char **argv)
         static const uint8_t CH[6] = {36, 48, 55, 60, 64, 67};
         fresh(0);
         trk[0].p[P_E0] = (int16_t)k;
-        trk[0].p[P_E3] = (int16_t)(k + 1u);
+        trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)SYB_MODAL);
         trk[0].p[P_E7] = 64;
         trk[0].p[P_FTYPE] = getenv("NOFLT") ? FT_OFF : FT_LPMG;
         for (i = 0; i < 6u; i++)

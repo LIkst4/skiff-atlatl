@@ -636,6 +636,8 @@ static int page_visible(uint32_t i)
     uint32_t id = PAGES[i].id[0];
     if (sh)
         return trk_sheet_eng(TSEL) == sh->eng;       /* ((custom) DRUM-X's SOUND: a DX kit's) */
+    if (PAGES[i].fam == FAM_EDIT && id >= P_SYSUB && id <= P_SYMUF)   /* ((custom) SYNTH's own pages) */
+        return TSEL->eng_req % NENGINES == ENGI_SYNTH;
     if (PAGES[i].graph == GR_LANES)
         return TSEL->eng_req % NENGINES == ENGI_DRUM && !trk_dx(TSEL);
     if (PAGES[i].graph == GR_LMIX)                      /* ((2.0, #36) a kit's: DRUM, DRUM-X) */

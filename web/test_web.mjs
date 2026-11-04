@@ -52,24 +52,25 @@ async function editorMock() {
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
   ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "SLICE" && info.engines[14] === "-"
- && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 151 && info.pe0 === 143 && info.engines[4] === "SAMPLE",
-    "editor: INFO ((custom) P_COUNT 151, P_E0 143 from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
+ && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 158 && info.pe0 === 150 && info.engines[4] === "SAMPLE",
+    "editor: INFO ((custom) P_COUNT 158, P_E0 150 from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
   {
     /* (Skiff 1.3) wide ids: a track id from 128 on ((2.0) E0..E7 since P_E0 135, after the lane pans 127..134; (2.1) P_E0
        138, after the chord follow 135..137) goes as scope 2 and comes back whole (GET, SET, DESC), in TRACK_PARAM's track
        byte (bit 6) and in a MOTION record's step byte (bit 6); 127 (a lane's PAN) is still scope 0 */
-    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 144))).value;
-    const a = E.req.set(0, 144, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 144)));
-    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 150)));
-    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 145)));
+    /* ((custom) P_E0 150 after SYNTH's own 143..149: E1 151, E2 152, E4 154, E7 157) */
+    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 151))).value;
+    const a = E.req.set(0, 151, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 151)));
+    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 157)));
+    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 152)));
     const e0 = E.req.get(0, 127);
-    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 147, value: 9 }, info.ntrk)));
-    ok(a[1][0] === 2 && a[1][1] === 16 && s.scope === 0 && s.id === 144 && s.value === 10 && g.id === 144 && g.value === 10 &&
-       d.scope === 0 && d.id === 150 && d.label === "MIX" && tp.track === 3 && tp.id === 145 && e0[1][0] === 0 && e0[1][1] === 127 &&
-       mo.events.some((e) => e.step === 5 && e.param === 147 && e.value === 9),
-       "editor: wide ids: SET / GET 144 and DESC 150 as scope 2, TRACK_PARAM 145 (bit 6), a motion record of 147; 127 scope 0");
+    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 154, value: 9 }, info.ntrk)));
+    ok(a[1][0] === 2 && a[1][1] === 23 && s.scope === 0 && s.id === 151 && s.value === 10 && g.id === 151 && g.value === 10 &&
+       d.scope === 0 && d.id === 157 && d.label === "MIX" && tp.track === 3 && tp.id === 152 && e0[1][0] === 0 && e0[1][1] === 127 &&
+       mo.events.some((e) => e.step === 5 && e.param === 154 && e.value === 9),
+       "editor: wide ids: SET / GET 151 and DESC 157 as scope 2, TRACK_PARAM 152 (bit 6), a motion record of 154; 127 scope 0");
     await rq(E.req.motion(0, 2, {}, info.ntrk));
-    await rq(E.req.set(0, 144, v0));
+    await rq(E.req.set(0, 151, v0));
   }
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -1227,7 +1228,7 @@ async function editorLive() {
   const dump = E.parse[C.DUMP](await pend, info);
   const ch = ev.pushes.find((f) => f.cmd === C.CHANGED);
   const cv = ch && E.parse[C.CHANGED](ch.a);
-  ok(dump.p.length === 151 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
+  ok(dump.p.length === 158 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
     "live: CHANGED while DUMP waits -> push handler, reply still matched");
   const rl = m.sim.reload();
   m.sim.step(3);

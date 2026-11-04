@@ -2991,7 +2991,8 @@ static int test_fm6_lab(void)
 
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "VOICE", "VOICE 2", "EDIT 1"};
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "SYNTH 3", "303", "VOICE", "VOICE 2", "EDIT 1"};   /* ((custom)
+                                                          * engine 0: SYNTH's, its own two pages) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "ALL OPS", "VOICE", "VOICE 2", "EDIT 1"};
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
                                         "OP LEVEL", "VOICE", "VOICE 2", "EDIT 1"};
@@ -3007,7 +3008,8 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 VOICE VOICE 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (engine 0 asked for: SYNTH, ANALOG retired): EDIT 1 EDIT 2 SYNTH 3 303 VOICE VOICE 2 EDIT 1",
+                 engine_cycle(CYC_A, NELEM(CYC_A)));
 #if FELUCCA_FM4
     set_engine_of(TSEL, 1);
     bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 EDIT 1",
@@ -4481,7 +4483,7 @@ static int test_retired(void)
     TSEL->eng_req = ENGI_TRIO;                          /* (a stored number: the editor's PRESET) */
     apply_preset_to(TSEL, 3);
     ok &= TSEL->eng_req == ENGI_SYNTH && str_eq(SYNTH_PRESETS[TSEL->preset].name, "RING BELL") &&
-          TSEL->p[P_E3] == 1 + SY_RING;
+          TSEL->p[P_E3] == SYB_RING;
     set_engine_of(TSEL, ENGI_DRUMX);
     ok &= TSEL->eng_req == ENGI_DRUM && trk_dx(TSEL) && TSEL->preset == DRUM_PDX;
     bad += check("(custom) a retired engine asked for (SET, PRESET): SYNTH's sound for it; DRUM-X: DRUM's DX KIT", ok);
@@ -4500,7 +4502,7 @@ static int test_retired(void)
     q->t[2].preset = 4;
     proj_retire(q);
     ok = q->t[0].engine == ENGI_SYNTH && str_eq(SYNTH_PRESETS[q->t[0].preset].name, "SYNC LEAD") &&
-         q->t[0].p[P_E3] == 1 + SY_SYNC && q->t[0].p[P_ATK] == 33;
+         q->t[0].p[P_E3] == SYB_SYNC && q->t[0].p[P_ATK] == 33;
     ok &= q->t[1].engine == ENGI_DRUM && q->t[1].preset == DRUM_PDX + 1u && q->t[1].p[P_E0] == DK_DXP &&
           q->t[1].p[P_E1] == 72 && q->t[1].p[P_E2] == 90 && q->t[1].p[P_E3] == 40 && q->t[1].p[P_E4] == 80 &&
           q->t[1].p[P_E5] == 100 && q->t[1].p[P_E7] == 25;
@@ -8334,10 +8336,10 @@ static int test_u4(void)
         ui_power_on();
         go_title("EDIT 1"); frame();
         page_pos(ti);
-        ok = str_eq(page_head(), "OSC A") && str_eq(ti, "1/4");   /* ((custom) SYNTH's, ANALOG's OSC once) */
+        ok = str_eq(page_head(), "OSC A") && str_eq(ti, "1/6");   /* ((custom) SYNTH's, ANALOG's OSC once; its own two */
         go_title("ENV"); frame();
         page_pos(ti);
-        bad += check("U4 L5: the header names the page (EDIT 1 on SYNTH: OSC A), the footer only where (1/4, ENV 1/2)",
+        bad += check("U4 L5: the header names the page (EDIT 1 on SYNTH: OSC A), the footer only where (1/6, ENV 1/2)",
                      ok && str_eq(page_head(), "ENV") && str_eq(ti, "1/2"));   /* ((2.0) ENV ENV 2: ENV DEST is MOD's) */
         set_engine_of(TSEL, ENGI_FM6);                  /* (#7) a sheet counts as any page (was SELECT: ROWS) */
         TSEL->engine = TSEL->eng_req;

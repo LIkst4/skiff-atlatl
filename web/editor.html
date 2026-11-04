@@ -1702,6 +1702,8 @@ const P_LFO2 = [117, 118, 119], P_SPRD = 120, P_INSERT = [121, 122, 123, 124], P
 const P_LPAN = Array.from({ length: 8 }, (_, i) => 127 + i);   /* (2.0, #36, P_COUNT 143, P_E0 135) core.h P_LPAN0..7: the
                                                    DRUM lanes' PAN, sound parameters as the lane levels */
 const P_FILTER = [138, 139, 140, 141], P_FDRV = 142;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
+const P_SYNTH3 = [143, 144, 145, 146], P_303 = [147, 148, 149, 7];   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
+                                                       * X-MOD DRIFT; ACCENT ACC DEC MUFFLE and GLIDE (P_GLIDE 7) */
 const P_FOLLOW = [135, 136, 137];   /* (2.1, P_COUNT 146, P_E0 138) core.h P_FOLLOW P_FMODE P_FNOTE: the chord follow, the
                                      track's */
 const trackOwn = (i, pe0) => TRACK_OWN.has(i) || (pe0 >= 83 && P_CHORD.includes(i)) || (pe0 >= 92 && i === P_DIR) ||
@@ -2304,7 +2306,7 @@ function makeMockDevice(opt = {}) {
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
       presets: [] },
     /* (custom) SYNTH (src/eng_synth.c): two oscillators into a filter per voice, the track FILTER's parameters */
-    { name: "SYNTH", titles: ["OSC A", "OSC B"], edit: [E("OSC A", ["VA", "WAVE", "ADD", "NOISE", "ORGAN"], 0), D("SHAPE A", F.PCT, 0, 127, 0), D("MOD", F.PCT, 0, 127, 0), E("OSC B", ["OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING"], 0), D("SHAPE B", F.PCT, 0, 127, 0), D("B TUNE", F.INT, -24, 24, 0, null, "st"), D("DETUNE", F.INT, 0, 127, 0, null, "ct"), D("MIX", F.PCT, 0, 127, 64)],
+    { name: "SYNTH", titles: ["OSC A", "OSC B"], edit: [E("OSC A", ["VA", "WAVE", "ADD", "NOISE", "ORGAN", "MODAL"], 0), D("SHAPE A", F.PCT, 0, 127, 0), D("MOD", F.PCT, 0, 127, 0), E("OSC B", ["OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING", "MODAL"], 0), D("SHAPE B", F.PCT, 0, 127, 0), D("B TUNE", F.INT, -24, 24, 0, null, "st"), D("DETUNE", F.INT, 0, 127, 0, null, "ct"), D("MIX", F.PCT, 0, 127, 64)],
       presets: [
         P("INIT SYNTH", [0, 0, 0, 0, 0, 0, 0, 64], [2, 80, 100, 40], 0, 0, [[138,  1],  [139,  90],  [140,  20],  [141,  0]]),
         P("OB BRASS", [0, 10, 0, 1, 12, 0, 18, 64], [30, 80, 100, 50], 0, 0, [[138,  5],  [139,  60],  [140,  40],  [141,  0]]),
@@ -2358,6 +2360,12 @@ function makeMockDevice(opt = {}) {
         P("ROCK DRIVE", [4, 60, 0, 0, 0, 0, 0, 0], [0, 64, 127, 40], 0, 0, [[138,  1],  [139,  110],  [140,  0],  [142,  90]]),
         P("CATHEDRAL", [4, 102, 0, 0, 0, 0, 0, 0], [48, 64, 127, 72], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
         P("PEDAL BASS", [4, 119, 0, 0, 0, 0, 0, 0], [0, 64, 127, 30], 1, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("DEVIL ACID", [0, 0, 0, 0, 0, 0, 0, 64], [0, 55, 20, 30], 1, 0, [[138,  7],  [139,  40],  [140,  105],  [147,  100]]),
+        P("STRUCK BAR", [5, 64, 40, 0, 0, 0, 0, 0], [0, 90, 0, 60], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("MODAL BELL", [5, 127, 10, 0, 0, 0, 0, 0], [0, 100, 0, 90], 0, 0, [[138,  0],  [139,  127],  [140,  0]]),
+        P("PLUCK STRING", [5, 0, 60, 0, 0, 0, 0, 0], [0, 80, 0, 50], 0, 0, [[138,  1],  [139,  110],  [140,  0]]),
+        P("XMOD BELL", [1, 0, 0, 2, 0, 19, 0, 0], [0, 95, 0, 80], 0, 0, [[138,  1],  [139,  100],  [140,  0],  [145,  70]]),
+        P("VINTAGE POLY", [0, 0, 0, 1, 0, 0, 12, 64], [10, 80, 100, 50], 0, 0, [[138,  6],  [139,  70],  [140,  20],  [146,  90]]),
       ] },
     /* (custom) FMINI (src/eng_fmini.c): FMini-1's Minimoog voice, SLOT one of its 200 patches */
     { name: "FMINI", titles: ["FILTER", "PATCH"], edit: [D("CUT", F.PCT, 0, 127, 64), D("EMPH", F.PCT, 0, 127, 40), D("CNTR", F.PCT, 0, 127, 64), D("F.ATK", F.PCT, 0, 127, 0), D("F.DEC", F.PCT, 0, 127, 64), D("F.SUS", F.PCT, 0, 127, 40), D("MOD", F.PCT, 0, 127, 0), D("SLOT", F.SLOT, -64, 127, -64)],
@@ -2598,7 +2606,10 @@ function makeMockDevice(opt = {}) {
   TP.push(E("TYPE", ["OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB", "VOWEL"], 0),   /* 138..142: (custom) */
     D("CUTOFF", F.PCT, 0, 127, 127), D("RESO", F.PCT, 0, 127, 0), D("CHAR", F.PCT, 0, 127, 0),    /* the track FILTER */
     D("DRIVE", F.PCT, 0, 127, 0));
-  const P_COUNT = 151, G_COUNT = 27, NSTEP = 64, P_E0 = 143, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("SUB", F.PCT, 0, 127, 0), E("SUB OCT", ["-1 OCT", "-2 OCT"], 0), D("X-MOD", F.PCT, 0, 127, 0),   /* 143..149: */
+    D("DRIFT", F.PCT, 0, 127, 0), D("ACCENT", F.PCT, 0, 127, 0), D("ACC DEC", F.PCT, 0, 127, 40),          /* (custom) */
+    D("MUFFLE", F.PCT, 0, 127, 0));                                                                         /* SYNTH's own */
+  const P_COUNT = 158, G_COUNT = 27, NSTEP = 64, P_E0 = 150, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -4235,6 +4246,7 @@ const LAYOUT = (pe0) => [
     ...(pe0 >= 127 ? [["SPREAD", 0, [P_SPRD]]] : [])] },   /* ((1.3) the voices left and right of PAN) */
   { t: "FX", pages: [["FX", 0, [33, 34, 35, 36]], ...(pe0 >= 117 ? [["DRIVE", 0, [33, ...P_DRIVE]]] : []),
     ...(pe0 >= 143 ? [["FILTER", 0, P_FILTER], ["FILTER 2", 0, [P_FDRV]]] : []),   /* ((custom) the track FILTER) */
+    ...(pe0 >= 150 && engName() === "SYNTH" ? [["SYNTH 3", 0, P_SYNTH3], ["303", 0, P_303]] : []),   /* ((custom) SYNTH's own) */
     ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["INSERT 2", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT) */
     ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]]] },   /* G_RTYPE 24: ROOM / SPRING */
   { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]], ...(pe0 >= 83 ? [["CHORD", 0, P_CHORD]] : []),   /* CHRD VOIC 81, 82 */

@@ -135,6 +135,8 @@ enum {                          /* per-track parameters */
                                                 * by which of their notes; stored ids 143..145 */
     P_FTYPE, P_FCUT, P_FRES, P_FCHR, P_FDRV,   /* (custom) FX > FILTER (flt.c, fx.c track_filter): TYPE CUTOFF RESO
                                                 * CHAR DRIVE; stored ids 146..150 */
+    P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT,     /* (custom) SYNTH's own (eng_synth.c): SUB, SUB OCT, X-MOD, DRIFT; */
+    P_SYACC, P_SYADEC, P_SYMUF,                /* its 303 page: ACCENT, ACC DEC, MUFFLE; stored ids 151..157 */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };

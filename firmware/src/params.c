@@ -38,6 +38,7 @@ static const char *const N_ORDER[] = {"NOTE", "PLAYED"};
 static const char *const N_LSYNC[] = {"OFF", "4BAR", "2BAR", "1/1", "1/2", "1/4", "1/8", "8T", "1/16", "16T", "1/32"};
 static const char *const N_LTRIG[] = {"NOTE", "FREE"};
 static const char *const N_LPOL[] = {"BI", "UNI"};
+static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
                                      "VOWEL"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR"};
@@ -203,6 +204,13 @@ static const param_desc_t TP[P_COUNT] = {
     [P_FRES] = PD("RESO", F_PCT, 0, 127, 0),
     [P_FCHR] = PD("CHAR", F_PCT, 0, 127, 0),
     [P_FDRV] = PD("DRIVE", F_PCT, 0, 127, 0),
+    [P_SYSUB] = PD("SUB", F_PCT, 0, 127, 0),       /* (custom) SYNTH's own (eng_synth.c), 0: off, as before */
+    [P_SYSUBO] = PE("SUB OCT", N_SYSUBO, 0),
+    [P_SYXMOD] = PD("X-MOD", F_PCT, 0, 127, 0),
+    [P_SYDRFT] = PD("DRIFT", F_PCT, 0, 127, 0),
+    [P_SYACC] = PD("ACCENT", F_PCT, 0, 127, 0),
+    [P_SYADEC] = PD("ACC DEC", F_PCT, 0, 127, 40),
+    [P_SYMUF] = PD("MUFFLE", F_PCT, 0, 127, 0),
 };
 
 static const param_desc_t GP[G_COUNT] = {
@@ -553,6 +561,10 @@ static const page_t PAGES[] = {
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"OPERATOR", FAM_EDIT, SC_TRACK, GR_FMOP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (FM6 LAB) FM6 only: an operator's values */
     {"ALL OPS", FAM_EDIT, SC_TRACK, GR_FMALL, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (FM6 LAB) FM6 only: the voice's (ui_fm6.c) */
+    {"SYNTH 3", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT}},   /* (custom) SYNTH only: SUB,
+                                                                         * X-MOD (OberVave's), DRIFT (its VINTAGE) */
+    {"303", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYACC, P_SYADEC, P_SYMUF, P_GLIDE}},   /* (custom) SYNTH only: the Devil
+                                                                         * Fish's accent sweep and decay, MUFFLE, SLIDE */
     {"LANES", FAM_EDIT, SC_TRACK, GR_LANES, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM only: LANE, its LEVEL TUNE DECAY
                                                                          * (page_desc) */
     {"SOUND", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},     /* (Skiff phase 7, 8) DRUM-X only: a sound of the
