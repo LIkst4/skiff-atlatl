@@ -89,7 +89,7 @@ static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-",
 #else
                                              "-",
 #endif
-                                             "DRUM-X", "SYNTH",   /* ((custom) SYNTH 15) */
+                                             "DRUM-X", "SYNTH", "FMINI",   /* ((custom) SYNTH 15, FMINI 16) */
 };
 
 #define PD(l, f, mn, mx, df) {l, 0, mn, mx, df, f, 0}
@@ -448,6 +448,11 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         fmt_int(val, v);
         *unit = "BPM";
         break;
+    case F_SLOT: {                                  /* (custom) 000 .. */
+        int32_t s = v - d->min;
+        val[0] = (char)('0' + s / 100 % 10), val[1] = (char)('0' + s / 10 % 10), val[2] = (char)('0' + s % 10), val[3] = 0;
+        break;
+    }
     case F_NOTE:
         str_cpy(val, N_NOTE[v % 12], 6);
         break;

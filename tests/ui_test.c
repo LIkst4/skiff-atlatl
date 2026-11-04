@@ -1445,11 +1445,11 @@ static int test_preset_tags(void)
     bad += check("every factory sound the browser shows has a type", ok);
     {   /* (phase 9) and a name of its own: a type's list mixes the engines (two WINDs read as one sound twice); the
          * retired DIGITAL of a FELUCCA_FM4 build keeps its names (PAD, MARIMBA: FM6's, PHYS's) */
-        const char *nm[256];
+        const char *nm[512];   /* ((custom) FMINI: 200 more) */
         uint32_t n = 0, j;
         for (r = 0, ok = 1; r < NENG_SHOWN; r++)
             for (e = eng_vis(r), k = 0; k < ENGINES[e]->npresets; k++)
-                if (preset_orig(ENGINES[e], k) == k && n < 256u && !(FELUCCA_FM4 && e == ENGI_DIGITAL)) {
+                if (preset_orig(ENGINES[e], k) == k && n < 512u && !(FELUCCA_FM4 && e == ENGI_DIGITAL)) {
                     for (j = 0; j < n; j++)
                         if (str_eq(nm[j], ENGINES[e]->presets[k].name)) {
                             printf("ui:   %s twice\n", nm[j]);
@@ -1457,7 +1457,7 @@ static int test_preset_tags(void)
                         }
                     nm[n++] = ENGINES[e]->presets[k].name;
                 }
-        bad += check("  every one its own name, across the engines", ok && n > 100u && n < 256u);
+        bad += check("  every one its own name, across the engines", ok && n > 100u && n < 512u);
     }
     up_store(30, "Mine");
     preset_pos(&all);
@@ -3658,10 +3658,10 @@ static int test_quick_layers(void)
     key_up(white(eng_rank(2))); frame();
     key_down(white(eng_rank(ENGI_FM6))); key_up(white(eng_rank(ENGI_FM6))); frame();
     ok &= TSEL->eng_req == ENGI_FM6;                    /* (FM6: ((custom) third, after SYNTH, in ENGINE_ORDER) */
-    key_down(white(NENG_SHOWN - 2u)); key_up(white(NENG_SHOWN - 2u)); frame();
-    ok &= TSEL->eng_req == ENGI_DRUM;                   /* (the key before the last: DRUM) */
-    key_down(white(NENG_SHOWN - 1u)); key_up(white(NENG_SHOWN - 1u)); frame();
-    ok &= TSEL->eng_req == ENGI_DRUMX;                  /* (the last key: (Skiff) DRUM-X) */
+    key_down(white(LY_INIT - 1u)); key_up(white(LY_INIT - 1u)); frame();
+    ok &= TSEL->eng_req == eng_vis(LY_INIT - 1u);       /* (the last engine key: (custom) the 15th shown, DRUM; DRUM-X
+                                                         * past the keys, PRESETS' only) */
+    ok &= LY_INIT == (NENG_SHOWN < 15u ? NENG_SHOWN : 15u);
     ok &= !memcmp(TSEL->step, before.step, sizeof before.step) && TSEL->p[P_SLEN] == before.p[P_SLEN] &&
           TSEL->p[P_SLCR] == SL_STUT;
     btn_up(B_EDIT); frame();
@@ -3678,8 +3678,8 @@ static int test_quick_layers(void)
         ok &= eng_ok(TSEL->eng_req);
     }
     btn_up(B_EDIT); frame();
-    bad += check("  every engine one can pick has its white key from F3 (NENG_SHOWN, not a fixed count; never DIGITAL)",
-                 ok && a == NENG_SHOWN);
+    bad += check("  every engine one can pick has its white key from F3, up to the 15th ((custom) the rest PRESETS'; never DIGITAL)",
+                 ok && a == LY_INIT);
     set_engine_of(TSEL, 0);
     lay_combo(B_EDIT, white(eng_rank(3))); key_up(white(eng_rank(3))); frame();
     turn(EN_K2, 1);
@@ -3734,7 +3734,7 @@ static int test_quick_layers(void)
     TSEL->p[P_E0] = (int16_t)(TSEL->p[P_E0] + 5);
     press(B_OCTUP);
     bad += check("EDIT + the key after the engines: INITIALIZE SOUND? dialog (closes the layer, no tap); OCT+ inits", ok && !ui.confirm &&
-                 msg_is("SOUND INITIALIZED") && TSEL->p[P_E0] == ENGINES[eng_step(0, 1)]->presets[0].e[0]);
+                 msg_is("SOUND INITIALIZED") && TSEL->p[P_E0] == ENGINES[TSEL->eng_req % NENGINES]->presets[0].e[0]);   /* ((custom) the track's engine) */
 
     /* no layer in the menu or a dialog: GLO + a key plays */
     ui_power_on(); hold(B_HOME);
@@ -4320,8 +4320,9 @@ static int test_bughunt_ui2(void)
         bad += check("piano roll: the C-1 label stays inside the panel (every palette)", !out);
     }
     {   /* 7. EDIT: INIT is drawn in the cell after the engines, and that cell's white key is the one that inits */
-        uint32_t p, ok = LY_INIT == NENG_SHOWN && LY_INIT < 16u;      /* (layer_edit: INIT in cell NENG_SHOWN) */
-        for (p = NENG_SHOWN; p < 16u; p++) {
+        uint32_t p, ok = LY_INIT == (NENG_SHOWN < 15u ? NENG_SHOWN : 15u) && LY_INIT < 16u;   /* (layer_edit: INIT in cell
+                                                         * LY_INIT; (custom) the 16th at most) */
+        for (p = LY_INIT; p < 16u; p++) {
             ui_power_on(); go_home(); frame();
             btn_down(B_EDIT); key_down(white(p)); frame(); frames(50);
             ok &= (ui.confirm == CF_INIT_SOUND) == (p == LY_INIT);
@@ -4471,12 +4472,13 @@ static int test_fm4_retired(void)
         seen |= 1u << TSEL->eng_req;
     }
     bad += check("PRESETS KNOB 2: the engines in order, DIGITAL skipped, back to the first",
-                 seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == (FELUCCA_FM4 ? ENGI_FM6 : ENGI_SYNTH) &&
+                 seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == (FELUCCA_FM4 ? ENGI_FMINI : ENGI_SYNTH) &&
                  eng_step(ENGI_FM6, 1) == (FELUCCA_FM4 ? ENGI_DIGITAL : 2u) &&
-                 eng_step(ENGI_FM6, -1) == (FELUCCA_FM4 ? 0u : ENGI_SYNTH) && eng_step(0, -1) == ENGI_DRUMX && eng_step(ENGI_DRUMX, -1) == ENGI_DRUM);
+                 eng_step(ENGI_FM6, -1) == ENGI_FMINI && eng_step(0, -1) == ENGI_DRUMX && eng_step(ENGI_DRUMX, -1) == ENGI_DRUM);
     {   /* the display order (engines.c ENGINE_ORDER): every engine one can pick once; the PRESETS list follows it */
-        static const char *const ORDER[] = {"ANALOG", "SYNTH", "FM6", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL",
-                                            "GRAIN", "PHYS", "NOISE", "SLICE", "DRUM", "DRUM-X"};   /* ((custom) SYNTH) */
+        static const char *const ORDER[] = {"ANALOG", "SYNTH", "FMINI", "FM6", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO",
+                                            "WHEEL", "GRAIN", "PHYS", "NOISE", "SLICE", "DRUM", "DRUM-X"};   /* ((custom) SYNTH,
+                                                                                                          * FMINI) */
         uint32_t last = 0xFFu, r = 0, n = 0;
         ok = NENG_SHOWN == NELEM(ORDER);
         for (i = 0; ok && i < NENG_SHOWN; i++)

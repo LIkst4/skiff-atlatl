@@ -29,6 +29,11 @@ jobs:
           echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
       - name: Build
         run: ./build.sh
+      - name: "Size report (on a failed build: the biggest symbols of the app's object)"
+        if: failure()
+        run: |
+          "$JIELI_TOOLCHAIN/common/bin/nm" --size-sort -S -t d build/felucca.o | tail -120 || true
+          ls -la build/ || true
       - name: Host tests
         run: SANITIZE=0 sh tests/run_tests.sh
       - uses: actions/upload-artifact@v4

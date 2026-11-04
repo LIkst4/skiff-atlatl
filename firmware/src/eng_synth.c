@@ -61,8 +61,7 @@ static inline uint32_t sy_warp(uint32_t ph, uint32_t k)
     uint32_t p = ph >> 16;
     if (!k)
         return ph;
-    return p < k ? (uint32_t)(((uint64_t)p * 32768u / k) << 16) :
-                   (uint32_t)((32768u + (uint64_t)(p - k) * 32768u / (65536u - k)) << 16);
+    return p < k ? (p * 32768u / k) << 16 : (32768u + (p - k) * 32768u / (65536u - k)) << 16;   /* (p, k < 2^16: 32 bits) */
 }
 
 /* one oscillator of model md into y[0..n) (added at gain g, Q15): its phase *ph at inc; shape 0..127 << 8 */
@@ -201,7 +200,7 @@ static const preset_t SYNTH_PRESETS[] = {
      MORE(SYF(FT_OB12, 60, 40), {P_FCHR, 0}), TAG(PT_LEAD)},
     {"OB STRINGS", {SY_VA, 70, 0, 1 + SY_VA, 90, 0, 30, 64}, {70, 90, 115, 80}, 8, 0, FX(0, 80, 15, 60),
      MORE(SYF(FT_OB12, 72, 25), {P_LD_SHP, 30}), TAG(PT_PAD)},
-    {"MOOG BASS", {SY_VA, 0, 60, 1 + SY_VA, 0, -12, 10, 50}, {0, 60, 50, 30}, 40, 1, FX(0, 0, 5, 10),
+    {"LADDER BASS", {SY_VA, 0, 60, 1 + SY_VA, 0, -12, 10, 50}, {0, 60, 50, 30}, 40, 1, FX(0, 0, 5, 10),
      MORE(SYF(FT_LPMG, 40, 70), {P_FDRV, 40}), TAG(PT_BASS)},
     {"ACID LINE", {SY_VA, 0, 0, 0, 0, 0, 0, 64}, {0, 55, 20, 30}, 50, 1, FX(20, 0, 45, 15),
      MORE(SYF(FT_ACID, 40, 105), {P_FCHR, 40}), TAG(PT_BASS)},

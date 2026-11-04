@@ -767,8 +767,9 @@ static int32_t wet[CTL];                                 /* (the dry mix and the
  * not depend on it */
 static uint16_t part_cost[NPART];                       /* the last block's, per track */
 static const uint16_t ENG_VCOST[NENGINES] = {163, 0, 162, 67, 70, 174, 144, 143, 189, 309, 113, 134, 181, 129, 120,
-                                             240};   /* ((custom) SYNTH: an estimate, ADD and a filter per voice) */
-_Static_assert(NENGINES == 16, "ENG_VCOST: a cost per engine");
+                                             240, 200};   /* ((custom) SYNTH: an estimate, ADD and a filter per voice;
+                                                           * FMINI: three oscillators and the ladder) */
+_Static_assert(NENGINES == 17, "ENG_VCOST: a cost per engine");
 #else
 static int32_t send_c[CTL], send_d[CTL], send_r[CTL], wet[CTL], mix_l[CTL], mix_r[CTL];
 #endif

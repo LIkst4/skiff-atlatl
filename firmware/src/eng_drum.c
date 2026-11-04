@@ -476,7 +476,7 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
             MD_MODELS[M->model - 1u].render(&M->trk, &M->v, y, n);
         if (M->choke) {                                  /* choked: out over this block */
             for (i = 0; i < n; i++)
-                y[i] = (int32_t)(((int64_t)y[i] * (int32_t)(n - i)) / (int32_t)n);
+                y[i] = y[i] / (int32_t)n * (int32_t)(n - i);   /* (32-bit: no 64-bit divide on the target) */
             M->v.active = 0;
             M->choke = 0;
         }

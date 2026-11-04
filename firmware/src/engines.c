@@ -19,6 +19,7 @@ static void *eng_part(const track_t *t);
 #include "eng_drumx.c"          /* (Skiff) DRUM-X: JIANT FM's drum engine (drumx_voice.c, GPL-3.0-only) */
 #include "flt.c"                /* (custom) the filter library: the track FILTER (fx.c), SYNTH's per voice */
 #include "eng_synth.c"          /* (custom) SYNTH: two oscillators (VA WAVE ADD NOISE) into a filter per voice */
+#include "eng_fmini.c"          /* (custom) FMINI: FMini-1's Minimoog voice (Guilherme Ruppert, GPL-3.0-only) */
 #include "eng_noise.c"
 #include "eng_fm6.c"            /* FM6: 6-operator FM, msfa ported (fm6_core.c, Apache-2.0) */
 #include "fm4_convert.c"        /* DIGITAL's tables, and its sounds -> FM6 */
@@ -100,6 +101,7 @@ static const engine_t *const ENGINES[NENGINES] = {
 #endif
     &ENG_DRUMX,                  /* 14 (ENGI_DRUMX, Skiff) */
     &ENG_SYNTH,                  /* 15 (ENGI_SYNTH, custom) */
+    &ENG_FMINI,                  /* 16 (ENGI_FMINI, custom) */
 };
 
 /* a track's engine number as an index (the audio paths: a compare, cheaper than % NENGINES; a bad number: 0) */
@@ -132,8 +134,9 @@ static const char *snd_missing(const track_t *t, uint32_t *code)
 static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
     0,                           /* ANALOG */
 #if !FELUCCA_FM4
-    15,                          /* (custom) SYNTH (not in a FELUCCA_FM4 build: the EDIT layer's keys) */
+    15,                          /* (custom) SYNTH (not in a FELUCCA_FM4 build) */
 #endif
+    16,                          /* (custom) FMINI */
     12,                          /* FM6 */
 #if FELUCCA_FM4
     1,                           /* DIGITAL */
