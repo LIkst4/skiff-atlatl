@@ -224,6 +224,9 @@ def build_app():
         v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
+    v = os.environ.get("FELUCCA_UAC_CH")       # (custom) the USB audio input's channels: 2 or 8 (felucca.c: 8)
+    if v in ("2", "8"):
+        flags.append(f"-DFELUCCA_UAC_CH={v}")
     v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
         flags.append(f"-DFELUCCA_USB_LAYOUT={v}")

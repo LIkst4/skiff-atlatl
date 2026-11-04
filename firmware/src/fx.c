@@ -2,8 +2,9 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Effects: per-track DIST insert, then sends into three
  * shared buses (chorus, tempo delay, reverb). Mono buses (HALL with its stereo difference), stereo dry mix. */
-#define DLY_LEN 61440u           /* 1.39 s: 1/4 at 43 BPM fits ((custom) 65536 before: 8 KB of the pool for the
-                                  * engines; no longer a power of two, the index wraps by a compare: dly_at) */
+#define DLY_LEN 57344u           /* 1.30 s: 1/4 at 47 BPM fits ((custom) 65536 before: 8 KB of the pool for the
+                                  * engines, 8 more for the 8-channel USB ring (usb.c ua_ring); no longer a power
+                                  * of two, the index wraps by a compare: dly_at) */
 /* (custom) the delay line's index dl samples behind the write index w (both inside the line, dl < DLY_LEN) */
 static inline uint32_t dly_at(uint32_t w, uint32_t dl) { return w >= dl ? w - dl : w + DLY_LEN - dl; }
 static inline uint32_t dly_next(uint32_t w) { return w + 1u >= DLY_LEN ? 0u : w + 1u; }
@@ -1122,6 +1123,26 @@ static __attribute__((noinline)) void smx_render(track_t *t, voice_t *v, uint32_
 
 /* one synth part into the dry mix and the sends (of sm: mx[0]; mx[1] on the second core); a part with no voice sounding
  * costs the LFO tick and a cleared buffer only (after the DIST tail has run out) */
+static void mix_part(track_t *t, uint32_t n SM_DECL);
+#if FELUCCA_UAC && FELUCCA_UAC_CH > 2
+/* (custom, after Kitten Synths' fix-17) the multitrack USB input (usb.c uac_tap): each track's own share of the dry mix
+ * this block, mono ((L + R) / 2), after its level, pan, mute, DRIVE, INSERT, FILTER and DUCK, before the shared chorus,
+ * delay and reverb and the master: what the track added to its core's sums. Then (mix_block) at the master's gain */
+static int32_t uac_stem[NTRK][CTL];
+static void mix_part_stem(track_t *t, uint32_t n SM_DECL)
+{
+    int32_t *s = uac_stem[(uint32_t)(t - trk) % NTRK];
+    uint32_t i, m = n < CTL ? n : CTL;
+    for (i = 0; i < m; i++)
+        s[i] = SM(l)[i] + SM(r)[i];
+    mix_part(t, n SM_ARG(sm));
+    for (i = 0; i < m; i++)
+        s[i] = (SM(l)[i] + SM(r)[i] - s[i]) >> 1;
+}
+#define MIX_PART mix_part_stem
+#else
+#define MIX_PART mix_part
+#endif
 #if FELUCCA_CPU2
 static __attribute__((noinline)) void mix_part(track_t *t, uint32_t n SM_DECL)   /* (either core runs it: out of the ISR) */
 #else
@@ -1222,7 +1243,7 @@ static void c1_parts(uint32_t arg)                      /* arg: the tracks (bit 
         sm->l[i] = sm->r[i] = sm->c[i] = sm->d[i] = sm->v[i] = 0;
     for (i = 0; i < NPART; i++)
         if (arg >> i & 1u)
-            mix_part(&trk[i], n, sm);
+            MIX_PART(&trk[i], n, sm);
 }
 
 /* which tracks go to the second core: the split of the last block's costs that leaves the busier core the least; none
@@ -1289,7 +1310,7 @@ static void mix_block(int32_t *out, uint32_t n)
         c1_blocks += m != 0;
         for (i = 0; i < NPART; i++)
             if (!(m >> i & 1u))
-                mix_part(&trk[i], n, &mx[0]);
+                MIX_PART(&trk[i], n, &mx[0]);
         if (m) {
             const mixsum_t *sm = &mx[1];
             if (C1_WAIT())                              /* it stopped answering (held from now on): its tracks here */
@@ -1307,7 +1328,15 @@ static void mix_block(int32_t *out, uint32_t n)
     }
 #else
     for (i = 0; i < NPART; i++)
-        mix_part(&trk[i], n);
+        MIX_PART(&trk[i], n);
+#endif
+#if FELUCCA_UAC && FELUCCA_UAC_CH > 2
+    {   /* ((custom) the stems at the master's gain, as the master's sum is: usb.c uac_tap) */
+        uint32_t k;
+        for (k = 0; k < NTRK; k++)
+            for (i = 0; i < n && i < CTL; i++)
+                uac_stem[k][i] = ((uac_stem[k][i] >> 2) * mg) >> 10;
+    }
 #endif
     if (thr_on)
         throw_off();                                    /* (Skiff) .. and off: nothing else sees them */

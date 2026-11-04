@@ -440,6 +440,8 @@ EOF
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fmini_test" tests/fmini_test.c -lm
     mkdir -p build/fmini_demo
     run "(custom) FMINI: all 200 patches bounded and ending, EMPH sings, CUT, cost, demos" "$OUT/fmini_test" build/fmini_demo
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/stems_test" tests/stems_test.c -lm
+    run "(custom) 8-channel USB audio (after Kitten Synths): the six track stems sum to the dry mix, LEVEL MUTE, the frame layout, packets, descriptors" "$OUT/stems_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumx_test" tests/drumx_test.c -lm
     mkdir -p build/drumx_demo
     run "DRUM-X: every lane sounds and ends, MORPH, TUNE, the pitch envelope, hat choke, the knobs, FOLD, FM, a drum track, demos" "$OUT/drumx_test" build/drumx_demo

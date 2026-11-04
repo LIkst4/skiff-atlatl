@@ -24,6 +24,10 @@
 #ifndef FELUCCA_UAC
 #define FELUCCA_UAC 1            /* USB audio input: the master output, 16-bit stereo 44.1 kHz (usb.c) */
 #endif
+#ifndef FELUCCA_UAC_CH
+#define FELUCCA_UAC_CH 8         /* (custom, after Kitten Synths) the USB audio input's channels: 1-2 the master, 3-8 the six
+                                  * tracks (mono, before the shared effects; fx.c uac_stem), 44.1 kHz only. 2: as Skiff */
+#endif
 #ifndef FELUCCA_UAC_TONE
 #define FELUCCA_UAC_TONE 0       /* bench: the USB input sends test triangles instead of the music */
 #endif
