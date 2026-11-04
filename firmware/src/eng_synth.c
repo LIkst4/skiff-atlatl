@@ -14,6 +14,13 @@
  *            SHAPE morphs through WHEEL's 16 registrations (FLUTE .. FULL, SY_REG), the louder ones softly normalised;
  *            MOD (shown PERC) 1..63 a decaying 2nd harmonic (4'), 64..127 the 3rd (2 2/3'), louder up each half, and
  *            the key click with it. Partials above ~18 kHz are left out. For the rotor: the track's CHORUS / the LFO
+ *     FOLD   (custom, after Plaits' waveshaper) a triangle through a sine wavefolder: SHAPE folds it (1x .. 9x, held down
+ *            up the keyboard: less aliasing), MOD (shown SKEW) leans the triangle into a ramp (the even harmonics)
+ *     CHORD  (custom, after Plaits' chords) four saws at a chord's notes: SHAPE picks it (OCT 5 SUS4 m m7 m9 m11 69 M9
+ *            M7 M), MOD (shown INV) its inversion (0..4: the lowest notes an octave up)
+ *     SWARM  (custom, after Plaits' swarm / the supersaw) seven saws spread around the note: SHAPE the spread (0 .. ~2
+ *            semitones out), MOD (shown SIDES) the six around against the middle one
+ *   (CHORD and SWARM keep their phases in the MODAL's area, synth_vc_t ma / mb: a model or the other)
  *   OSC B also (custom, after TRIO and ANALOG's sync, TRIO retired):
  *     SYNC   a saw at B's pitch restarted at each of A's cycles (hard sync: B TUNE sweeps the formant); SHAPE B: the
  *            saw .. a square, as VA's
@@ -29,18 +36,23 @@
  * envelope), s[2] its hold (ORGAN: the click's countdown); B's in synth_vc_t. */
 #include "synth_tables.h"
 
-enum { SY_VA, SY_WAVE, SY_ADD, SY_NOISE, SY_ORGAN, SY_MODAL, SY_N, SY_SYNC = SY_N, SY_RING };   /* OSC A's (stored:
-                                                                                  * appended); B's own two after */
-/* OSC B's stored values (appended): OFF, the models 1..5 (1 + SY_*), SYNC, RING, (custom) MODAL */
-enum { SYB_OFF, SYB_SYNC = 6, SYB_RING, SYB_MODAL, SYB_N };
-static const char *const N_SY_OSC[] = {"VA", "WAVE", "ADD", "NOISE", "ORGAN", "MODAL"};
-static const char *const N_SY_OSCB[] = {"OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING", "MODAL"};
+enum { SY_VA, SY_WAVE, SY_ADD, SY_NOISE, SY_ORGAN, SY_MODAL, SY_FOLD, SY_CHORD, SY_SWARM, SY_N, SY_SYNC = SY_N,
+       SY_RING };   /* OSC A's (stored: appended); B's own two after */
+/* OSC B's stored values (appended): OFF, the models 1..5 (1 + SY_*), SYNC, RING, (custom) MODAL, FOLD, CHORD, SWARM */
+enum { SYB_OFF, SYB_SYNC = 6, SYB_RING, SYB_MODAL, SYB_FOLD, SYB_CHORD, SYB_SWARM, SYB_N };
+static const char *const N_SY_OSC[] = {"VA", "WAVE", "ADD", "NOISE", "ORGAN", "MODAL", "FOLD", "CHORD", "SWARM"};
+static const char *const N_SY_OSCB[] = {"OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING", "MODAL", "FOLD",
+                                        "CHORD", "SWARM"};
 /* OSC B's stored value -> its model (SY_*, SY_SYNC, SY_RING); 0 (OFF) -> SY_BOFF */
 #define SY_BOFF 15u
 static uint32_t sy_bmodel(int32_t b)
 {
-    return b <= 0 ? SY_BOFF : b < SYB_SYNC ? (uint32_t)b - 1u : b == SYB_SYNC ? SY_SYNC : b == SYB_RING ? SY_RING : SY_MODAL;
+    return b <= 0 ? SY_BOFF : b < SYB_SYNC ? (uint32_t)b - 1u : b == SYB_SYNC ? SY_SYNC : b == SYB_RING ? SY_RING
+                                                                 : (uint32_t)(b - SYB_MODAL) + SY_MODAL;
 }
+/* (custom, after Plaits) a stored value of A's (P_E0) or B's (P_E3) is model md (MODAL and after) */
+#define SY_IS_A(p, md) ((p)[P_E0] == (md))
+#define SY_IS_B(p, md) ((p)[P_E3] == (md) - SY_MODAL + SYB_MODAL)
 
 #define SY_NMODE 8               /* MODAL's modes ((custom) 8, after Rings': was 6) */
 typedef struct {
@@ -72,6 +84,14 @@ static const uint16_t SY_MODE_R[3][SY_NMODE] = {{1024, 2048, 3072, 4096, 5120, 6
                                                 {1024, 2822, 5534, 9147, 13660, 19087, 25406, 32635},   /* a free bar */
                                                 {1024, 1219, 1536, 2048, 2580, 3072, 3686, 4301}};      /* a bell */
 static const uint16_t SY_MODE_A[SY_NMODE] = {32767, 20000, 14000, 10000, 7000, 5000, 3500, 2500};
+/* (custom, after Plaits) CHORD's chords (semitones over the root: OCT 5 SUS4 m m7 m9 m11 69 M9 M7 M), 2^(k/12) Q16 */
+static const uint8_t SY_CHD[11][4] = {{0, 0, 12, 12}, {0, 7, 7, 12}, {0, 5, 7, 12}, {0, 3, 7, 12}, {0, 3, 7, 10},
+                                      {0, 3, 10, 14}, {0, 3, 10, 17}, {0, 2, 9, 16}, {0, 4, 11, 14}, {0, 4, 7, 11},
+                                      {0, 4, 7, 12}};
+static const uint32_t SY_SEMI[12] = {65536, 69433, 73562, 77936, 82570, 87480, 92682, 98193, 104032, 110218, 116772,
+                                     123715};
+/* SWARM's saws: each one's place in the spread (Q15 of it; the middle one 0), after the supersaw's uneven offsets */
+static const int16_t SY_SWM[7] = {0, -32767, 32112, -18728, 18513, -5814, 5930};
 
 /* (custom) ORGAN: WHEEL's 16 registrations, one digit per bar: 16' 5 1/3' 8' 4' 2 2/3' 2' 1 3/5' 1 1/3' 1'; the bars'
  * harmonics of the 16' (x 1 3 2 4 6 8 10 12 16); a bar's level 0..8 -> Q15, 3 dB a step (eng_wheel.c, retired) */
@@ -113,6 +133,15 @@ static void synth_note_on(track_t *t, voice_t *v)
     if (S && t->p[P_E3] == 1 + SY_ORGAN) {
         S->nlb = 32767;
         S->hb = SY_CLICK;
+    }
+    if (S && !v->env_out) {                              /* (custom) SWARM, CHORD: their saws apart (not in step) */
+        uint32_t k;
+        if (SY_IS_A(t->p, SY_SWARM) || SY_IS_A(t->p, SY_CHORD))
+            for (k = 0; k < 7u; k++)
+                S->ma.y[k] = (int32_t)(k * 0x9E3779B9u);
+        if (SY_IS_B(t->p, SY_SWARM) || SY_IS_B(t->p, SY_CHORD))
+            for (k = 0; k < 7u; k++)
+                S->mb.y[k] = (int32_t)(k * 0x7F4A7C15u);
     }
     if (S) {
         if (t->p[P_E0] == SY_MODAL)                      /* (custom) MODAL: struck */
@@ -208,6 +237,71 @@ static __attribute__((noinline)) void sy_modal(sy_modal_t *mm, uint32_t inc, int
         }
         y[i] += mulq15(clamp(out >> 2, -65536, 65536), g);
     }
+}
+
+/* (custom, after Plaits) FOLD: a triangle (leaning into a ramp: mod) through sin(pi/2 a x), a the fold (Q8) held
+ * down by the pitch; CHORD: four saws at the chord's notes (xp: their phases); SWARM: seven saws spread around inc
+ * (xp). Each into y at g; pm: X-MOD's phase offsets (FOLD) */
+static __attribute__((noinline)) void sy_fold(uint32_t *ph, uint32_t inc, int32_t sh, int32_t mod, int32_t *y,
+                                              uint32_t n, int32_t g, const int32_t *pm)
+{
+    uint32_t p = *ph, i, a = 256u + (uint32_t)sh / 16u, amax = inc > 0x00100000u ? 0x10000000u / (inc >> 8) : 0xFFFFu;   /* (a x the
+                                                        * pitch under ~3 kHz) */
+    uint32_t k16 = 32768u + (uint32_t)mod * 232u;          /* the rise: half the cycle .. ~95 % (Q16) */
+    uint32_t up = 0xFFFFFFFFu / k16, dn = 0xFFFFFFFFu / (65536u - k16);   /* the slopes (Q16 of 65536 a cycle) */
+    if (a > amax)
+        a = amax < 256u ? 256u : amax;
+    for (i = 0; i < n; i++, p += inc) {
+        uint32_t q = (pm ? p + (uint32_t)pm[i] : p) >> 16;
+        int32_t tr = q < k16 ? (int32_t)(((uint64_t)q * up) >> 16) - 32768
+                             : 32767 - (int32_t)(((uint64_t)(q - k16) * dn) >> 16);
+        y[i] += mulq15(sine_i(((uint32_t)clamp(tr, -32768, 32767) * a) << 7), g);   /* (x 1: a quarter cycle, 2^30) */
+    }
+    *ph = p;
+}
+static __attribute__((noinline)) void sy_chord(uint32_t *ph, uint32_t *xp, uint32_t inc, int32_t sh, int32_t mod,
+                                               int32_t *y, uint32_t n, int32_t g)
+{
+    uint32_t c = (uint32_t)sh * 11u / (128u << 8), inv = (uint32_t)mod * 5u / 128u, i, k, nk = 0, ik[4];
+    for (k = 0; k < 4u; k++) {                           /* each note's rate; the lowest inv an octave up (4: all, the
+                                                          * root two) */
+        uint32_t s = SY_CHD[c][k] + (k < inv ? 12u : 0u) + (inv > 3u && k == 0u ? 12u : 0u);
+        uint64_t f = (((uint64_t)inc * SY_SEMI[s % 12u]) >> 16) << (s / 12u);
+        if (f < 0x68000000ull)                           /* (past ~18 kHz: out) */
+            ik[nk++] = (uint32_t)f;
+    }
+    for (i = 0; i < n; i++) {
+        int32_t x = 0;
+        for (k = 0; k < nk; k++) {
+            x += osc_saw(xp[k], ik[k]);
+            xp[k] += ik[k];
+        }
+        y[i] += mulq15(x >> 1, g);                       /* (four saws: -6 dB) */
+    }
+    *ph += inc * n;
+}
+static __attribute__((noinline)) void sy_swarm(uint32_t *ph, uint32_t *xp, uint32_t inc, int32_t sh, int32_t mod,
+                                               int32_t *y, uint32_t n, int32_t g)
+{
+    int32_t sp = sh >> 2, gs = mod * 258, gc = 32767 - mod * 140, nm;   /* the spread (Q15 of ~11 %), the levels */
+    uint32_t i, k, ik[7];
+    nm = (int32_t)((32767u * 32768u) / (uint32_t)(gc + ((gs * 5) >> 1) + 1));   /* (the six ~ sqrt 6 = 2.5 x one) */
+    if (nm > 32767)
+        nm = 32767;
+    for (k = 0; k < 7u; k++)                             /* (+-11 % at full SHAPE) */
+        ik[k] = (uint32_t)((int64_t)inc + (((int64_t)inc * mulq15(SY_SWM[k], sp)) >> 18));
+    gs = mulq15(gs, nm);
+    gc = mulq15(gc, nm);
+    for (i = 0; i < n; i++) {
+        int32_t x = mulq15(osc_saw(xp[0], ik[0]), gc), z = 0;
+        xp[0] += ik[0];
+        for (k = 1; k < 7u; k++) {
+            z += osc_saw(xp[k], ik[k]);
+            xp[k] += ik[k];
+        }
+        y[i] += mulq15(x + mulq15(z, gs), g);
+    }
+    *ph += inc * n;
 }
 
 /* one oscillator of model md into y[0..n) (added at gain g, Q15): its phase *ph at inc; shape 0..127 << 8 */
@@ -326,6 +420,17 @@ static __attribute__((noinline)) void sy_osc(uint32_t md, uint32_t *ph, uint32_t
     case SY_MODAL:                                           /* (custom) struck modes (sy_modal) */
         sy_modal(mm, inc, sh, mod, y, n, g, nz);
         p += inc * n;
+        break;
+    case SY_FOLD:                                            /* (custom, after Plaits) */
+        sy_fold(&p, inc, sh, mod, y, n, g, pm);
+        break;
+    case SY_CHORD:
+        if (mm)
+            sy_chord(&p, (uint32_t *)mm->y, inc, sh, mod, y, n, g);
+        break;
+    case SY_SWARM:
+        if (mm)
+            sy_swarm(&p, (uint32_t *)mm->y, inc, sh, mod, y, n, g);
         break;
     default: {                                               /* NOISE */
         int32_t c = 32767 - (sh >> 1) * 2, h = *hold, l = *nl;   /* the colour: a one-pole */
@@ -466,7 +571,8 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 
 static const param_desc_t SY_MOD_DESC[SY_N] = {
     {"SUB", 0, 0, 127, 0, F_PCT, 0}, {"WARP", 0, 0, 127, 0, F_PCT, 0}, {"ODD", 0, 0, 127, 0, F_PCT, 0},
-    {"PITCH", 0, 0, 127, 0, F_PCT, 0}, {"PERC", 0, 0, 127, 0, F_PCT, 0}, {"DAMP", 0, 0, 127, 0, F_PCT, 0}};
+    {"PITCH", 0, 0, 127, 0, F_PCT, 0}, {"PERC", 0, 0, 127, 0, F_PCT, 0}, {"DAMP", 0, 0, 127, 0, F_PCT, 0},
+    {"SKEW", 0, 0, 127, 0, F_PCT, 0}, {"INV", 0, 0, 127, 0, F_PCT, 0}, {"SIDES", 0, 0, 127, 0, F_PCT, 0}};
 static const param_desc_t *synth_desc(const track_t *t, uint32_t k)
 {
     if (k == 2u)
@@ -596,7 +702,22 @@ static const preset_t SYNTH_PRESETS[] = {
      MORE(SYF(FT_LPMG, 100, 0), {P_SYXMOD, 70}), TAG(PT_KEYS)},
     {"VINTAGE POLY", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 12, 64}, {10, 80, 100, 50}, 30, 0, FX(0, 40, 20, 40),
      MORE(SYF(FT_OB24, 70, 20), {P_SYDRFT, 90}), TAG(PT_KEYS)},
+    /* (custom, after Plaits) FOLD CHORD SWARM */
+    {"SUPERSAW", {SY_SWARM, 70, 90, 0, 0, 0, 0, 0}, {2, 80, 110, 60}, 20, 0, FX(0, 30, 30, 50),
+     MORE(SYF(FT_LPMG, 108, 10)), TAG(PT_LEAD)},
+    {"SWARM PAD", {SY_SWARM, 40, 127, 1 + SY_WAVE, 20, 12, 10, 30}, {90, 90, 120, 100}, 8, 0, FX(0, 60, 20, 80),
+     MORE(SYF(FT_OB12, 80, 20), {P_SYDRFT, 60}), TAG(PT_PAD)},
+    {"STRING MACH", {SY_CHORD, 35, 0, 0, 0, 0, 0, 0}, {60, 90, 120, 90}, 10, 0, FX(0, 90, 15, 60),
+     MORE(SYF(FT_LPMG, 88, 10)), TAG(PT_PAD)},
+    {"MINOR STAB", {SY_CHORD, 50, 40, 0, 0, 0, 0, 0}, {0, 60, 0, 40}, 30, 0, FX(0, 10, 50, 40),
+     MORE(SYF(FT_SK, 90, 40)), TAG(PT_KEYS)},
+    {"WEST FOLD", {SY_FOLD, 70, 30, 0, 0, 0, 0, 0}, {0, 75, 40, 45}, 40, 0, FX(0, 0, 25, 35),
+     MORE(SYF(FT_LPMG, 115, 20)), TAG(PT_LEAD)},
+    {"FOLD BASS", {SY_FOLD, 40, 90, 0, 0, 0, 0, 0}, {0, 55, 60, 25}, 50, 1, FX(10, 0, 5, 10),
+     MORE(SYF(FT_LPMG, 95, 30)), TAG(PT_BASS)},
+#include "synth_obv.h"         /* (custom) after OberVave's factory programs (tools/obv_presets.py) */
 };
+_Static_assert(NELEM(SYNTH_PRESETS) <= 127, "SYNTH: the presets past 127 (the editor's LIST2, MIDI: 7 bits)");
 #undef SYF
 
 static const engine_t ENG_SYNTH = {

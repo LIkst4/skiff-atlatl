@@ -56,6 +56,33 @@ static void run(uint32_t nb, stat_t *s, FILE *w)
     }
 }
 static double rms(const stat_t *s) { return s->n ? sqrt(s->sq / s->n) : 0; }
+/* (custom, after Plaits) a note of the track's sound: zero crossings a second (the left), and how much the RMS of
+ * 20 ms windows moves (its spread / mean: a beating) */
+static void zc_note(uint32_t note, double *zc, double *beat)
+{
+    int32_t o[2 * CTL], last = 0;
+    uint32_t i, k, z = 0, nw = 0, w = 0;
+    double sq = 0, m = 0, m2 = 0;
+    trk_note_on(&trk[0], note, 100);
+    run(FS / 8 / CTL, 0, 0);
+    for (i = 0; i < FS / CTL; i++) {
+        mix_block(o, CTL);
+        for (k = 0; k < CTL; k++) {
+            int32_t x = o[2 * k];
+            if ((x >= 0) != (last >= 0))
+                z++;
+            last = x;
+            sq += (double)x * x;
+            if (++w == FS / 50) {
+                double r = sqrt(sq / w);
+                m += r, m2 += r * r, nw++, sq = 0, w = 0;
+            }
+        }
+    }
+    *zc = z / 2.0;
+    m /= nw;
+    *beat = m > 0 ? sqrt(m2 / nw - m * m) / m : 0;
+}
 static double mean(const stat_t *s) { return s->n ? s->sum / s->n : 0; }
 
 static const uint8_t PHRASE[][2] = {{48, 0}, {55, 0}, {60, 0}, {64, 2}, {67, 4}, {72, 6}, {48, 8}, {60, 10}, {63, 10},
@@ -96,7 +123,8 @@ int main(int argc, char **argv)
             run(1, 0, 0);
         snprintf(w, sizeof w, "%-12s: sounds (RMS %.0f, peak %d), no DC (%.0f), voices end", ENG_SYNTH.presets[k].name,
                  rms(&s), (int)s.pk, mean(&s));
-        ck(w, rms(&s) > 300 && s.pk < 32767 * 2 && fabs(mean(&s)) < 200 && !voices_on(&trk[0]));
+        ck(w, (rms(&s) > 300 || (!ENG_SYNTH.presets[k].env[2] && s.pk > 4000)) &&   /* ((custom) a short hit, SUS 0: */
+                 s.pk < 32767 * 2 && fabs(mean(&s)) < 200 && !voices_on(&trk[0]));   /* by its peak) */
     }
 
     /* 2 */
@@ -123,7 +151,7 @@ int main(int argc, char **argv)
         for (i = 0; i < 2u; i++) {                       /* OSC B of this model alone */
             stat_t s = {0};
             fresh(0);
-            trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)SYB_MODAL);   /* (B's stored value) */
+            trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)(k - SY_MODAL + SYB_MODAL));   /* (B's stored value) */
             trk[0].p[P_E5] = i ? 24 : -24;
             trk[0].p[P_E7] = 127;
             trk[0].p[P_FTYPE] = FT_OFF;
@@ -358,7 +386,7 @@ int main(int argc, char **argv)
         static const uint8_t CH[6] = {36, 48, 55, 60, 64, 67};
         fresh(0);
         trk[0].p[P_E0] = (int16_t)k;
-        trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)SYB_MODAL);
+        trk[0].p[P_E3] = (int16_t)(k < SY_MODAL ? k + 1u : (uint32_t)(k - SY_MODAL + SYB_MODAL));
         trk[0].p[P_E7] = 64;
         trk[0].p[P_FTYPE] = getenv("NOFLT") ? FT_OFF : FT_LPMG;
         for (i = 0; i < 6u; i++)
@@ -392,6 +420,34 @@ int main(int argc, char **argv)
             }
             printf("synth: (reference) %-6s preset 0, 6 voices: %6.0f ns a block\n", R[k].n, (double)ns / 400);
         }
+    }
+    {   /* (custom, after Plaits) FOLD CHORD SWARM */
+        double z0, z1, b0, b1, zr, zi;
+#define SY_SET(md, sh, mo) (fresh(0), trk[0].p[P_E0] = (md), trk[0].p[P_E1] = (sh), trk[0].p[P_E2] = (mo), \
+                            trk[0].p[P_FTYPE] = FT_OFF)
+        SY_SET(SY_FOLD, 0, 0);
+        zc_note(48, &z0, &b0);
+        SY_SET(SY_FOLD, 127, 0);
+        zc_note(48, &z1, &b1);
+        printf("synth: FOLD at C3: %.0f -> %.0f zero crossings a second (SHAPE 0 -> 127)\n", z0, z1);
+        ck("FOLD: SHAPE folds (more crossings: higher harmonics), the note's own rate at SHAPE 0", z1 > 3 * z0 && fabs(z0 - 130.8) < 8);
+        SY_SET(SY_FOLD, 127, 0);
+        zc_note(96, &z1, &b1);
+        printf("synth: FOLD at C7, SHAPE 127: %.0f zero crossings a second\n", z1);
+        ck("FOLD: held down up the keyboard (C7 folded under ~10 kHz of crossings)", z1 < 10000);
+        SY_SET(SY_CHORD, 4 * 128 / 11 + 2, 0);           /* m7, no inversion */
+        zc_note(48, &zr, &b0);
+        SY_SET(SY_CHORD, 4 * 128 / 11 + 2, 127);         /* m7, the 4th inversion: everything up */
+        zc_note(48, &zi, &b1);
+        printf("synth: CHORD at C3: m7 %.0f, inverted %.0f zero crossings a second\n", zr, zi);
+        ck("CHORD: INV puts the chord's notes up (more crossings)", zi > 1.5 * zr);
+        SY_SET(SY_SWARM, 0, 127);
+        zc_note(48, &z0, &b0);
+        SY_SET(SY_SWARM, 127, 127);
+        zc_note(48, &z1, &b1);
+        printf("synth: SWARM at C3: the RMS's movement %.3f (SHAPE 0) -> %.3f (127)\n", b0, b1);
+        ck("SWARM: SHAPE 0 one saw (steady), spread the saws beat", b0 < 0.05 && b1 > 2 * b0);
+#undef SY_SET
     }
     printf(bad ? "synth: %d FAILED\n" : "synth tests passed\n", bad);
     return bad != 0;
