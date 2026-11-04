@@ -41,6 +41,23 @@ jobs:
           cp build/felucca.fwsc "$RUNNER_TEMP/skiff-atlatl-emu.fwsc"
       - name: Build
         run: ./build.sh
+      - name: "(custom) Emscripten, for the browser emulator"
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.10
+      - name: "(custom) The browser emulator (web/emu: the firmware's sources in WebAssembly) as a site"
+        continue-on-error: true
+        run: |
+          EMU_PREVIEW=0 sh web/emu/build.sh
+          mkdir -p site
+          cp -r build/emu site/emu
+          cp build/panel.js site/
+          printf '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=emu/">\n' > site/index.html
+      - name: "(custom) The site as the Pages artifact"
+        if: github.event_name == 'push' && github.ref_name == 'atlatl-dev' && hashFiles('site/emu/felucca.wasm') != ''
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
       - name: "(custom) The package as the branch's pre-release (build-<branch>: a stable download link)"
         if: github.event_name == 'push'
         env:
@@ -76,3 +93,17 @@ jobs:
             build/felucca.dis
             build/flt_demo/*.wav
           if-no-files-found: warn
+  pages:
+    # (custom) the browser emulator on GitHub Pages (the repository's Settings > Pages > Source: GitHub Actions)
+    needs: build
+    if: github.event_name == 'push' && github.ref_name == 'atlatl-dev'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
