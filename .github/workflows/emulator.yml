@@ -1,0 +1,75 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# (custom) Build Simon Johansson's FM-1 emulator (https://github.com/simonjohansson/fm1-emulator, GPL-2.0-or-later,
+# QEMU) with one patch, publish it as the release emulator-linux (fm1-emulator-linux-amd64.tar.gz), then boot this
+# branch's package (the pre-release build-<branch>) in it: the stress run (random buttons, keys and knobs) and the
+# panel smoke (presets, every function button), headless.
+#
+# The patch: the emulator refuses "IF c THEN ... goto X ELSE ..." (a GOTO ending the THEN arm when an ELSE follows),
+# which it already accepts for a register JUMP; clang for the pi32v2 emits it for tail calls (Skiff's rev_model), and
+# the hardware runs it. The patch accepts GOTO the same way: the transfer supplies the successor.
+name: emulator
+on:
+  workflow_dispatch:
+  push:                           # (the package: build.yml's pre-release, up a few minutes after the push; the
+                                  # emulator's build takes longer, and the stress waits for this commit's below)
+permissions:
+  contents: write
+concurrency:
+  group: emulator-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  EMU_REPO: simonjohansson/fm1-emulator
+  EMU_REF: 519a13b879d744f5c05bfe3c4e5d4e04d8d4ae34
+jobs:
+  emulator:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: The emulator's source (pinned)
+        run: |
+          git clone https://github.com/$EMU_REPO emu
+          git -C emu checkout $EMU_REF
+      - name: "Patch: a GOTO may end THEN with ELSE, as a register JUMP"
+        run: |
+          sed -i 's/if (kind != PI32V2_END_JUMP) {/if (kind != PI32V2_END_JUMP \&\& kind != PI32V2_END_GOTO) {/' \
+            emu/src/target/pi32v2/helper.c
+          grep -n "PI32V2_END_GOTO) {" emu/src/target/pi32v2/helper.c
+      - name: Cache (the emulator's build: QEMU, GLib)
+        uses: actions/cache@v4
+        with:
+          path: emu/.cache
+          key: emu-${{ env.EMU_REF }}-patch1
+      - uses: jdx/mise-action@v2
+        with:
+          working_directory: emu
+          install_args: python
+      - name: Build
+        working-directory: emu
+        run: mise run build
+      - name: Publish (release emulator-linux)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view emulator-linux -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create emulator-linux -R "$GITHUB_REPOSITORY" --prerelease --title "FM-1 emulator (patched)" \
+              --notes "simonjohansson/fm1-emulator at $EMU_REF, GPL-2.0-or-later, with the GOTO patch (.github/workflows/emulator.yml)"
+          gh release upload emulator-linux -R "$GITHUB_REPOSITORY" emu/.cache/fm1-emulator-linux-amd64.tar.gz --clobber
+      - name: This branch's package (this commit's: waits for build.yml to publish it)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${GITHUB_REF_NAME//\//-}"
+          for i in $(seq 1 60); do
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" -q .body 2>/dev/null | grep -o 'from [0-9a-f]*' | cut -c6-)
+            [ "$sha" = "${GITHUB_SHA::7}" ] && break
+            echo "waiting for $tag of ${GITHUB_SHA::7} (now: $sha)"; sleep 30
+          done
+          curl --fail --location --retry 3 -o emu/fw.fwsc \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/skiff-atlatl.fwsc"
+      - name: Stress (60 guest seconds of random input)
+        working-directory: emu
+        run: mise run stress -- fw.fwsc --seconds 60 --seed 1
+      - name: Panel smoke (presets, function buttons)
+        if: always()
+        working-directory: emu
+        run: mise run panel_smoke -- fw.fwsc --presets 64
