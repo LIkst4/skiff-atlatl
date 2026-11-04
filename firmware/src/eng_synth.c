@@ -199,7 +199,9 @@ static __attribute__((noinline)) void sy_modal(sy_modal_t *mm, uint32_t inc, int
         }
         for (k = 0; k < m; k++) {
             int32_t *s = &mm->y[2 * k], yk;
-            yk = (int32_t)((((int64_t)a1[k] * s[0]) - ((int64_t)a2[k] * s[1])) >> 30) + mulq15(x, sw[k]);
+            yk = (int32_t)(((int64_t)a1[k] * s[0] + (1 << 29)) >> 30) -   /* (two products, each rounded and */
+                 (int32_t)(((int64_t)a2[k] * s[1] + (1 << 29)) >> 30) +   /* shifted: no 64-bit multiply-subtract) */
+                 mulq15(x, sw[k]);
             s[1] = s[0];
             s[0] = clamp(yk, -(1 << 20), 1 << 20);      /* (bounded: it can't run away) */
             out += yk;
