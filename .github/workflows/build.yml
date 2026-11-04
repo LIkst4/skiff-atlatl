@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write             # (custom) the package as a pre-release of the branch (below)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,6 +36,18 @@ jobs:
           echo "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"
       - name: Build
         run: ./build.sh
+      - name: "(custom) The package as the branch's pre-release (build-<branch>: a stable download link)"
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${GITHUB_REF_NAME//\//-}"
+          notes="Built by CI from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}. Not tested on a real FM-1: back up first."
+          gh release view "$tag" >/dev/null 2>&1 || \
+            gh release create "$tag" --prerelease --target "$GITHUB_SHA" --title "$tag" --notes "$notes"
+          gh release edit "$tag" --notes "$notes"
+          cp build/felucca.fwsc build/skiff-atlatl.fwsc
+          gh release upload "$tag" build/skiff-atlatl.fwsc --clobber
       - name: "Size report (on a failed build: the biggest symbols of the app's object)"
         if: failure()
         run: |
