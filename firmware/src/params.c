@@ -5,6 +5,8 @@ static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H"};
 static const char *const N_AMODE[] = {"OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT",   /* (append-only: seq.c AM_*) */
                                        "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD"};
 static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"};
+static const char *const N_ARATE[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR", "4T",
+                                      "32T"};   /* ((custom) the arp's RATE: N_DIV's, then the triplets 4T 32T: seq.c arp_period) */
 /* (Skiff 1.3, from Felucca 1.5.1) the delay's TIME (G_DTIME): N_DIV's ten (their values kept), then the dotted ones
  * appended (stored values: append-only; firmware before reads them as 4BAR). A list of its own: ARP RATE, SEQ DIV and
  * LFO SYNC keep N_DIV's ten (fx.c delay_samples) */
@@ -117,7 +119,7 @@ static const param_desc_t TP[P_COUNT] = {
     [P_LD_SHP] = PD("SHAPE", F_BIPCT, -64, 63, 0),
     [P_LD_AMP] = PD("AMP", F_PCT, 0, 127, 0),
     [P_AMODE] = PE("MODE", N_AMODE, 0),
-    [P_ARATE] = PE("RATE", N_DIV, 2),
+    [P_ARATE] = PE("RATE", N_ARATE, 2),
     [P_AOCT] = PD("OCTAVE", F_INT, 1, 4, 1),
     [P_AGATE] = PD("GATE", F_PCT, 1, 127, 64),
     [P_ASWING] = PD("SWING", F_PCT, 0, 100, 0),
@@ -359,11 +361,14 @@ static int32_t enum_step(const param_desc_t *d, int32_t from, int32_t v)
  * -> the shown order of d's values (index: position, entry: value), 0 = the values' own order */
 static const uint8_t DIV_ORDER[10] = {9, 8, 7, 6, 0, 1, 4, 2, 5, 3};   /* 4BAR 2BAR 1/1 1/2 1/4 1/8 8T 1/16 16T 1/32 */
 static const uint8_t SLDIV_ORDER[6] = {0, 3, 1, 4, 2, 5};              /* 1/8 8T 1/16 16T 1/32 32T */
+static const uint8_t ARATE_ORDER[12] = {9, 8, 7, 6, 0, 10, 1, 4, 2, 5, 3, 11};   /* ((custom) 4BAR 2BAR 1/1 1/2 1/4 4T 1/8
+                                                                                  * 8T 1/16 16T 1/32 32T) */
 static const uint8_t DTIME_ORDER[13] = {9, 8, 7, 6, 12, 0, 10, 1, 11, 4, 2, 5, 3};   /* 4BAR 2BAR 1/1 1/2 1/4D 1/4 1/8D
                                                                                       * 1/8 1/16D 8T 1/16 16T 1/32 */
 static const uint8_t *enum_order(const param_desc_t *d)
 {
-    return d->names == N_DIV ? DIV_ORDER : d->names == N_SLDIV ? SLDIV_ORDER : d->names == N_DTIME ? DTIME_ORDER : 0;
+    return d->names == N_DIV ? DIV_ORDER : d->names == N_SLDIV ? SLDIV_ORDER : d->names == N_DTIME ? DTIME_ORDER :
+           d->names == N_ARATE ? ARATE_ORDER : 0;
 }
 static int32_t enum_rank(const param_desc_t *d, int32_t v)   /* v's place in the shown order (+ min): the gauges */
 {
@@ -542,7 +547,8 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_INS,                     /* (Skiff 1.3) FX > INSERT: its TYPE's transfer or sweep (ui_pgraph.c graph_insert) */
        GR_SMIX,                    /* (Skiff, #21) EDIT > SAMPLES: a user sample's LEVEL, REVERB, DELAY (ui.c smx_zone) */
        GR_LMIX,                    /* (2.0, #36, the user's pick 1A) EDIT > LANE MIX: a kit's lane levels and pans */
-       GR_FOLLOW };                /* (2.1) SCL > FOLLOW: the chord it follows, as CHORD's (ui_graph.c graph_follow) */
+       GR_FOLLOW,                  /* (2.1) SCL > FOLLOW: the chord it follows, as CHORD's (ui_graph.c graph_follow) */
+       GR_ARPSTEP };               /* (custom) ARP > ARP STEP: the arp's step pattern, a sheet (ui_arp.c) */
 
 typedef struct {
     const char *title;
@@ -613,6 +619,8 @@ static const page_t PAGES[] = {
     {"PROJECT", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, 0xFF, G_LOAD, G_SAVE}},
     {"ARP", FAM_ARP, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},
     {"ARP 2", FAM_ARP, SC_TRACK, GR_ARP2, {P_ASWING, P_APROB, P_AHOLD, P_AORDER}},
+    {"ARP STEP", FAM_ARP, SC_TRACK, GR_ARPSTEP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (custom, after Bitwig's) the arp's step
+                                                                         * pattern (ui_arp.c) */
     {"NOTES", FAM_SEQ, SC_STEP, GR_ROLL, {0, 1, 2, 3}},   /* (Skiff 2.0, D: STEP ROLL CHANCE PLAY as two pages) the roll:
                                                          * PITCH START LENGTH VELOCITY of the selection (a DRUM track:
                                                          * the grid, LANE HIT ACC VELOCITY); PRESETS the step */

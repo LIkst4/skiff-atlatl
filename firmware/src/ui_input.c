@@ -2642,6 +2642,7 @@ timeout:
 
 #include "ui_dx.c"                                      /* (Skiff phase 7, 8) EDIT > SOUND: the DRUM-X sound sheet */
 #include "ui_fm6.c"                                     /* (FM6 LAB) EDIT > OPERATOR, ALL OPS: FM6's patch */
+#include "ui_arp.c"                                     /* (custom) ARP > ARP STEP: the arp's step pattern */
 
 /* (FM6 LAB) the sheets (ui.c sheet_t): their pages' every hook (the knobs, cards, panel, header, PRESETS, SELECT,
  * SHIFT's map) goes through here */
@@ -2651,6 +2652,8 @@ static const sheet_t SHEETS[] = {
      "OPERATOR"},
     {GR_FMALL, ENGI_FM6, FM_NWIN, &fm_ui[2], fm_all_knob, fm_all_cards, fm_sig, graph_fm_all, fm_all_title, fm_op_turn,
      "OPERATOR"},
+    {GR_ARPSTEP, 0xFFu, 1u, &arp_ui_win, arp_step_knob, arp_step_cards, arp_step_sig, graph_arp_step, arp_step_title,
+     arp_step_turn, "STEP"},
 };
 static const sheet_t *sheet_of(uint32_t g)
 {

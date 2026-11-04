@@ -2632,6 +2632,7 @@ static void draw_graph(void)
         case GR_DXSND:                               /* (Skiff phase 7, 8; FM6 LAB) a sheet, from the panel's top */
         case GR_FMOP:
         case GR_FMALL:
+        case GR_ARPSTEP:                             /* ((custom) ARP STEP) */
             cv_oy = 0;
             sheet_of(pg->graph)->draw(t, c);
             break;

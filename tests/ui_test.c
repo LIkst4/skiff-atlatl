@@ -2116,6 +2116,9 @@ static int test_presets_knob(void)
                 sel_ok &= song.g[G_SLOT] == slot + 1 && same_snd && same_steps;
             } else if (g == GR_EVENTS) {   /* (AUTOMATION, U3: the list; its row) */
                 sel_ok &= same_snd && same_steps && ui.page == i;
+            } else if (g == GR_ARPSTEP) {  /* ((custom) ARP STEP: the step edited) */
+                sel_ok &= same_snd && same_steps && ui.page == i && arp_ui_step == 1u;
+                arp_ui_step = 0;
             } else {
                 snd_ok &= !same_snd && same_steps && ui.page == i && !ui.home;
                 hold(B_SAVE);
@@ -6950,6 +6953,7 @@ static int test_div_order(void)
         for (n = 0; n <= d->max - d->min; n++) {
             len = d->names == N_SLDIV ? 1000000u / SL_DEN[v] :
                   d->names == N_DTIME && v >= 10 ? (beat_samples() * 3u) >> DIV_DOT[v - 10] :   /* ((1.3) dotted) */
+                  d->names == N_ARATE ? arp_period((uint32_t)v) :   /* ((custom) 4T 32T) */
                   div_samples((uint32_t)v);
             if (!(len < prev && enum_rank(d, v) == d->min + n && !((seen >> v) & 1))) {
                 printf("  %s: %s (value %d, place %d, length %u) after %u\n", d->label, d->names[v], (int)v,
@@ -6977,11 +6981,11 @@ static int test_div_order(void)
             if (!page_visible(id) || !(d = page_desc(cur_page(), c, &vp)) || !vp || !enum_order(d))
                 continue;
             found++;
-            *vp = d->names == N_DIV || d->names == N_DTIME ? 2 : 1;   /* 1/16 */
+            *vp = d->names == N_DIV || d->names == N_DTIME || d->names == N_ARATE ? 2 : 1;   /* 1/16 */
             turn(EN_K1 + c, 1);
-            ok &= *vp == (d->names == N_DIV || d->names == N_DTIME ? 5 : 4);  /* 16T */
+            ok &= *vp == (d->names == N_DIV || d->names == N_DTIME || d->names == N_ARATE ? 5 : 4);  /* 16T */
             turn(EN_K1 + c, -2);
-            ok &= *vp == (d->names == N_DIV || d->names == N_DTIME ? 4 : 3);  /* 8T */
+            ok &= *vp == (d->names == N_DIV || d->names == N_DTIME || d->names == N_ARATE ? 4 : 3);  /* 8T */
         }
     bad += check("#48 the pages' knobs step the divisions by length (SEQ, ARP, DLY, SLICER)", ok && found >= 4u);
     return bad;

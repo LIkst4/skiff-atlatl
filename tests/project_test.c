@@ -998,6 +998,22 @@ int main(void)
                      !memcmp(c.scene, a.scene, sizeof a.scene) && !memcmp(c.name, a.name, sizeof a.name) &&
                      c.dx_on && !memcmp(c.dx, a.dx, sizeof a.dx) && c.fm6[k][5] == 77u && c.parts == PROJ_PARTS &&
                      c.phys == PROJ_PHYS);
+        {   /* ((custom) ARP STEP: in the FM6 bytes' top bits; the patches as they were, firmware before reads them so) */
+            static project_t e;
+            static project_store_t sa;
+            uint32_t j, fo = 0;
+            e = a;
+            for (t = 0; t < NTRK; t++)
+                for (j = 0; j < 16u; j++)
+                    e.arp[t][j] = (uint8_t)(t * 37u + j * 11u + 0x41u);
+            ok = proj_pack2(&sa, &e, PROJ_SKF) && proj_import(&d, &sa, (int)PROJ_STORE4) &&
+                 !memcmp(d.arp, e.arp, sizeof e.arp) && !memcmp(d.fm6, a.fm6, sizeof a.fm6) && !memcmp(c.arp, a.arp, sizeof a.arp);
+            for (j = 0; j + FM6_PACKED * NTRK <= PROJ_STORE4; j++)   /* (the FM6 bytes: where st and sa first differ) */
+                if (st.raw[j] != sa.raw[j]) { fo = j; break; }
+            for (t = 0; t < NTRK * FM6_PACKED && fo; t++)
+                ok &= (st.raw[fo + t] & 0x7Fu) == (sa.raw[fo + t] & 0x7Fu);
+            bad += check("(custom) SKF4: ARP STEP round trip in the FM6 bytes' bit 7, the patches' 7 bits as they were", ok && fo);
+        }
         g0 = PROJ_ENT4 + NTRK * (NENT * 4u + 1u) + PROJ_SCENES + 2u + 1u + DV_NLANE * 11u + NTRK * FM6_PACKED;
         p0 = g0 + 1u + 2u * G_COUNT + 3u;                /* T1's parameters (its count first) */
         p1 = p0 + 1u + SID_COUNT + 3u;                   /* T2's */

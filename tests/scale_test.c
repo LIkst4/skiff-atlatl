@@ -564,6 +564,58 @@ static void solo_test(void)
     puts("scales: QNT SOLO's black keys walk the scale (7 and 5 notes, C3..C6, roots, octaves, TRN); white keys as WHITE");
 }
 
+/* (custom, after Bitwig's) ARP STEP: the step pattern's OFF rests (its note passed over), TRANSPOSE moves a step's note,
+ * STACC a quarter of the GATE, the pattern's own length against the notes'; the project's bytes round trip; 4T 32T */
+static void arp_step_test(void)
+{
+    track_t *t = &trk[0];
+    uint8_t b[ARP_NS];
+    uint32_t period;
+    arp_reset(t);
+    memset(arp_pat, 0, sizeof arp_pat);
+    t->p[P_QUANT] = QN_SNAP;
+    t->p[P_AHOLD] = 1;
+    events_block(CTL);
+    fm1_in.notes = (1u << 7) | (1u << 11);         /* C4, Eb4 latched */
+    keyboard_block();
+    fm1_in.notes = 0;
+    keyboard_block();
+    assert(arp_is(t, 60, 63));                     /* (the default: as before) */
+    arp_pat[0].len = 3;
+    arp_pat[0].tr[1] = 12;
+    arp_pat[0].st[2] = AS_OFF;
+    arp_spos[0] = 0;
+    arp_run(t, 6);
+    assert(arp_seen[0] == 60 && arp_seen[1] == 75 && arp_seen[2] == 0 && arp_seen[3] == 63 && arp_seen[4] == 72 &&
+           arp_seen[5] == 0);                      /* C4, Eb5 (+12), rest (C4 passed over), Eb4, C5 (+12), rest */
+    memset(&arp_pat[0], 0, sizeof arp_pat[0]);
+    arp_pat[0].st[0] = AS_STACC;
+    arp_pat[0].len = 2;
+    arp_spos[0] = 0;
+    period = arp_period((uint32_t)t->p[P_ARATE]);
+    arp_run(t, 1);
+    assert(t->arp_off == period * (uint32_t)t->p[P_AGATE] / 128u / 4u + 1u);   /* STACC: a quarter */
+    arp_run(t, 1);
+    assert(t->arp_off == period * (uint32_t)t->p[P_AGATE] / 128u);           /* ON: the GATE */
+    memset(&arp_pat[0], 0, sizeof arp_pat[0]);
+    arp_pat[0].len = 5;
+    arp_pat[0].tr[0] = -24; arp_pat[0].tr[3] = 7; arp_pat[0].tr[15] = 24;
+    arp_pat[0].st[1] = AS_STACC; arp_pat[0].st[4] = AS_OFF; arp_pat[0].st[9] = AS_OFF;
+    arp_pat_put(0, b);
+    memset(&arp_pat[0], 0, sizeof arp_pat[0]);
+    arp_pat_get(0, b);
+    assert(arp_len(0) == 5 && arp_pat[0].tr[0] == -24 && arp_pat[0].tr[3] == 7 && arp_pat[0].tr[15] == 24 &&
+           arp_pat[0].st[1] == AS_STACC && arp_pat[0].st[4] == AS_OFF && arp_pat[0].st[9] == AS_OFF &&
+           arp_pat[0].st[5] == AS_ON);             /* (the step after the last: its state ON, its TRANSPOSE kept) */
+    memset(b, 0, sizeof b);
+    arp_pat_get(0, b);
+    assert(arp_len(0) == ARP_NS && !arp_pat[0].tr[3] && arp_pat[0].st[4] == AS_ON);   /* a record of before: the default */
+    assert(arp_period(10) == div_samples(0) * 2u / 3u && arp_period(11) == div_samples(0) / 12u &&
+           arp_period(2) == div_samples(2));       /* 4T, 32T; the rest N_DIV's */
+    memset(arp_pat, 0, sizeof arp_pat);
+    puts("scales: (custom) ARP STEP: OFF rests, TRANSPOSE, STACC a quarter of the GATE, its own length; stored and back; 4T 32T");
+}
+
 int main(void)
 {
     host_tracks_init();
@@ -573,5 +625,6 @@ int main(void)
     seq_quant_test();
     seq_trn_test();
     arp_follow_test();
+    arp_step_test();
     return 0;
 }

@@ -264,6 +264,44 @@ static int kb_solo(const track_t *t, uint32_t k)
 #include "follow.c"                              /* (2.1) chord follow */
 
 /* ------------------------------------------------------------- arp --- */
+/* (custom, after Bitwig's Arpeggiator) ARP STEP: a pattern of 1..16 steps the arp walks as it plays (a step a note,
+ * its own length against the notes': a polymeter), each step ON, OFF (a rest: the note it would play passed over) or
+ * STACC (a quarter of the GATE), its note TRANSPOSE semitones up or down (+-24). The default: 16 steps ON at 0, the arp
+ * as before. Per track, the project's (project.c: SKF4's FM6 bytes' top bits); the arp's own place in it arp_spos */
+#define ARP_NS 16u
+enum { AS_ON, AS_OFF, AS_STACC, AS_N, AS_END = 3 };   /* (AS_END: stored only, the step after the last) */
+typedef struct { uint8_t len, st[ARP_NS]; int8_t tr[ARP_NS]; } arp_pat_t;
+static arp_pat_t arp_pat[NTRK];                    /* (len 0, as at boot: ARP_NS) */
+static uint8_t arp_spos[NTRK];
+static uint32_t arp_len(uint32_t k) { return arp_pat[k].len - 1u < ARP_NS ? arp_pat[k].len : ARP_NS; }
+/* a track's pattern as a project keeps it: a byte a step, its TRANSPOSE (6 bits, two's complement) and its state
+ * (bits 6, 7; AS_END on the step after the last: all 0, the default) .. and back */
+static void arp_pat_put(uint32_t k, uint8_t *b)
+{
+    const arp_pat_t *a = &arp_pat[k];
+    uint32_t i;
+    for (i = 0; i < ARP_NS; i++)
+        b[i] = (uint8_t)(((i == arp_len(k) ? (uint32_t)AS_END : a->st[i] % AS_N) << 6) | ((uint32_t)a->tr[i] & 63u));
+}
+static void arp_pat_get(uint32_t k, const uint8_t *b)
+{
+    arp_pat_t *a = &arp_pat[k];
+    uint32_t i;
+    a->len = ARP_NS;
+    for (i = 0; i < ARP_NS; i++) {
+        uint32_t st = b[i] >> 6;
+        if (st == AS_END && a->len == ARP_NS)
+            a->len = (uint8_t)(i ? i : 1u);
+        a->st[i] = (uint8_t)(st == AS_END ? AS_ON : st);
+        a->tr[i] = (int8_t)clamp((int32_t)((b[i] & 63u) ^ 32u) - 32, -24, 24);
+    }
+}
+/* (custom) the arp's RATE: N_DIV's ten, then (after Bitwig's) 4T and 32T */
+static uint32_t arp_period(uint32_t r)
+{
+    return r == 10u ? div_samples(0) * 2u / 3u : r == 11u ? div_samples(0) / 12u : div_samples(r);
+}
+
 static void arp_add(track_t *t, uint32_t note)
 {
     uint32_t i, k = in_key - 1u;
@@ -286,6 +324,8 @@ static void arp_add(track_t *t, uint32_t note)
     if (t->nheld == 1u) {
         t->arp_pos = 0xFFFFFFF;                     /* fire on this block */
         t->arp_idx = 0xFFFFFFFFu;
+        if (trk_index(t) < NTRK)
+            arp_spos[trk_index(t)] = 0;             /* ((custom) ARP STEP from its first) */
     }
 }
 
@@ -455,13 +495,14 @@ static __attribute__((noinline)) void arp_chord_off(track_t *t, int rec)   /* th
         }
 }
 
-static __attribute__((noinline)) void arp_chord(track_t *t, const uint32_t *list, uint32_t n)
+static __attribute__((noinline)) void arp_chord(track_t *t, const uint32_t *list, uint32_t n, int32_t tr)
 {
     uint32_t i, nt, top = 0, o = t->arp_idx % (uint32_t)(t->p[P_AOCT] > 0 ? t->p[P_AOCT] : 1);
     if (n > 4u)
         n = 4u;
-    for (i = 0; i < n; i++) {                       /* the held notes (sorted or as played), o octaves up */
-        nt = (uint32_t)clamp((int32_t)list[i] + 12 * (int32_t)o, 0, 127);
+    for (i = 0; i < n; i++) {                       /* the held notes (sorted or as played), o octaves up ((custom) and
+                                                     * ARP STEP's TRANSPOSE) */
+        nt = (uint32_t)clamp((int32_t)list[i] + 12 * (int32_t)o + tr, 0, 127);
         if (nt == 127u && top++)
             continue;                               /* (notes clamped onto the top one: once) */
         if (!t->arp_note)
@@ -612,7 +653,8 @@ static uint32_t arp_list(const track_t *t, uint32_t *list, uint32_t *cnt)
  * ISR's loop over the tracks (tests/target_budget.py) */
 static __attribute__((noinline)) void arp_fire(track_t *t, uint32_t period)
 {
-    uint32_t cnt, list[64], len, j;
+    uint32_t cnt, list[64], len, j, st;
+    int32_t tr;
     if (!(len = arp_list(t, list, &cnt))) {        /* (every key silent now: QNT WHITE's black keys) */
         if (t->arp_note)
             arp_off(t);
@@ -620,15 +662,28 @@ static __attribute__((noinline)) void arp_fire(track_t *t, uint32_t period)
     }
     t->arp_idx++;
     j = t->p[P_AMODE] == AM_CHORD ? 0u : arp_pick(t, list, len);
+    {   /* (custom) ARP STEP: this step's state and TRANSPOSE; the pattern's place on */
+        uint32_t k = trk_index(t), sp;
+        st = AS_ON;
+        tr = 0;
+        if (k < NTRK) {                             /* (a track of the six) */
+            sp = arp_spos[k] % arp_len(k);
+            st = arp_pat[k].st[sp];
+            tr = arp_pat[k].tr[sp];
+            arp_spos[k] = (uint8_t)(sp + 1u);
+        }
+    }
     if (t->arp_note)
         arp_off(t);
-    if ((uint32_t)(rng() & 127u) <= (uint32_t)t->p[P_APROB]) {
+    if (st != AS_OFF && (uint32_t)(rng() & 127u) <= (uint32_t)t->p[P_APROB]) {
         t->arp_off = period * (uint32_t)t->p[P_AGATE] / 128u;
+        if (st == AS_STACC)                         /* (STACC: a quarter of the GATE) */
+            t->arp_off = t->arp_off / 4u + 1u;
         if (t->p[P_AMODE] == AM_CHORD) {            /* CHORD: the first 4 notes, an octave up each step */
-            arp_chord(t, list, cnt);
+            arp_chord(t, list, cnt, tr);
             return;
         }
-        t->arp_note = (uint8_t)list[j];
+        t->arp_note = (uint8_t)clamp((int32_t)list[j] + tr, 0, 127);
         if (rec_on(t))
             rec_note(t, t->arp_note, 100);           /* recording: what the arp plays */
         else
@@ -652,7 +707,7 @@ static void arp_step(track_t *t, uint32_t n, uint32_t gate_n)
             arp_off(t);
         return;
     }
-    period = div_samples((uint32_t)t->p[P_ARATE]);
+    period = arp_period((uint32_t)t->p[P_ARATE]);
     sw = t->p[P_ASWING] * (int32_t)period / 250;
     t->arp_pos += n;
     if (t->arp_pos < period + (uint32_t)((t->arp_idx & 1u) ? sw : -sw) && t->arp_pos != 0xFFFFFFF + n)

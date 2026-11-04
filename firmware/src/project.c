@@ -137,8 +137,12 @@ typedef struct {
     uint8_t scene[PROJ_SCENES];                /* (SKF2) the scenes (bank.c) */
     uint8_t dx_on;                             /* (Skiff phase 7) 1: dx is the project's DRUM-X kit; 0 none (the factory's) */
     dx_lane_t dx[DV_NLANE];                    /* (SKF3) the DRUM-X kit (drumx_voice.c dx_kit), one for every DRUM-X track */
+    uint8_t arp[NTRK][16];                     /* ((custom) SKF4) each track's ARP STEP (seq.c arp_pat_put): in the top
+                                                * bits of its FM6 bytes (7 bits each: firmware before passes them over;
+                                                * a record of before, 0 there: the default, the arp as it was) */
     uint32_t sum;
 } project_t;
+_Static_assert(FM6_PACKED >= 128u, "ARP STEP: 16 steps of 8 bits in a track's FM6 bytes' top bits");
 #if FELUCCA_LEGACY
 /* Historical FUN5/6 types are frozen, independent of today's P_COUNT/step_t. */
 typedef struct { uint8_t note[4], n, time, flags, vel, hit, acc; } step10_t;
@@ -402,6 +406,7 @@ static void proj_power_on_trk(project_t *q, uint32_t i)
         q->t[i].step[k].time = ST_REST;
 #endif
     memcpy(q->fm6[i], FM6_INIT, FM6_PACKED);
+    memset(q->arp[i], 0, sizeof q->arp[i]);            /* ((custom) ARP STEP: the default) */
 }
 static void proj_power_on(project_t *q, uint32_t from)
 {
@@ -1050,7 +1055,11 @@ static int proj_pack4(project_store_t *out, const project_t *q)
         memcpy(b + pos + 1u, q->dx, sizeof q->dx);
     }
     pos += 1u + sizeof q->dx;
-    memcpy(b + pos, q->fm6, sizeof q->fm6); pos += sizeof q->fm6;
+    memcpy(b + pos, q->fm6, sizeof q->fm6);
+    for (t = 0; t < NTRK; t++)                             /* ((custom) ARP STEP: a step's 8 bits in 8 bytes' bit 7) */
+        for (e = 0; e < 128u; e++)
+            b[pos + t * FM6_PACKED + e] |= (uint8_t)(((q->arp[t][e >> 3] >> (e & 7u)) & 1u) << 7);
+    pos += sizeof q->fm6;
     pos += gsid_put(b + pos, q->g);
     for (t = 0; t < NTRK; t++) {
         b[pos] = q->t[t].engine; b[pos + 1u] = q->t[t].preset; b[pos + 2u] = q->t[t].user; pos += 3u;   /* (#20) */
@@ -1089,8 +1098,10 @@ static int proj_unpack4(project_t *q, const uint8_t *b)
     }
     pos += 1u + sizeof q->dx;
     for (t = 0; t < NTRK; t++)
-        for (e = 0; e < FM6_PACKED; e++)
+        for (e = 0; e < FM6_PACKED; e++) {
+            q->arp[t][e >> 3] |= (uint8_t)((b[pos] >> 7) << (e & 7u));   /* ((custom) ARP STEP, as proj_pack4 */
             q->fm6[t][e] = b[pos++] & 0x7Fu;
+        }
     for (e = 0; e < G_COUNT; e++)
         q->g[e] = GP[e].def;
     if (!(n = gsid_get(q->g, b + pos, end - pos))) return 0;
@@ -1386,6 +1397,7 @@ static void project_capture(project_t *p)
         memcpy(p->t[i].step, trk[i].step, sizeof trk[i].step);   /* (SKF3, SKF4 write neither: the patterns hold them) */
 #endif
         fm6_pack(fm6_patch[i], p->fm6[i]);
+        arp_pat_put(i, p->arp[i]);                    /* ((custom) ARP STEP) */
     }
 #if FELUCCA_LEGACY
     p->motion = motion;
@@ -1574,6 +1586,8 @@ static int project_restore_runtime(const project_t *input)
             fm6_set_patch(k, v);
             fm6_adopt(k);
         }
+        arp_pat_get(k, p->arp[k]);                      /* ((custom) ARP STEP) */
+        arp_spos[k] = 0;
     }
     sel_set((uint8_t)(p->sel < NTRK ? p->sel : 0u));
     memcpy(dx_kit, p->dx_on && dx_kit_ok(p->dx) ? p->dx : DX_KIT_DEF, sizeof dx_kit);   /* (phase 7) its DRUM-X kit */

@@ -635,7 +635,8 @@ static int page_visible(uint32_t i)
     const sheet_t *sh = sheet_of(PAGES[i].graph);
     uint32_t id = PAGES[i].id[0];
     if (sh)
-        return trk_sheet_eng(TSEL) == sh->eng;       /* ((custom) DRUM-X's SOUND: a DX kit's) */
+        return sh->eng == 0xFFu || trk_sheet_eng(TSEL) == sh->eng;   /* ((custom) DRUM-X's SOUND: a DX kit's; ARP STEP:
+                                                                     * every track's) */
     if (PAGES[i].fam == FAM_EDIT && ((id >= P_SYSUB && id <= P_SYMUF) || id == P_SYMBRT || id == P_SYPME))   /* ((custom) SYNTH's own */
         return TSEL->eng_req % NENGINES == ENGI_SYNTH;
     if (PAGES[i].graph == GR_LANES)
