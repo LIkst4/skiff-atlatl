@@ -347,6 +347,15 @@ static int param_kept(uint32_t i)
            (i >= P_FOLLOW && i <= P_FNOTE);          /* (2.1) the chord follow: SCL's) */
 }
 
+/* (custom) param_kept for a sound of engine eng, its values v loaded: SYNTH's with its ARP on (a preset's, a user
+ * sound's) brings its ARP (MODE .. ORDER), one with the ARP OFF keeps the track's, as every other engine's */
+static int param_kept_by(uint32_t i, uint32_t eng, const int16_t *v)
+{
+    if (i >= P_AMODE && i <= P_AORDER && eng % NENGINES == ENGI_SYNTH && v[P_AMODE])
+        return 0;
+    return param_kept(i);
+}
+
 /* a knob moved an F_ENUM from `from` to v: past any alias in that direction (back to `from` at the end) */
 static int32_t enum_step(const param_desc_t *d, int32_t from, int32_t v)
 {

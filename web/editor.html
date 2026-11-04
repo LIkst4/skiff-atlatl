@@ -73,6 +73,10 @@
   .group { break-inside: avoid; margin: 0 0 12px; }
   .row { display: grid; grid-template-columns: 66px 1fr 70px; gap: 6px; align-items: center; min-height: 22px; }
   .row.kitrow { grid-template-columns: 52px 1fr 30px 1fr 30px; }   /* ((Skiff W3) the DRUM-X kit: A beside B) */
+  .arpgrid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }   /* ((custom) ARP STEP: 2 rows of 8 */
+  .arpcol { display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: center; }
+  .arpcol input, .arpcol select { width: 100%; min-width: 0; }
+  .arpcol.dim { opacity: .45; }
   .row .v { text-align: right; white-space: nowrap; }
   .row select { width: 100%; }
   .browser { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
@@ -505,7 +509,7 @@ const CMD = { INFO: 1, GET: 2, SET: 3, DUMP: 4, DESC: 5, STEP_GET: 6, STEP_SET: 
   UI_STATE: 34, UI_SET: 35, UI_PALETTES: 36, FAV_GET: 37, FAV_SET: 38, COLORS: 39,
   MOTION: 64, BACKUP_LIST: 65, BACKUP_GET: 66, BACKUP_PUT: 67,
   FM6_GET: 68, FM6_PUT: 69, FM6_LIST: 70, FM6_ERASE: 71, MENU_DESC: 72, MENU_SET: 73, KIT_GET: 74, KIT_PUT: 75, TRANSPORT: 76, PROJ_NAME: 77, POOL: 78, LIST: 79, PERFORM: 80,
-  SMP_MIX: 81, LIST2: 82 };
+  SMP_MIX: 81, LIST2: 82, ARP: 83 };
 /* frames the device sends on its own (while WATCH is on); never replies */
 const PUSH = new Set([CMD.CHANGED, CMD.RELOAD, CMD.STEP_CHANGED, CMD.TRACK_CHANGED]);
 /* user preset bank: name 1..12 printable ASCII, a 16-step pattern of (note, flags 1 acc 2 slide 4 tie) */
@@ -615,7 +619,8 @@ const MENU = [
   { id: 19, name: "PLAYHEAD", names: ["THEME", "LINE"], def: 0, tab: 0 },   /* ((Skiff #27) HOME's figure at the playhead, or the line) */
   { id: 20, name: "RETURN", names: ["SNAP", "1 BEAT", "1 BAR"], def: 2, tab: 1 }];   /* ((2.0) how MOMENTARY, FX's macros, throws come back) */
 /* (Skiff W1) a step's trig condition (core.h TC_NAME; INFO 43 01 says how many) */
-const TC_NAMES = ["--", "FILL", "!FILL", "1:2", "2:2", "1:3", "2:3", "3:3", "1:4", "2:4", "3:4", "4:4", "PRE", "!PRE", "1ST", "!1ST"];   /* ((custom) PRE !PRE 1ST !1ST appended) */
+const TC_NAMES = ["--", "FILL", "!FILL", "1:2", "2:2", "1:3", "2:3", "3:3", "1:4", "2:4", "3:4", "4:4", "PRE", "!PRE", "1ST", "!1ST",
+  "NEI", "!NEI"];   /* ((custom) PRE !PRE 1ST !1ST, NEI !NEI appended) */
 /* (Skiff W3) the DRUM-X kit: the factory's (drumx_voice.c DX_KIT_INIT: {mode, A, B}, A and B PITCH P MOD DECAY NOISE
    COLOR; test_web.mjs checks it against the firmware's), its lanes, the mode's names (ui_dx.c), its values */
 const DX_KIT_DEF = [[16, [9, 70, 72, 4, 20], [14, 100, 88, 10, 60]], [5, [40, 30, 52, 80, 90], [46, 18, 64, 104, 70]],
@@ -684,6 +689,7 @@ const parse = {
     o.kitLanes = 0;                               /* (Skiff W3, INFO 4B 01 8) KIT_GET / KIT_PUT: the DRUM-X kit's lanes */
     o.skiff = 0;                                  /* (Skiff W3, INFO 57 01 caps) bits: 0 TRANSPORT, 1 PROJ_NAME, 2 POOL, 3 LIST,
                                                      4 PERFORM, (#21) 5 SMP_MIX, (2.0, #25) 6 a step's ties */
+    o.arpSteps = 0;                               /* ((custom) INFO 41 01 16) ARP: a track's ARP STEP, its steps */
     o.song2 = 0;                                  /* (2.0, INFO 58 01 caps) bit 0: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's
                                                      EMPTY and CLEAR UNUSED */
     for (const p of [8, 11]) if (o.motionMax && trailer[p] === 0x46 && trailer[p + 1] === 1) {   /* for the editor's */
@@ -708,7 +714,8 @@ const parse = {
         o.pe0 = trailer[r + 4] | trailer[r + 5] << 7;
         r += 6;
       }
-      if (trailer[r] === 0x58 && trailer[r + 1] === 1) o.song2 = trailer[r + 2] & 127;   /* (2.0) the song's, last */
+      if (trailer[r] === 0x58 && trailer[r + 1] === 1) { o.song2 = trailer[r + 2] & 127; r += 3; }   /* (2.0) the song's */
+      if (trailer[r] === 0x41 && trailer[r + 1] === 1) o.arpSteps = trailer[r + 2];   /* ((custom) ARP STEP: ARP, last) */
     }
     o.light = o.light || { tracks: 0, engines: 0 };   /* the tracks that may not play some engines, and those engines */
     return o;
@@ -778,6 +785,13 @@ const parse = {
     return o;
   },
   [CMD.KIT_PUT](a) { return parse[CMD.KIT_GET](a); },
+  /* ((custom) ARP) a track's ARP STEP: track, STEPS, the 16 steps' TRANSPOSE (-24..+24), their states (0 ON, 1 OFF, 2 STACC) */
+  [CMD.ARP](a) {
+    const r = new Reader(a), o = { track: r.b(), len: r.b() };
+    o.tr = Array.from({ length: 16 }, () => r.b() - 24);
+    o.st = Array.from({ length: 16 }, () => r.b());
+    return o;
+  },
   /* (Skiff W3) TRANSPORT: rc, playing, counting in, the request the audio has yet to take (1 start, 2 stop, 3 restart),
      the armed tracks (a bit each), the selected track */
   [CMD.TRANSPORT](a) {
@@ -1020,6 +1034,8 @@ const req = {
   menuDesc: (i) => [CMD.MENU_DESC, [i & 0x7F]],
   menuSet: (id, v) => [CMD.MENU_SET, [id & 0x7F, ...v14enc(v)]],
   kitGet: (lane) => [CMD.KIT_GET, [lane & 7]],
+  arpGet: (track) => [CMD.ARP, [track & 0x7F]],                     /* ((custom) ARP STEP) */
+  arpPut: (p) => [CMD.ARP, [p.track, p.len, ...p.tr.map((x) => x + 24), ...p.st].map((x) => x & 0x7F)],
   kitPut: (k) => [CMD.KIT_PUT, [k.lane, k.wave, k.filt, +k.snap, k.pmod, +k.drive, ...k.a, ...k.b].map((x) => x & 0x7F)],
   transport: (op = 0) => [CMD.TRANSPORT, op ? [op] : []],            /* 1 PLAY, 2 STOP, 3 RESTART, 4 REC; none: the state */
   /* id: CLEAR it ((2.0, INFO 58 01) op 2: EMPTY it; 3, no id: CLEAR UNUSED); none: the pool */
@@ -1049,7 +1065,7 @@ function replyMatches(cmd, args, a) {
     case CMD.MOTION: return a[0] === args[0];
     case CMD.MENU_DESC: return a[0] === args[0];
     case CMD.MENU_SET: return a[1] === args[0];
-    case CMD.KIT_GET: case CMD.KIT_PUT: return a[0] === args[0];
+    case CMD.KIT_GET: case CMD.KIT_PUT: case CMD.ARP: return a[0] === args[0];
     case CMD.PROJ_NAME: case CMD.POOL: case CMD.LIST: case CMD.LIST2: case CMD.PERFORM: return a[0] === (args[0] || 0);
     case CMD.BACKUP_GET: return a[0] === args[0] && a.slice(2, 7).every((v, i) => v === args[i + 1]);
     case CMD.BACKUP_PUT: return a[0] === args[0] && a[1] === args[1];
@@ -2218,17 +2234,17 @@ function makeMockDevice(opt = {}) {
       presets: [] },
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
       presets: [] },
-    { name: "GRAIN", titles: ["GRAIN", "SPRAY"], edit: [E("SOURCE", ["PIANO", "PIANO", "FLUTE", "SAX", "PIANO", "USR1", "USR2", "USR3"], 0),
-        D("POS", F.PCT, 0, 127, 32), D("SIZE", F.PCT, 0, 127, 80), D("DENSITY", F.PCT, 0, 127, 80),
-        D("PITCH", F.SEMI, -24, 24, 0), D("SPREAD", F.PCT, 0, 127, 30), D("RANDOM", F.PCT, 0, 127, 10), D("TONE", F.PCT, 0, 127, 127)],
-      presets: [P("CLOUD PAD", [2, 50, 92, 88, 0, 40, 14, 100], [70, 90, 120, 90], 0, 5), P("GLITCH", [3, 64, 24, 112, 0, 100, 90, 127], [0, 70, 100, 30], 0, 4),
-        P("FROZEN", [0, 40, 108, 72, 0, 0, 10, 92], [50, 100, 127, 100], 0, 5), P("SHIMMER", [0, 30, 70, 100, 12, 30, 24, 110], [30, 90, 110, 90], 0, 7),
-        /* (Skiff) the themes' sounds (src/eng_*.c) */
-        P("QUARK CLOUD", [2, 70, 6, 124, 12, 120, 70, 115], [50, 90, 120, 95]),
-        /* (Skiff phase 9) more for every engine (src/eng_*.c) */
-        P("PIANO HAZE", [0, 20, 100, 80, 0, 50, 20, 90], [70, 90, 120, 100]),
-        P("SAX DRONE", [3, 60, 120, 90, -12, 20, 10, 80], [90, 90, 127, 100]),
-        P("SCATTER", [2, 64, 40, 70, 12, 50, 0, 110], [0, 70, 100, 50])] },
+    { name: "GRAIN", titles: ["GRAIN", "SPRAY"], edit: [E("SOURCE", ["PIANO", "PIANO", "FLUTE", "SAX", "PIANO", "USR1", "USR2", "USR3"], 0), D("POS", F.PCT, 0, 127, 32), D("SIZE", F.PCT, 0, 127, 80), D("DENSITY", F.PCT, 0, 127, 80), D("PITCH", F.SEMI, -24, 24, 0), D("SPREAD", F.PCT, 0, 127, 30), D("RANDOM", F.PCT, 0, 127, 10), D("TONE", F.PCT, 0, 127, 127)],
+      presets: [
+        P("CLOUD PAD", [2, 50, 92, 88, 0, 40, 14, 100], [70, 90, 120, 90], 0, 5, []),
+        P("GLITCH", [3, 64, 24, 112, 0, 100, 90, 127], [0, 70, 100, 30], 0, 4, []),
+        P("FROZEN", [2, 40, 108, 72, 0, 0, 10, 92], [50, 100, 127, 100], 0, 5, []),
+        P("SHIMMER", [2, 30, 70, 100, 12, 30, 24, 110], [30, 90, 110, 90], 0, 7, []),
+        P("QUARK CLOUD", [2, 70, 6, 124, 12, 120, 70, 115], [50, 90, 120, 95], 0, 0, []),
+        P("FLUTE HAZE", [2, 20, 100, 80, -12, 50, 20, 90], [70, 90, 120, 100], 0, 0, []),
+        P("SAX DRONE", [3, 60, 120, 90, -12, 20, 10, 80], [90, 90, 127, 100], 0, 0, []),
+        P("SCATTER", [2, 64, 40, 70, 12, 50, 0, 110], [0, 70, 100, 50], 0, 0, []),
+      ] },
     { name: "PHYS", titles: ["BODY", "EXCITE"], edit: [E("MODEL", ["MODAL", "STRNG", "MEMB", "SYMP"], 0), D("STRUCT", F.PCT, 0, 127, 64),
         D("BRIGHT", F.PCT, 0, 127, 80), D("DAMP", F.PCT, 0, 127, 80), D("POS", F.PCT, 0, 127, 20), D("ACCENT", F.PCT, 0, 127, 90),
         D("BOW", F.PCT, 0, 127, 0), D("EXCITE", F.PCT, 0, 127, 0)],
@@ -2807,7 +2823,8 @@ function makeMockDevice(opt = {}) {
   const projOn = () => kitOn() && !opt.noProj;         /* (Skiff W3, INFO 57 01 03) TRANSPORT, PROJ_NAME */
   const songOn = () => projOn() && !opt.noSong;        /* (Skiff W3, INFO 57 01 31) POOL, LIST, PERFORM */
   const tiesOn = () => songOn() && !opt.noTies;        /* ((2.0, #25) INFO 57 01 bit 6) a step's ties after its NUDGE */
-  const song2On = () => songOn() && !opt.noSong2;      /* ((2.0) INFO 58 01: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's 2 3) */
+  const song2On = () => songOn() && !opt.noSong2;
+  const arpOn = () => song2On() && !opt.noArp;          /* ((custom) INFO 41 01 16: ARP, a track's ARP STEP */      /* ((2.0) INFO 58 01: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's 2 3) */
   const sndM = () => song2On() && !opt.noSnd;         /* ((2.0, #30) INFO 58 01 bit 1: LIST2's entry sounds, its op 9) */
   const stepOut = (x, b) => { b(x.n); x.notes.forEach(b); b(x.time); b(x.flags); b(x.vel); hitsEnc(x.hit, x.acc).forEach(b); if (!opt.legacy && !opt.v3 && !opt.v5) b(x.chance ?? 100); if (ratchetOn()) b(x.ratchet ?? 1);
     if (stepxOn()) { b(x.flam ? 1 : 0); b(x.cond | 0); b(((x.nudge | 0) + 32) & 63); } if (tiesOn()) b(x.ties | 0); };
@@ -2909,6 +2926,7 @@ function makeMockDevice(opt = {}) {
       if (projOn()) [0x49, 1, P_COUNT & 127, P_COUNT >> 7, P_E0 & 127, P_E0 >> 7].forEach(b);   /* ((Skiff 1.3) wide ids) */
       if (song2On()) [0x58, 1, sndM() ? 3 : 1].forEach(b);     /* ((2.0) LIST2, NEW, COPY+, CHAIN, ONCE, EMPTY, UNUSED;
                                                                    (#30) bit 1 the entries' sounds) */
+      if (arpOn()) [0x41, 1, 16].forEach(b);                   /* ((custom) ARP STEP, last) */
     };
     const wid = (s, i) => (s === 2 ? [0, i + 128] : [s, i]);   /* ((1.3) scope 2: a track id from 128 on) */
     if (opt.legacy && cmd >= CMD.UP_LIST) return null;
@@ -3171,6 +3189,15 @@ function makeMockDevice(opt = {}) {
         const bits = st.scenes.reduce((m, x, i) => m | (x ? 1 << i : 0), 0);
         [a.length ? op : 0, rc, st.launch, st.sceneLast < 0 ? 127 : st.sceneLast, bits & 127, bits >> 7 & 127, bits >> 14 & 3].forEach(b);
         st.tracks.forEach((x, k) => { b(x.p[40] ? 1 : 0); b(st.muteArm[k]); });
+        break;
+      }
+      case CMD.ARP: {   /* ((custom) editor.c ed_arp: a track; with STEPS and the 32 after it, each in range (else no reply) */
+        if (!arpOn() || a[0] >= NTRK || (a.length !== 1 && a.length !== 34)) return null;
+        if (a.length === 34 && (a[1] < 1 || a[1] > 16 || a.slice(2, 18).some((x) => x > 48) || a.slice(18).some((x) => x > 2))) return null;
+        st.arp = st.arp || Array.from({ length: NTRK }, () => ({ len: 16, tr: Array(16).fill(0), st: Array(16).fill(0) }));
+        const P = st.arp[a[0]];
+        if (a.length === 34) { P.len = a[1]; P.tr = a.slice(2, 18).map((x) => x - 24); P.st = a.slice(18); }
+        [a[0], P.len, ...P.tr.map((x) => x + 24), ...P.st].forEach(b);
         break;
       }
       case CMD.KIT_GET: case CMD.KIT_PUT: {   /* (Skiff W3) editor.c: a lane; KIT_PUT its 15 values in range (else no reply) */
@@ -3687,6 +3714,7 @@ const TEXT = {
     deviceFavorites: "お気に入りのみ",
     deviceEmpty: "お気に入りはまだありません。「すべてのプリセット」から追加してください。",
     dxKitHelp: "DRUM-X のキット: すべての DRUM-X トラックで共通の 8 音で、プロジェクトと一緒に保存されます。EDIT の MORPH で A から B へ移ります。",
+    arpStepHelp: "トラックのアルペジエーターのステップパターン (ARP > ARP STEP): 各ステップは ON、OFF (休符)、STACC (GATE の 4 分の 1) で、音を半音単位で上下に移せます。プロジェクトと一緒に保存されます。16 ステップすべて ON・0 なら従来どおりです。",
     customColors: "カスタムカラー", customHelp: "THEME › CUSTOM の色を自分で選べます。選んだ見た目のまま、変えるとすぐ本体に表示され、保存で本体に残ります。",
     customLook: "見た目", customFrom: "ここから始める…", customLive: "本体に表示", customSave: "保存", customRevert: "元に戻す",
     customRemove: "削除", customRemoveConfirm: "カスタムカラーを削除しますか? テーマはその見た目の色に戻ります。", customHard: "読みにくい色: ",
@@ -3826,6 +3854,7 @@ const TEXT = {
     deviceFavorites: "Favorites only",
     deviceEmpty: "No favorites yet. Choose All presets to add some.",
     dxKitHelp: "The DRUM-X kit: 8 sounds shared by every DRUM-X track, kept with the project. EDIT's MORPH moves each from A to B.",
+    arpStepHelp: "The track's arpeggiator step pattern (ARP > ARP STEP): each step ON, OFF (a rest) or STACC (a quarter of the GATE), its note moved up or down in semitones. Kept with the project; 16 steps ON at 0 play the arpeggiator as before.",
     customColors: "Custom colours", customHelp: "Your own colours for THEME › CUSTOM, in the look you pick. The device shows them as you change them; Save keeps them there.",
     customLook: "Look", customFrom: "Start from…", customLive: "Show on the device", customSave: "Save", customRevert: "Revert",
     customRemove: "Remove", customRemoveConfirm: "Remove the custom colours? THEME goes back to the look's own colours.", customHard: "Hard to read: ",
@@ -4645,8 +4674,10 @@ function buildGroups() {
     groups.setgroups.push(c);
   }
   if (kitShown()) groups.groups.push(kitGroup());     /* ((Skiff W3)) */
+  if (arpShown()) groups.groups.push(arpGroup());     /* ((custom) ARP STEP) */
   for (const [id, divs] of Object.entries(groups)) $(id).replaceChildren(...divs);
   if (kitShown()) { renderKit(); op(() => readKit()); }
+  if (arpShown()) { renderArp(); op(() => readArp()); }
 }
 
 /* (Skiff W3) the DRUM-X kit on a DRUM-X track's Sound tab (INFO 4B): one kit for every DRUM-X track, the project's (as
@@ -4699,6 +4730,44 @@ function renderKit() {
       pick("P SHAPE", DX.shapes, "pmod"), tog("DRIVE", "drive")),
     el("div", { class: "row kitrow dim" }, el("span"), el("span", { text: "A" }), el("span"), el("span", { text: "B" }), el("span")),
     ...DX.values.map((n, i) => el("div", { class: "row kitrow" }, el("span", { text: n }), ...slider(n, "a", i), ...slider(n, "b", i))));
+}
+
+/* ((custom) INFO 41 01) the selected track's ARP STEP (the device's ARP > ARP STEP, after Bitwig's arpeggiator): STEPS,
+   each step's TRANSPOSE and state (ON, OFF: a rest, STACC: a quarter of the GATE), read (ARP) when shown and each time
+   the tab opens, each change sent whole (the track's latest wins) */
+const ARP_ST = ["ON", "OFF", "STACC"];
+const arpShown = () => !!dev && !!dev.dump && !!dev.info.arpSteps;
+function arpGroup() {
+  return el("div", { class: "group", id: "arpstep" }, el("h2", { ic: HEAD_IC.EDIT, text: "ARP STEP" }),
+    el("p", { class: "dim", "data-t": "arpStepHelp", text: t("arpStepHelp") }), el("div", { id: "arpstepctl" }));
+}
+async function readArp(d = dev) {
+  if (!arpShown()) return;
+  const p = parse[CMD.ARP](await sessionRequest(d, req.arpGet(d.sel || 0)));
+  if (d === dev && p.track === (d.sel || 0)) { d.arp = p; renderArp(); }
+}
+async function arpSend(p) {
+  try { await sessionRequest(dev, req.arpPut(p), { key: "arp:" + p.track }); } catch (e) { report(e); }
+}
+function renderArp() {
+  const box = $("arpstepctl"), p = dev && dev.arp;
+  if (!box) return;
+  if (!p || p.track !== (dev.sel || 0)) { box.replaceChildren(); return; }
+  if (box.contains(document.activeElement) && box.dataset.track === String(p.track)) return;   /* (being edited) */
+  box.dataset.track = String(p.track);
+  const len = el("select", { "aria-label": "STEPS" }, ...Array.from({ length: 16 }, (_, i) => el("option", { value: i + 1, text: String(i + 1) })));
+  len.value = String(p.len);
+  len.addEventListener("change", () => { p.len = +len.value; arpSend(p); box.dataset.track = ""; renderArp(); });
+  const cols = p.tr.map((tr, i) => {
+    const n = el("input", { type: "number", min: -24, max: 24, step: 1, value: tr, "aria-label": `STEP ${i + 1} TRANSPOSE` });
+    n.addEventListener("change", () => { p.tr[i] = Math.max(-24, Math.min(24, Math.round(+n.value) || 0)); n.value = p.tr[i]; arpSend(p); });
+    const s = el("select", { "aria-label": `STEP ${i + 1} STATE` }, ...ARP_ST.map((x, k) => el("option", { value: k, text: x })));
+    s.value = String(p.st[i]);
+    s.addEventListener("change", () => { p.st[i] = +s.value; arpSend(p); });
+    return el("div", { class: "arpcol" + (i < p.len ? "" : " dim") }, el("span", { class: "dim", text: String(i + 1) }), n, s);
+  });
+  box.replaceChildren(el("p", { class: "bar" }, el("label", {}, el("span", { class: "dim", text: "STEPS" }), " ", len)),
+    el("div", { class: "arpgrid" }, ...cols));
 }
 
 function paramRow(s, id) {

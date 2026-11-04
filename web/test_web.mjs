@@ -991,6 +991,30 @@ async function editorStepTies() {
   o.done();
 }
 
+/* ((custom) INFO 41 01 16, last) ARP: a track's ARP STEP read, set whole; out of range: no reply */
+async function editorArp() {
+  const C = E.CMD;
+  const { rq, done } = attachMock({});
+  const info = E.parse[C.INFO](await rq(E.req.info()));
+  ok(info.arpSteps === 16 && info.song2, "arp: INFO 41 01 16 after the song's 58 01");
+  let p = E.parse[C.ARP](await rq(E.req.arpGet(2)));
+  ok(p.track === 2 && p.len === 16 && p.tr.every((x) => x === 0) && p.st.every((x) => x === 0), "arp: the default, 16 steps ON at 0");
+  const x = { track: 2, len: 5, tr: Array.from({ length: 16 }, (_, i) => i * 3 - 24), st: Array.from({ length: 16 }, (_, i) => i % 3) };
+  ok(E.req.arpPut(x)[1].length === 34 && E.req.arpPut(x)[1][2] === 0 && E.req.arpPut(x)[1][18] === 0, "arp: ARP sends STEPS, 16 TRANSPOSE + 24, 16 states");
+  p = E.parse[C.ARP](await rq(E.req.arpPut(x)));
+  ok(JSON.stringify(p) === JSON.stringify(x), "arp: the reply as set");
+  ok(JSON.stringify(E.parse[C.ARP](await rq(E.req.arpGet(2)))) === JSON.stringify(x) &&
+     E.parse[C.ARP](await rq(E.req.arpGet(1))).len === 16, "arp: read back; the other tracks as they were");
+  let refused = false;
+  try { await rq(E.req.arpPut({ ...x, st: x.st.map(() => 3) }), { timeout: 150 }); } catch (e) { refused = true; }
+  ok(refused, "arp: a state past STACC: no reply");
+  ok(E.TC_NAMES[16] === "NEI" && E.TC_NAMES[17] === "!NEI", "trig conditions: NEI, !NEI appended");
+  done();
+  const o = attachMock({ noArp: true });
+  ok(!E.parse[C.INFO](await o.rq(E.req.info())).arpSteps, "arp: firmware without it (no 41): the editor shows none");
+  o.done();
+}
+
 /* (Skiff W3) the DRUM-X kit (INFO 4B 01 08 after the step extras): KIT_GET reads a lane, KIT_PUT sets one, whole */
 async function editorKit() {
   const C = E.CMD;
@@ -2158,6 +2182,7 @@ await editorRatchet();
 await editorStepExtras();
 await editorStepTies();
 await editorKit();
+await editorArp();
 await editorTransportNames();
 await editorLists();
 await editorSong2();

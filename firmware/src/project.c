@@ -795,21 +795,37 @@ static int step_put9(uint8_t *b, const step_t *s)
     if (s->n > 4u || s->time > ST_REST || (s->flags & ~(3u | SF_RATCH | SF_FLAM)) || s->probability > 101u ||
         s->cond >= TC_COUNT || s->nudge < NUDGE_MIN || s->nudge > NUDGE_MAX)
         return 0;
+    if ((s->cond & 16u) && s->time != ST_NOTE && s->n == 4u && s->hit)   /* ((custom) NEI's bit 4: nowhere to keep */
+        return 0;                                                         /* it, see below) */
     for (j = 0; j < 4u; j++)
         b[j] = (uint8_t)((s->note[j] > 127u ? 127u : s->note[j]) | ((s->cond >> j) & 1u) << 7);
+    if (s->time != ST_NOTE && s->n < 4u && (b[3] & 127u) == 1u)   /* ((custom) a tie's or a rest's condition's bit 4: an unused 4th note */
+        b[3] &= 0x80u;                                /* byte of 1 (firmware before plays no note past n; one left there
+                                                       * at 1 is written 0) .. */
+    if ((s->cond & 16u) && s->time != ST_NOTE && s->n < 4u)
+        b[3] = (uint8_t)((b[3] & 0x80u) | 1u);
     b[4] = (uint8_t)(s->n | s->time << 3 | (s->flags & 3u) << 5 | ((s->flags & SF_FLAM) ? 128u : 0u));
+    if ((s->cond & 16u) && s->time == ST_NOTE)       /* ((custom) a note's condition's bit 4: its TIME 3 (none before) */
+        b[4] |= 3u << 3;
     b[5] = (uint8_t)((s->vel > 127u ? 127u : s->vel) | (r & 1u) << 7);
     b[6] = s->hit;
     b[7] = (uint8_t)(s->hit ? s->acc & s->hit : step_ties(s));   /* ((2.0, #25) no hits: the per-note ties) */
+    if ((s->cond & 16u) && s->time != ST_NOTE && s->n == 4u)   /* .. a tie or a rest of four notes, no hits: bit 7 of
+                                                                * the ties (firmware before refuses those patterns) */
+        b[7] |= 128u;
     b[8] = (uint8_t)(s->probability | (r >> 1) << 7);
     return 1;
 }
 /* 9 stored bytes -> *s (its nudge untouched): 0 for bytes no firmware wrote (FLAM with RATCH x2.., n above 4, ..) */
 static int step_get9(step_t *s, const uint8_t *b)
 {
-    uint32_t meta = b[4], j;
+    uint32_t meta = b[4], j, c4 = 0;
     memcpy(s->note, b, 4);
     s->n = meta & 7u; s->time = (meta >> 3) & 3u; s->flags = (meta >> 5) & 3u;
+    if (s->time == 3u) {                                /* ((custom) a note's condition's bit 4: step_put9) */
+        s->time = ST_NOTE;
+        c4 = 1;
+    }
     s->vel = b[5] & 127u; meta |= (b[5] & 128u) << 1u;   /* (RATCH bit 0 at bit 8 of meta) */
     s->hit = b[6]; s->acc = b[7];
     s->probability = b[8] & 127u; meta |= (b[8] & 128u) << 2u;   /* (bit 1 at bit 9) */
@@ -819,6 +835,15 @@ static int step_get9(step_t *s, const uint8_t *b)
     for (j = 0; j < 4u; j++) {
         s->cond |= (uint8_t)((s->note[j] >> 7) << j);
         s->note[j] &= 127u;
+    }
+    if (c4) {
+        s->cond |= 16u;
+    } else if (s->time != ST_NOTE && s->n < 4u && s->note[3] == 1u) {   /* ((custom) its bit 4: step_put9) */
+        s->cond |= 16u;
+        s->note[3] = 0;
+    } else if (s->time != ST_NOTE && s->n == 4u && !s->hit && (s->acc & 128u)) {
+        s->cond |= 16u;
+        s->acc &= 127u;
     }
     if (s->cond >= TC_COUNT || (s->acc & ~(s->hit ? s->hit : (1u << s->n) - 1u)))   /* ((2.0) no hits: ties of its */
         return 0;                                                                   /* notes; 1.4 refuses them) */

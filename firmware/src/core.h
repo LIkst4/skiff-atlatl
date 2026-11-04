@@ -343,6 +343,11 @@ typedef struct {
                                   * LFO, GLIDE, ENV -> PITCH (sound parameters only, never param_kept's: editor_test); id 0 ends */
     uint8_t tag;                 /* (Skiff phase 9) its type, PT_*: PRESETS' LIST shows one (ui.c preset_in_list) */
 } preset_t;
+/* (custom) more of a preset's values than preset_t holds: its LFO, its ARP (SYNTH: eng_synth.c SYNTH_PEXT), {P_* id,
+ * value} up to PEXT_N (id 0 ends), for preset pi; an engine's in order of pi. Unlike `more` it may set the ARP
+ * (param_kept's MODE .. ORDER: params.c param_kept_by) */
+#define PEXT_N 10u
+typedef struct { uint8_t pi; struct { uint8_t id; int8_t v; } kv[PEXT_N]; } preset_ext_t;
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
 #define MORE(...) .more = {__VA_ARGS__}
 #define TAG(t) .tag = (t)
@@ -355,6 +360,8 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
     param_desc_t edit[8];        /* P_E0..P_E7 */
     const preset_t *presets;
     uint8_t npresets;
+    uint8_t npext;               /* (custom) pext's entries */
+    const preset_ext_t *pext;    /* (custom) optional: more of some presets' values (their LFO, ARP), by pi */
     uint8_t knob[4];             /* HOME: the four parameters on KNOB 1..4 */
     uint8_t poly;                /* voice cap for POLY and UNISON, 0 = NVOICE */
     uint8_t sampled;             /* 1 = plays recorded material (a position, not a phase): voice.c keeps
@@ -439,10 +446,13 @@ static void nudge_unpack(step_t *s, const uint8_t *b, uint32_t n)
  * 100 %) passed / did not; 1ST / !1ST: the track's first pass since PLAY / any other. Appended: 16 values, the 4 bits
  * of the note bytes' bit 7 (project.c) */
 enum { TC_NONE, TC_FILL, TC_NFILL, TC_1_2, TC_2_2, TC_1_3, TC_2_3, TC_3_3, TC_1_4, TC_2_4, TC_3_4, TC_4_4,
-       TC_PRE, TC_NPRE, TC_1ST, TC_N1ST, TC_COUNT };
-_Static_assert(TC_COUNT <= 16, "a step's condition: 4 bits in the stores");
+       TC_PRE, TC_NPRE, TC_1ST, TC_N1ST,
+       TC_NEI, TC_NNEI,         /* (custom, after Elektron's) NEI / !NEI: the track before's last condition passed / did
+                                 * not (T1: none, never passed); its bit 4 stored apart (project.c step_put9) */
+       TC_COUNT };
+_Static_assert(TC_COUNT <= 32, "a step's condition: 5 bits in the stores");
 static const char *const TC_NAME[TC_COUNT] = {"--", "FILL", "!FILL", "1:2", "2:2", "1:3", "2:3", "3:3", "1:4", "2:4",
-                                              "3:4", "4:4", "PRE", "!PRE", "1ST", "!1ST"};
+                                              "3:4", "4:4", "PRE", "!PRE", "1ST", "!1ST", "NEI", "!NEI"};
 typedef struct {                 /* a step as formats 1..4 (projects to FUN4) stored it: no hits */
     uint8_t note[4];
     uint8_t n, time, flags, vel;

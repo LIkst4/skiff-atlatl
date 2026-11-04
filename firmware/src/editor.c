@@ -23,6 +23,7 @@ enum { ED_INFO = 1, ED_GET, ED_SET, ED_DUMP, ED_DESC, ED_STEP_GET, ED_STEP_SET, 
 
 enum { ED_KIT_GET = 74, ED_KIT_PUT };                 /* (Skiff W3) the DRUM-X kit (INFO 4B 01 8) */
 enum { ED_SMP_MIX = 81 };                             /* (Skiff, #21) a user slot's sounds' LEVEL REV DLY (INFO 57 01 bit 5) */
+enum { ED_ARP = 83 };                                 /* (custom) a track's ARP STEP (seq.c arp_pat; INFO 41 01 16) */
 
 static uint8_t ed_out[600];
 static uint32_t ed_n;
@@ -464,6 +465,40 @@ static int ed_args_ok(uint32_t cmd, const uint8_t *a, uint32_t n)
 /* (#21) SMP_MIX (ed_service: the frame f, n bytes between F0 and F7): slot [, 48 values: LEVEL x 16, REV x 16, DLY x 16]
  * -> slot, rc (0, 1 an empty slot: nothing set, 2 set but not kept: the sample fills the slot's last sector), nz, nz x
  * (lo, hi), the 48 values. Other arguments: no reply. (Out of ed_handle: a line there grows it by ~200 B) */
+/* (custom) ARP: track -> track, STEPS (1..16), the 16 steps' TRANSPOSE + 24 (0..48), their states (ON OFF STACC: 0..2);
+ * with STEPS and the 32 after the track (each in range): those set first. Other arguments: no reply */
+static void ed_arp(const uint8_t *f, uint32_t n)
+{
+    const uint8_t *a = f + 4;
+    uint32_t na = n - 4u, k = a[0], i;
+    arp_pat_t *P;
+    if (k >= NTRK || (na != 1u && na != 2u + 2u * ARP_NS))
+        return;
+    if (na > 1u) {
+        if (a[1] < 1u || a[1] > ARP_NS)
+            return;
+        for (i = 0; i < ARP_NS; i++)
+            if (a[2u + i] > 48u || a[2u + ARP_NS + i] >= AS_N)
+                return;
+    }
+    P = &arp_pat[k];
+    if (na > 1u) {
+        P->len = a[1];
+        for (i = 0; i < ARP_NS; i++) {
+            P->tr[i] = (int8_t)((int32_t)a[2u + i] - 24);
+            P->st[i] = a[2u + ARP_NS + i];
+        }
+        ui.force = 1;
+    }
+    ed_begin(ED_ARP);
+    ed_b(k);
+    ed_b(arp_len(k));
+    for (i = 0; i < ARP_NS; i++)
+        ed_b((uint32_t)(P->tr[i] + 24));
+    for (i = 0; i < ARP_NS; i++)
+        ed_b(P->st[i] % AS_N);
+    ed_send();
+}
 static void ed_smp_mix(const uint8_t *f, uint32_t n)
 {
     const uint8_t *a = f + 4;
@@ -555,7 +590,8 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
             0x49, 1, P_COUNT & 127u, P_COUNT >> 7, P_E0 & 127u, P_E0 >> 7,   /* (Skiff 1.3) wide ids: P_COUNT and
                                          * P_E0 in two bytes; a track id from 128 on as scope 2 (ED_TID), a motion
                                          * record's from 128 on with bit 6 of its step byte */
-            0x58, 1, ED_SONG2};                         /* (2.0) the song's LIST2, NEW, COPY+, CHAIN, ONCE, the pool's
+            0x58, 1, ED_SONG2,
+            0x41, 1, ARP_NS};                           /* ((custom) ARP STEP: ED_ARP, its 16 steps; after 58 01) */                         /* (2.0) the song's LIST2, NEW, COPY+, CHAIN, ONCE, the pool's
                                                          * EMPTY, CLEAR UNUSED (editor_song.c; last: an editor before
                                                          * reads up to 49 01 only) */
         ed_str("FELUCCA " FELUCCA_VERSION, 24);
@@ -988,6 +1024,8 @@ static void ed_service(void)
     if (p[3] >= ED_SMP_BEGIN) {                            /* large frames: handled in place, then freed */
         if (p[3] == ED_SMP_MIX && n > 4u)
             ed_smp_mix(p, n);                              /* ((#21) ed_smp_mix) */
+        else if (p[3] == ED_ARP && n > 4u)
+            ed_arp(p, n);                                  /* ((custom) ed_arp) */
         else
             ed_handle(p, n);
         ota_frame_done();

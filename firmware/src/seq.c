@@ -438,6 +438,9 @@ static __attribute__((noinline)) int step_cond_ok(const track_t *t, const step_t
         return 1;
     if (c == TC_PRE || c == TC_NPRE)                  /* (custom) the last one's result (not changed by this) */
         return (c == TC_PRE) == (tc_pre[k] != 0u);
+    if (c == TC_NEI || c == TC_NNEI)                  /* (custom) the track before's last one (it ticks first) */
+        ok = (c == TC_NEI) == (k > 0u && k < NTRK && tc_pre[k - 1u] != 0u);
+    else
     if (c == TC_1ST || c == TC_N1ST)
         ok = (c == TC_1ST) == (p == 1u);
     else if (c == TC_FILL || c == TC_NFILL)

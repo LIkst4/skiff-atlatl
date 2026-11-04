@@ -190,7 +190,10 @@ static int preferences(void)
     uint8_t a[4] = {0, 3, 0, 0};                          /* (THEME: 3, CRYPT) */
     reset();
     uint32_t n = request(ED_INFO, a, 0);
-    bad += check("INFO (2.0) the song's tag last: 58 01 01 (LIST2, NEW, COPY+, CHAIN, ONCE, EMPTY, CLEAR UNUSED)",
+    bad += check("INFO (custom) ARP STEP's tag last: 41 01 16 (ED_ARP)",
+        host_wire[n - 4] == 0x41 && host_wire[n - 3] == 1 && host_wire[n - 2] == ARP_NS);
+    n -= 3u;
+    bad += check("INFO (2.0) the song's tag before it: 58 01 01 (LIST2, NEW, COPY+, CHAIN, ONCE, EMPTY, CLEAR UNUSED)",
         host_wire[n - 4] == 0x58 && host_wire[n - 3] == 1 && host_wire[n - 2] == ED_SONG2);
     n -= 3u;                                              /* (the tags before it, as they were) */
     bad += check("INFO (1.3) wide ids next: 49 01, P_COUNT and P_E0 in two 7-bit bytes each; the plain bytes at most 127",
@@ -486,6 +489,39 @@ static int samples(void)
                  request(ED_UP_ERASE, a, 1) == 8u && host_wire[6] == 2);
     return bad;
 }
+
+/* (custom) ARP: a track's ARP STEP read; set whole (STEPS, the 16 TRANSPOSE + 24, the 16 states); a value out of range or
+ * a bad track: no reply, nothing changed */
+static int arp_cmd(void)
+{
+    uint8_t a[40];
+    uint32_t n, i;
+    int bad = 0;
+    reset();
+    memset(arp_pat, 0, sizeof arp_pat);
+    a[0] = 2;
+    n = request(ED_ARP, a, 1);
+    bad += check("(custom) ARP: T3's default: 16 steps, all at 0 (24), ON",
+                 n == 5u + 34u + 1u && host_wire[4] == ED_ARP && host_wire[5] == 2 && host_wire[6] == 16 &&
+                 host_wire[7] == 24 && host_wire[22] == 24 && !host_wire[23] && !host_wire[38]);
+    a[1] = 5;
+    for (i = 0; i < 16u; i++) {
+        a[2 + i] = (uint8_t)(i * 3u);
+        a[18 + i] = (uint8_t)(i % 3u);
+    }
+    n = request(ED_ARP, a, 34);
+    bad += check("  set: STEPS 5, step 2 -21 OFF, step 9 0 STACC .., the reply the same",
+                 n == 40u && arp_len(2) == 5u && arp_pat[2].tr[1] == -21 && arp_pat[2].tr[8] == 0 &&
+                 arp_pat[2].st[8] == AS_STACC && arp_pat[2].st[1] == AS_OFF && host_wire[6] == 5 && host_wire[8] == 3);
+    a[18] = 3;                                       /* (a state past STACC) */
+    n = request(ED_ARP, a, 34);
+    a[18] = 0; a[0] = NTRK;
+    n += request(ED_ARP, a, 1);
+    bad += check("  a state out of range, a track past the six: no reply, nothing changed", !n && arp_pat[2].st[0] == AS_ON);
+    memset(arp_pat, 0, sizeof arp_pat);
+    return bad;
+}
+
 
 /* (Skiff, #21) SMP_MIX (81): a slot's sounds' LEVEL REV DLY: read (slot, rc, nz, nz x (lo, hi), 16 + 16 + 16 values), set (the
  * 48 values: applied, the slot marked to save), refused on an empty slot (rc 1), set but not kept when the sample fills
@@ -1657,7 +1693,7 @@ static int custom_colors(void)
 
 int main(void)
 {
-    int bad = preferences() + motion_locks() + wide_ids() + framing() + uart_recovery() + steps() + samples() + smp_mix() + song_protocol() + malformed_saves() +
+    int bad = preferences() + motion_locks() + wide_ids() + framing() + uart_recovery() + steps() + samples() + smp_mix() + arp_cmd() + song_protocol() + malformed_saves() +
               fm6_patches() + user_preset_roundtrip() + live_sync() + usb_burst() + menu_protocol() + drum_kit_retired() +
               light_tracks() + preset_more() + transport_names() + song_cmds() + song2_cmds() + custom_colors();
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");

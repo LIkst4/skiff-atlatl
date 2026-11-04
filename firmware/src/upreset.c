@@ -461,7 +461,7 @@ static int up_load(uint32_t k)
         fm1_irq_off();                                  /* the audio ISR must not see half a sound */
         t->eng_req = (uint8_t)(eng_retired(r->engine) ? retire_engine(r->engine) : r->engine);
         for (i = 0; i < P_COUNT; i++)
-            if (!param_kept(i))
+            if (!param_kept_by(i, t->eng_req, v))        /* ((custom) SYNTH's ARP with it) */
                 t->p[i] = v[i];
         t->preset = (uint8_t)pr;
         fm1_irq_on();

@@ -751,6 +751,21 @@ static const preset_t SYNTH_PRESETS[] = {
 #include "synth_obv.h"         /* (custom) after OberVave's factory programs (tools/obv_presets.py) */
 };
 _Static_assert(NELEM(SYNTH_PRESETS) <= 127, "SYNTH: the presets past 127 (the editor's LIST2, MIDI: 7 bits)");
+/* (custom) presets' LFO and ARP (core.h preset_ext_t): FOLD CHORD SWARM's six (SY_PL0 ..), OberVave's programs' as
+ * their own (tools/obv_presets.py). A preset with its ARP on brings it (MODE .. ORDER: params.c param_kept_by) */
+#define SY_OBV0 ((uint8_t)(NELEM(SYNTH_PRESETS) - SY_OBV_N))
+#define SY_PL0 ((uint8_t)(SY_OBV0 - 6u))
+static const preset_ext_t SYNTH_PEXT[] = {
+    {SY_PL0 + 0u, {{P_LRATE, 72}, {P_LWAVE, 0}, {P_LD_PIT, 6}, {P_LFADE, 60}}},                 /* SUPERSAW: vibrato */
+    {SY_PL0 + 1u, {{P_LRATE, 30}, {P_LWAVE, 1}, {P_LD_FLT, 14}}},                               /* SWARM PAD: a sweep */
+    {SY_PL0 + 2u, {{P_LRATE, 84}, {P_LWAVE, 0}, {P_LD_PIT, 4}}},                                /* STRING MACH: ensemble */
+    {SY_PL0 + 3u, {{P_AMODE, 1}, {P_ARATE, 2}, {P_AOCT, 2}, {P_AGATE, 40}}},                     /* MINOR STAB: 1/16 up */
+    {SY_PL0 + 4u, {{P_LRATE, 50}, {P_LWAVE, 1}, {P_LD_SHP, 22}}},                               /* WEST FOLD: the folds */
+    {SY_PL0 + 5u, {{P_AMODE, 1}, {P_ARATE, 2}, {P_AOCT, 1}, {P_AGATE, 55}}},                     /* FOLD BASS: 1/16 up */
+#define SY_OBV_PEXT
+#include "synth_obv.h"
+#undef SY_OBV_PEXT
+};
 #undef SYF
 
 static const engine_t ENG_SYNTH = {
@@ -768,6 +783,8 @@ static const engine_t ENG_SYNTH = {
     },
     .presets = SYNTH_PRESETS,
     .npresets = NELEM(SYNTH_PRESETS),
+    .npext = NELEM(SYNTH_PEXT),
+    .pext = SYNTH_PEXT,
     .note_on = synth_note_on,
     .render = synth_render,
     .desc = synth_desc,

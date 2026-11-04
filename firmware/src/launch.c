@@ -59,7 +59,7 @@ static __attribute__((noinline)) void esnd_put(track_t *t, const esnd_t *s)
 {
     uint32_t k = trk_index(t), i;
     for (i = 0; i < P_COUNT; i++)
-        if (!param_kept(i))
+        if (!param_kept_by(i, s->eng, s->p))           /* ((custom) SYNTH's ARP with it) */
             t->p[i] = s->p[i];
     t->eng_req = s->eng;
     t->preset = s->preset;

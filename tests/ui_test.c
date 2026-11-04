@@ -388,6 +388,18 @@ static int gm_hits_play(track_t *t)
 }
 
 /* sounds never touch the steps; the arp, the scale, the SLICER and the pattern parameters are the track's */
+/* (custom) the ARP MODE preset pi of engine eng brings (eng_synth.c SYNTH_PEXT), 0 none */
+static int16_t pext_arp(uint32_t eng, uint32_t pi)
+{
+    const engine_t *e = ENGINES[eng % NENGINES];
+    uint32_t i, j;
+    for (i = 0; i < e->npext; i++)
+        if (e->pext[i].pi == pi)
+            for (j = 0; j < PEXT_N && e->pext[i].kv[j].id; j++)
+                if (e->pext[i].kv[j].id == P_AMODE)
+                    return e->pext[i].kv[j].v;
+    return 0;
+}
 static int test_sound_loads(void)
 {
     int bad = 0;
@@ -424,10 +436,16 @@ static int test_sound_loads(void)
     bad += check("SAW LEAD (custom; RAVE once) leaves the arp off", t->preset == i && t->p[P_AMODE] == 0);
     t->p[P_AMODE] = 2;
     before = *t;
-    for (i = t->preset; i < ENGINES[ENGI_SYNTH]->npresets; i++)   /* several loads, into the next engine */
-        turn(EN_PRESET, 1);
-    bad += check("browsing on, into another engine: the steps still untouched", t->eng_req != before.eng_req &&
-                 !memcmp(t->step, before.step, sizeof t->step) && t->p[P_AMODE] == 2);
+    {
+        int16_t am = 2;                           /* ((custom) a SYNTH preset with its ARP brings it) */
+        for (i = t->preset; i < ENGINES[ENGI_SYNTH]->npresets; i++) {   /* several loads, into the next engine */
+            turn(EN_PRESET, 1);
+            if (pext_arp(t->eng_req, t->preset))
+                am = pext_arp(t->eng_req, t->preset);
+        }
+        bad += check("browsing on, into another engine: the steps still untouched", t->eng_req != before.eng_req &&
+                     !memcmp(t->step, before.step, sizeof t->step) && t->p[P_AMODE] == am);
+    }
     bad += check("browsing keeps the copy from before the first load", undo.trk == 1u && undo.what == UNDO_SOUND &&
                  undo.p[P_E0 + 1] == before.p[P_E0 + 1] && undo.eng == before.eng_req && undo.preset == before.preset);
     t->step[0].note[0] = 99;                      /* recorded after the loads */
@@ -6939,6 +6957,38 @@ static int test_solo(void)
 
 /* #48: the note divisions step by their length, longest first (triplets between their neighbours), on every list
  * that has them (SEQ DIV, ARP RATE, the delay's TIME, the SLICER's RATE); the stored values and their sound stay */
+/* (custom) SYNTH's presets carry their LFO and ARP (eng_synth.c SYNTH_PEXT): one with its ARP on brings it, one without
+ * keeps the track's; a user sound likewise; undo puts the ARP back with the sound */
+static int test_preset_arp(void)
+{
+    int bad = 0, ok;
+    uint32_t pm = 0, pn = 0, ps = 0, i;
+    const engine_t *e = ENGINES[ENGI_SYNTH];
+    for (i = 0; i < e->npresets; i++) {
+        if (str_eq(e->presets[i].name, "MINOR STAB")) pm = i;
+        if (str_eq(e->presets[i].name, "INIT SYNTH")) pn = i;
+        if (str_eq(e->presets[i].name, "SUPERSAW")) ps = i;
+    }
+    ui_power_on();
+    set_engine_of(TSEL, ENGI_SYNTH);
+    TSEL->p[P_AMODE] = 0;
+    apply_preset_to(TSEL, ps);
+    ok = TSEL->p[P_LD_PIT] == 6 && TSEL->p[P_LRATE] == 72 && TSEL->p[P_LFADE] == 60 && TSEL->p[P_AMODE] == 0;
+    apply_preset_to(TSEL, pm);
+    ok &= TSEL->p[P_AMODE] == 1 && TSEL->p[P_ARATE] == 2 && TSEL->p[P_AOCT] == 2 && TSEL->p[P_AGATE] == 40 &&
+          TSEL->p[P_LD_PIT] == 0;                  /* (SUPERSAW's vibrato gone: a sound's LFO is its own) */
+    TSEL->p[P_AGATE] = 90;
+    apply_preset_to(TSEL, pn);                     /* (no ARP of its own: the track's stays) */
+    ok &= TSEL->p[P_AMODE] == 1 && TSEL->p[P_AGATE] == 90;
+    bad += check("(custom) SYNTH presets: their LFO; one with its ARP brings it, one without keeps the track's", ok);
+    TSEL->p[P_AMODE] = 0;
+    apply_preset_to(TSEL, pm);
+    hold(B_SAVE);                                  /* (undo: the sound before, its ARP OFF too) */
+    ok = TSEL->p[P_AMODE] == 0 && TSEL->preset == pn;
+    bad += check("(custom) SYNTH: undo puts the ARP back with the sound", ok);
+    return bad;
+}
+
 static int test_div_order(void)
 {
     int bad = 0, ok = 1;
@@ -7133,7 +7183,7 @@ static int test_knob_accel(void)
  * pattern and replaced the steps; no preset carries one now.) */
 static int test_browse_no_pattern(void)
 {
-    int bad = 0, ok = 1;
+    int bad = 0, ok = 1, arp_was;                     /* ((custom) arp_was: since a preset that brings its ARP; held */
     uint32_t pass, n, total, loads = 0;
     track_t *t;
     for (pass = 0; pass < 4u; pass++) {
@@ -7147,10 +7197,14 @@ static int test_browse_no_pattern(void)
         if (pass & 1u) song.playing = 1;              /* playing: the other tracks run, this one is empty */
         if (pass & 2u) go_page(GR_BROWSE);
         preset_pos(&total);
+        arp_was = 0;
         for (n = 0; n < total + 2u; n++) {
             turn(EN_PRESET, 1);
             loads++;
-            if (!seq_is_empty(t) || t->p[P_AMODE] || t->nheld || (!(pass & 1u) && (song.playing || transport_req))) {
+            if (!t->user && pext_arp(t->eng_req, t->preset))
+                arp_was = 1;                          /* ((custom) a SYNTH preset with its ARP: on from it, no note */
+            if (!seq_is_empty(t) || (t->p[P_AMODE] && !arp_was) || t->nheld ||
+                (!(pass & 1u) && (song.playing || transport_req))) {
                 printf("  pass %u, sound %u (%s %u): steps %d ARP %d held %u playing %d\n", pass, n,
                        ENGINES[t->eng_req % NENGINES]->name, t->preset, !seq_is_empty(t), t->p[P_AMODE], t->nheld,
                        song.playing);
@@ -7160,7 +7214,7 @@ static int test_browse_no_pattern(void)
         }
     }
     if (!ok || loads < 200u) printf("  ok %d loads %u\n", ok, loads);
-    bad += check("#51 every sound browsed (HOME, PRESETS; stopped, playing): no step, ARP off, nothing held, no start",
+    bad += check("#51 every sound browsed (HOME, PRESETS; stopped, playing): no step, ARP off (but from a preset's own), nothing held, no start",
                  ok && loads >= 200u);
     return bad;
 }
@@ -9891,6 +9945,7 @@ int main(void)
     bad += test_p9_pages();                           /* (Skiff phase 9) FX > DRIVE, ENV 2 */
     bad += test_six_tracks();                         /* Skiff phase 6: six tracks on the layers */
     bad += test_div_order();
+    bad += test_preset_arp();
     bad += test_head_oct();
     bad += test_kbd_hold();
     bad += test_solo();

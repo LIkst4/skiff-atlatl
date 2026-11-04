@@ -589,6 +589,50 @@ static int conds(void)
     t->step[1].cond = TC_PRE;
     seq_start();
     bad += check("  PRE after a CHANCE 0 step: never", run(t, (8u * step_len(t, 0)) / CTL - 1u, 0, 0, 0) == 0u);
+    {   /* (custom) NEI / !NEI: T2's step as T1's 1:2 went (passes 1 3) / did not (2 4); T1 has none before it */
+        uint32_t k, b, n[3];
+        for (k = 0; k < 3u; k++) {
+            track_t *u;
+            t = one_step(1, 0);
+            t->step[0].cond = k == 2u ? TC_NEI : TC_1_2;
+            u = &trk[1];
+            track_defaults_steps(u);
+            u->p[P_SLEN] = 1; u->p[P_SGATE] = 64; u->p[P_SSWING] = 0; u->p[P_SDIV] = t->p[P_SDIV];
+            u->step[0] = t->step[0];
+            u->step[0].cond = k ? TC_NNEI : TC_NEI;
+            seq_start();
+            for (b = n[k] = 0; b < passes(t, 4); b++) {
+                uint32_t v0, v1 = vage;
+                seq_tick(t, CTL);
+                v0 = vage;
+                seq_tick(u, CTL);
+                n[k] += k == 2u ? v0 - v1 : vage - v0;
+            }
+        }
+        bad += check("  (custom) NEI after T1's 1:2: T2 on passes 1 3; !NEI on 2 4; NEI on T1 (none before): never",
+                     n[0] == 2u && n[1] == 2u && n[2] == 0u);
+    }
+    {   /* (custom) a condition's bit 4 kept: a note's in its TIME (3), a tie's or a rest's in an unused 4th note byte or
+         * the ties' bit 7 (four, no hits) */
+        step_t a = {{60, 64, 67, 1}, 2, ST_NOTE, 0, 100}, b4 = {{60, 64, 67, 71}, 4, ST_NOTE, 0, 100}, c, d;
+        uint8_t raw[9];
+        int ok;
+        a.cond = TC_NNEI;
+        ok = step_put9(raw, &a) && ((raw[4] >> 3) & 3u) == 3u && step_get9(&c, raw) && c.cond == TC_NNEI &&
+             c.time == ST_NOTE && c.n == 2u && c.note[0] == 60 && c.note[3] == 1;
+        b4.cond = TC_NEI; b4.hit = 0x81u; b4.acc = 0x80u;   /* (four notes and hits: a note's still fine) */
+        ok &= step_put9(raw, &b4) && step_get9(&d, raw) && d.cond == TC_NEI && d.hit == 0x81u && d.acc == 0x80u;
+        a.time = ST_TIE; a.cond = TC_NEI;
+        ok &= step_put9(raw, &a) && (raw[3] & 127u) == 1u && step_get9(&c, raw) && c.cond == TC_NEI && c.time == ST_TIE;
+        a.cond = TC_PRE;                             /* (a tie's 4th note byte of 1 left there: written 0, no bit 4) */
+        ok &= step_put9(raw, &a) && (raw[3] & 127u) == 0u && step_get9(&c, raw) && c.cond == TC_PRE;
+        b4.time = ST_REST; b4.hit = 0; b4.acc = 0;
+        ok &= step_put9(raw, &b4) && (raw[7] & 128u) && step_get9(&d, raw) && d.cond == TC_NEI && d.note[3] == 71 &&
+              !(d.acc & 128u);
+        b4.hit = 1u;                                 /* (a rest of four notes and hits: nowhere for it) */
+        ok &= !step_put9(raw, &b4);
+        bad += check("  (custom) NEI / !NEI stored: a note's, a tie's, a rest's", ok);
+    }
     {   /* RETRIG VEL (the Syntakt's): x4 at -64 falls from the step's velocity, at +63 rises to it; 0 as before */
         uint32_t r, b, n, vel[3][4];
         static const int16_t RV[3] = {0, -64, 63};

@@ -1759,7 +1759,8 @@ static int undo_swap(undo_t *c)
         c->preset = pr;
         c->user = u;
         for (i = 0; i < P_COUNT; i++)
-            if (!param_kept(i)) {
+            if (!param_kept(i) || (i >= P_AMODE && i <= P_AORDER &&   /* ((custom) SYNTH: a sound may bring its ARP) */
+                                   (t->eng_req % NENGINES == ENGI_SYNTH || c->eng % NENGINES == ENGI_SYNTH))) {
                 int16_t v = t->p[i];
                 t->p[i] = c->p[i];
                 c->p[i] = v;
@@ -1965,6 +1966,14 @@ static void preset_fill(int16_t *p, const engine_t *e, uint32_t pi)
             p[P_DIST + i] = (int16_t)(pr->fx[i] ? pr->fx[i] - 1 : FX_DEF[i]);
         for (i = 0; i < NELEM(pr->more) && pr->more[i].id; i++)   /* ((Skiff) its LFO, GLIDE, ..: core.h) */
             p[pr->more[i].id] = pr->more[i].v;
+        for (i = 0; i < e->npext; i++)                    /* ((custom) its LFO, its ARP: core.h preset_ext_t) */
+            if (e->pext[i].pi == pi) {
+                uint32_t j;
+                for (j = 0; j < PEXT_N && e->pext[i].kv[j].id; j++)
+                    if (e->pext[i].kv[j].id < P_COUNT)
+                        p[e->pext[i].kv[j].id] = e->pext[i].kv[j].v;
+                break;
+            }
     }
 }
 /* preset pi of the engine the track asked for: the sound only (not the steps, not param_kept) */

@@ -321,7 +321,8 @@ class Builder:
             L.append('    {"NONE", 0, 1},')
         L.append("};")
         L.append(f"#define SMP_NSETS {max(1, len(sets))}")
-        L.append(f"#define SMP_FACTORY {1 if blob else 0}   /* (custom) the factory sets hold their samples (FELUCCA_BUILTIN_SAMPLES) */")
+        L.append(f"#define SMP_FACTORY {1 if blob and not getattr(self, 'partial', False) else 0}   /* (custom) the factory "
+                 "sets hold their samples (FELUCCA_BUILTIN_SAMPLES=1; =grain: FLUTE and SAX alone, 0 here) */")
         named = sets or [("NONE", 0, 0)]
         perc = PERC_SLOT if len(named) > PERC_SLOT else len(named)
         # (Skiff phase 9) the variations follow PERC's slot, only with the CC0 sets their SET values name (PERC's
@@ -424,7 +425,16 @@ def input_key(have_cc0):
 def builtin_on():
     """(custom) the factory sample data in the firmware: off unless FELUCCA_BUILTIN_SAMPLES=1 (the flash goes to the
     engines; their sounds are synthesized instead: SYNTH's SY presets)"""
-    return os.environ.get("FELUCCA_BUILTIN_SAMPLES", "0") == "1"
+    return os.environ.get("FELUCCA_BUILTIN_SAMPLES", "grain") == "1"
+
+
+GRAIN_SETS = ("FLUTE", "SAX")
+
+
+def builtin_grain():
+    """(custom) the default: GRAIN's material, FLUTE and SAX with their data (~45 KB), PIANO named without it, no SLICE
+    loops; SMP_FACTORY stays 0 (SAMPLE and SLICE are retired: the rest of the firmware as without samples)"""
+    return os.environ.get("FELUCCA_BUILTIN_SAMPLES", "grain") == "grain"
 
 
 def main(out):
@@ -432,13 +442,22 @@ def main(out):
     if not have_cc0:
         print("samples: CC0 library not fetched (tools/fetch_cc0.py) - no SAMPLE sets")
     if not builtin_on():
+        grain = builtin_grain() and have_cc0
         b = Builder()
-        for name, kind in CC0_SETS:                 # the sets' names and numbers, no data
+        b.partial = True
+        for name, kind in CC0_SETS:                 # the sets' names and numbers, no data ((custom) GRAIN's: theirs)
             if kind == "alias":
                 b.alias_set(name)
+            elif grain and name in GRAIN_SETS:
+                b.cc0_set(name, kind)
             else:
                 b.empty_set(name, kind)
         text = b.header()
+        if grain:
+            Path(out).write_text(text)
+            print("samples: GRAIN's material (FELUCCA_BUILTIN_SAMPLES=grain): %s, %u B ADPCM; PIANO named, no SLICE loops"
+                  % (" ".join(GRAIN_SETS), len(b.blob)))
+            return
         Path(out).write_text(text)
         print("samples: no factory sample data (FELUCCA_BUILTIN_SAMPLES=0): 5 sets named, 0 B; SLICE without BREAK and FUNK")
         return
