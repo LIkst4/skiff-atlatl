@@ -65,14 +65,15 @@ static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 }
 
 static uint16_t lcd_fillbuf[240];
-/* (custom) what is painted also goes to the screen mirror, when an app asks (mirror.c; the update loader: none) */
-#ifdef FELUCCA_LOADER
+/* (custom) what is painted also goes to the screen mirror, when an app asks (mirror.c, with LCD_MIRROR: felucca.c; the
+ * update loader and the host tests that take lcd.c alone: none) */
+#ifdef LCD_MIRROR
+static void mirror_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px, uint16_t c);
+#else
 static void mirror_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px, uint16_t c)
 {
     (void)x, (void)y, (void)w, (void)h, (void)px, (void)c;
 }
-#else
-static void mirror_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px, uint16_t c);
 #endif
 
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)

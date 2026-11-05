@@ -106,6 +106,7 @@ static inline __attribute__((always_inline)) void *audio_far(void *p) { void *vo
 
 /* ----------------------------------------------------- base, display --- */
 #include "libc.c"
+#define LCD_MIRROR 1             /* (custom) lcd.c hands what it paints to mirror.c */
 #include "lcd.c"
 #include "gfx.c"
 
