@@ -8,9 +8,9 @@ import re, sys
 GAPS = {0xed5d, 0xed5e, 0xed5f}
 fn, hits = "?", []
 for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
-    m = re.match(r"^([0-9a-f]+) <([^>]+)>:", line)
+    m = re.match(r"^(?:[0-9a-f]+ <([^>]+)>|([A-Za-z_][A-Za-z_0-9.]*)):\s*$", line)
     if m:
-        fn = m.group(2)
+        fn = m.group(1) or m.group(2)
         continue
     m = re.match(r"^\s*([0-9a-f]+):\s+([0-9a-f]{2}) ([0-9a-f]{2})", line)
     if m and int(m.group(3) + m.group(2), 16) in GAPS:
