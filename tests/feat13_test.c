@@ -909,11 +909,11 @@ static int env_sync(void)
     v->active = 1;
     v->stage = 1;
     for (n = 0; v->stage == 1 && n < 2000u; n++)       /* the attack: a beat (22050 samples, 689 blocks) */
-        env_tick(t, v);
+        env_tick(t, v, 0);
     ok &= n >= 688u && n <= 690u;
     v->stage = 3;
     for (n = 0; v->env > (1 << 24) / 100 && n < 2000u; n++)   /* the release: 99 % down after about a beat */
-        env_tick(t, v);
+        env_tick(t, v, 0);
     ok &= n >= 650u && n <= 720u;
     song.g[G_BPM] = 60;                                 /* half the tempo: twice the time */
     esync_coef(t);
