@@ -187,12 +187,13 @@ static void trxm_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
                 e = ek;                                 /* the knee */
             else
                 e -= trxm_fall(e, d);
-            z = (int32_t)(((int64_t)y * e) >> osh);
+            z = (int32_t)(((int64_t)y * e) >> 32) >> (osh - 32);   /* ((custom) the same bits: no 64-bit shift by a
+                                                         * register, which the FM-1 emulator does not decode in parallel) */
             if (top) {                                  /* CY: the top */
                 trxm_tick(&tpf, x, &bp, &hp);
                 if (tt)
                     et -= trxm_fall(et, dt);
-                z += (int32_t)(((int64_t)hp * et) >> osh);
+                z += (int32_t)(((int64_t)hp * et) >> 32) >> (osh - 32);
             }
             z = mulq15(mulq15(clamp(z, -65535, 65535), vg), VOICE_FS);   /* dm_put */
             out[i] += z;

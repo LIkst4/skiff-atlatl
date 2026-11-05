@@ -39,7 +39,7 @@ jobs:
         run: |
           FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls" ./build.sh
           cp build/felucca.fwsc "$RUNNER_TEMP/skiff-atlatl-emu.fwsc"
-          python tools/emu_gaps.py build/felucca.dis 2054818 || true
+          python tools/emu_gaps.py build/felucca.dis || true
       - name: Build
         run: ./build.sh
       - name: "(custom) Emscripten, for the browser emulator"
