@@ -65,6 +65,8 @@ static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 }
 
 static uint16_t lcd_fillbuf[240];
+/* (custom) what is painted also goes to the screen mirror, when an app asks (mirror.c) */
+static void mirror_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px, uint16_t c);
 
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
@@ -85,6 +87,7 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
             k = n;
         lcd_data(lcd_fillbuf, k * 2u);
     }
+    mirror_rows(x, y, w, h, 0, c);
 }
 
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
@@ -93,6 +96,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
         return;
     lcd_window(x, y, x + w - 1u, y + h - 1u);
     lcd_data(px, w * h * 2u);
+    mirror_rows(x, y, w, h, px, 0);
 }
 
 /* ST7789V init: reset, then 16-bit colour, scan direction and IPS inversion;

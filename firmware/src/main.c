@@ -321,6 +321,8 @@ static void fm1_main(void)
             }
         }
 #if FELUCCA_OTA
+        if (mirror_poll())                              /* ((custom) the screen mirror's hello; a new viewer: */
+            ui.force = 1;                               /* everything drawn again) */
         ed_service();                                   /* web editor SysEx */
         ota_service();                                  /* M-UPGRADE handshake */
         if (usb.ota_req) {                              /* M-UPGRADE upgrade command */

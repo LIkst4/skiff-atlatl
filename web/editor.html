@@ -189,6 +189,9 @@
   .seg button + button { border-left: 0; }
   .seg button[aria-pressed="true"], button.tog[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
   .panel { margin: 12px 0; }
+  .scrbox { display: flex; justify-content: center; padding: 8px 0; }   /* ((custom) the screen mirror */
+  #scr { width: calc(240px * var(--scr, 2)); height: calc(240px * var(--scr, 2)); max-width: 100%; aspect-ratio: 1;
+         height: auto; image-rendering: pixelated; border-radius: 10px; background: #000; box-shadow: 0 0 0 1px var(--line, #333); }
   .hint { margin: 16px 0; color: var(--dim); }
   /* sequencer: a step grid over the selected track (16 per row, 8 on a phone) */
   .grid { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 2px; margin: 6px 0 12px; }
@@ -299,6 +302,7 @@
       <button role="tab" data-tab="samples" data-t="samples" data-ic="symbol_waves"></button>
       <button role="tab" data-tab="projects" data-t="projects" data-ic="symbol_folder"></button>
       <button role="tab" data-tab="settings" data-t="tabSettings" data-ic="symbol_cog"></button>
+      <button role="tab" data-tab="screen" data-t="tabScreen" data-ic="symbol_keyboard"></button>
     </nav>
     <div class="trackbar" id="trackbar" hidden><span class="dim" data-t="track"></span><span class="seg" id="trackbtns" role="group"></span></div>
   </header>
@@ -491,6 +495,15 @@
     </div>
   </section>
 
+  <section class="panel" id="p-screen" data-tab="screen" data-dev hidden>
+    <p class="dim" data-t="screenHelp"></p>
+    <p class="bar"><label><span class="dim" data-t="screenSize"></span> <select id="scrscale"><option value="1">1x</option>
+      <option value="2" selected>2x</option><option value="3">3x</option></select></label>
+      <button id="scrpng" data-t="screenPng" data-ic="symbol_download"></button>
+      <span class="dim" id="scrstate"></span></p>
+    <div class="scrbox"><canvas id="scr" width="240" height="240"></canvas></div>
+  </section>
+
   <footer>Skiff by illuminus5 (<a href="https://github.com/illuminus5/skiff" target="_blank" rel="noopener">github.com/illuminus5/skiff</a>), built on Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>. GPL-3.0.<br>
     <span data-t="foot"></span> M-VAVE and FM-1 are trademarks of their respective owners.<br>
     <a href="FUKIAI-LICENSE.txt" data-t="iconsCredit"></a></footer>
@@ -572,6 +585,43 @@ function frame(cmd, args = []) {
   return [0xF0, ...HDR, cmd & 0x7F, ...args, 0xF7];
 }
 /* -> {cmd, a} or null when it is not an editor frame */
+/* ((custom) firmware mirror.c, Patrick F. Kellogg's screen_mirror, MIT) the screen over USB: the editor's hello about once a
+   second (F0 7D 46 53 00 F7; 01: and send the whole screen), the device's rows while asked (F0 7D 46 53 01 row_lo row_hi
+   col_lo col_hi {count c0-6 c7-13 c14-15}.. F7, RGB565); 3 s after the last hello it stops */
+const mirrorHello = (full) => [0xF0, 0x7D, 0x46, 0x53, full ? 1 : 0, 0xF7];
+const isMirror = (d) => d.length >= 11 && d[0] === 0xF0 && d[1] === 0x7D && d[2] === 0x46 && d[3] === 0x53 && d[4] === 1;
+const isMirrorHello = (d) => d.length === 6 && d[0] === 0xF0 && d[1] === 0x7D && d[2] === 0x46 && d[3] === 0x53 && d[4] <= 1 && d[5] === 0xF7;
+/* a row message -> put(x, y, run, rgb565) for each run; false: not one */
+function mirrorDecode(d, put) {
+  if (!isMirror(d) || d[d.length - 1] !== 0xF7) return false;
+  const y = d[5] | d[6] << 7;
+  let x = d[7] | d[8] << 7;
+  for (let k = 9; k + 4 <= d.length - 1; k += 4) {
+    const run = d[k], c = d[k + 1] | d[k + 2] << 7 | d[k + 3] << 14;
+    put(x, y, run, c);
+    x += run;
+  }
+  return true;
+}
+/* (the mock's side, screen_mirror.c sm_rows) a row of RGB565 px from (left, top) -> its messages, 70 bytes at most */
+function mirrorRows(px, left, top) {
+  const out = [];
+  for (let i = 0; i < px.length;) {
+    const m = [0xF0, 0x7D, 0x46, 0x53, 1, top & 127, top >> 7, (left + i) & 127, (left + i) >> 7];
+    while (i < px.length && m.length + 5 <= 70) {
+      let run = 1;
+      const c = px[i];
+      while (i + run < px.length && run < 127 && px[i + run] === c) run++;
+      m.push(run, c & 127, c >> 7 & 127, c >> 14);
+      i += run;
+    }
+    m.push(0xF7);
+    out.push(m);
+  }
+  return out;
+}
+const rgb565 = (r, g, b) => (r >> 3) << 11 | (g >> 2) << 5 | b >> 3;
+
 function unframe(d) {
   if (!d || d.length < 6 || d[0] !== 0xF0 || d[d.length - 1] !== 0xF7) return null;
   if (d[1] !== HDR[0] || d[2] !== HDR[1] || d[3] !== HDR[2]) return null;
@@ -3461,6 +3511,7 @@ function makeMockDevice(opt = {}) {
   const output = {
     id: "mock-out", name: "Felucca", type: "output", state: "connected",
     send(data) {
+      if (isMirrorHello(data)) { mirror(data[4] === 1); return; }   /* ((custom) the screen mirror: mirror.c */
       const f = unframe(data);
       if (!f) { console.error("mock: refused a frame that is not F0 7D 46 4C ... F7", data); return; }
       if (busy) { console.warn("mock: frame dropped (device holds only one frame)", data); return; }
@@ -3478,6 +3529,25 @@ function makeMockDevice(opt = {}) {
       }, f.cmd === CMD.SMP_ERASE ? 900 : f.cmd === CMD.SMP_BEGIN ? 120 : flash ? 150 : f.cmd === CMD.SMP_WRITE ? 25 + Math.random() * 10 : 4 + Math.random() * 12);
     },
   };
+  /* ((custom) the screen mirror, as mirror.c: a hello (01, or the first after 3 s) sends the whole screen, the others
+     what changed: the mock's picture is a header in the selected track's colour, its 16 steps, the playhead on one */
+  function mirror(full) {
+    if (opt.noMirror) return;
+    const now = Date.now(), first = !st.mirrorAt || now - st.mirrorAt > 3000;
+    st.mirrorAt = now;
+    st.mirrorPos = ((st.mirrorPos || 0) + 1) % 16;
+    const COL = [[255, 120, 50], [80, 200, 255], [160, 255, 90], [255, 220, 60], [220, 120, 255], [255, 90, 140]];
+    const [r, g, b] = COL[st.sel % COL.length], bg = rgb565(16, 18, 24), head = rgb565(r, g, b), off = rgb565(44, 48, 58);
+    const row = (y) => Array.from({ length: 240 }, (_, x) => {
+      if (y < 28) return head;
+      const k = Math.floor((x - 8) / 14) + (y >= 150 ? 8 : 0), inX = x >= 8 && (x - 8) % 14 < 12 && x < 8 + 8 * 14;
+      const inY = (y >= 90 && y < 140) || (y >= 150 && y < 200);
+      return inX && inY ? (k === st.mirrorPos ? head : off) : bg;
+    });
+    const rows = full || first ? Array.from({ length: 240 }, (_, y) => y) : Array.from({ length: 110 }, (_, i) => 90 + i);
+    const msgs = rows.flatMap((y) => mirrorRows(row(y), 0, y));
+    setTimeout(() => { for (const m of msgs) if (input.onmidimessage) input.onmidimessage({ data: Uint8Array.from(m) }); }, 0);
+  }
   /* WATCH ends by itself watchMs after the last request */
   function watching() {
     if (st.watch && Date.now() - st.lastReq > watchMs) st.watch = false;
@@ -3812,6 +3882,9 @@ const TEXT = {
     badEngine: "このファームウェアにないエンジンです: ", flashFail: "書き込みに失敗しました（rc {rc}）",
     installer: "インストーラー",
     tabSeq: "シーケンサー", tabTracks: "ミキサー", tabSettings: "設定",   /* ((Skiff W5) the device's MIXER) */
+    tabScreen: "画面", screenSize: "サイズ", screenPng: "PNG 保存",
+    screenHelp: "FM-1 の画面をそのまま表示します (このタブを開いている間だけ)。FM-1 Mirror (github.com/pfkellogg/fm1-mirror) と一緒にも使えます。",
+    screenNone: "画像がありません: このファームウェアは画面を送りません。",
     needDevice: "FM-1 を接続すると編集できます。", smpNone: "このファームウェアにはユーザーサンプルのスロットがありません。",
     bankConnect: "FM-1 を接続すると本体のユーザープリセットも扱えます。", bankNone: "このファームウェアにはユーザープリセットがありません。",
     mixer: "ミキサー", mixHelp: "本体の MIXER ページと同じ全トラック。フェーダーはレベル。パンはどのトラックも選択を変えずに書き込みます（0.8 のファームウェアでは一瞬そのトラックを選びます）。REC は本体での録音待機の表示です。",
@@ -3952,6 +4025,9 @@ const TEXT = {
     badEngine: "This firmware has no such engine: ", flashFail: "Write failed (rc {rc})",
     installer: "Installer",
     tabSeq: "Sequencer", tabTracks: "Mixer", tabSettings: "Settings",   /* ((Skiff W5) the device's MIXER) */
+    tabScreen: "Screen", screenSize: "Size", screenPng: "Save PNG",
+    screenHelp: "The FM-1's screen, live, as it draws it (only while this tab is open). Works beside FM-1 Mirror (github.com/pfkellogg/fm1-mirror).",
+    screenNone: "No picture: this firmware does not send its screen.",
     needDevice: "Connect the FM-1 to edit.", smpNone: "This firmware has no user sample slots.",
     bankConnect: "Connect the FM-1 to see its user presets too.", bankNone: "This firmware has no user presets.",
     mixer: "Mixer", mixHelp: "Every track of the device's MIXER page. The fader is the level. Pan is written to any track without changing the selection (firmware 0.8: by selecting it for a moment). REC shows a track armed for live recording on the device.",
@@ -3984,7 +4060,7 @@ $("lang").addEventListener("click", () => { lang = lang === "ja" ? "en" : "ja"; 
 
 /* ---------------------------------------------------------------- tabs --- */
 /* one panel at a time; the last one is remembered (localStorage) and in the URL hash (#sound ...) */
-const TABS = ["sound", "fm6", "sequencer", "song", "tracks", "library", "samples", "projects", "settings"];
+const TABS = ["sound", "fm6", "sequencer", "song", "tracks", "library", "samples", "projects", "settings", "screen"];
 const TAB_KEY = "felucca-editor-tab";
 const TRACK_TABS = new Set(["sound", "sequencer", "tracks"]);
 let tab = (() => {
@@ -4001,6 +4077,7 @@ function showTab(name) {
   try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* no storage */ }
   if (location.hash !== "#" + name) history.replaceState(null, "", location.pathname + location.search + "#" + name);
   if (prev === "samples" && name !== "samples") samplesLeave();   /* no hidden recording or preview */
+  screenWant(name === "screen");                    /* ((custom) the screen mirror: asked while the tab shows */
   renderPanels();
   if (name === "tracks" && prev !== "tracks" && hasTracks() && dev.dump) op(readMixer);
   if (name === "sequencer" && prev !== "sequencer" && dev && dev.dump && dev.stepsStale) op(() => loadSteps());   /* ((Skiff W7)) */
@@ -4070,6 +4147,7 @@ async function transportOp(n) {
   catch (e) { report(e); }
 }
 $("tplay").addEventListener("click", (e) => transportOp(e.shiftKey ? 3 : 1));
+screenSetup();                                      /* ((custom) the SCREEN tab */
 
 /* ((Skiff W3) the Song tab (INFO 57 bits 2..4): each track's list (SEQ › SONG), the scenes and the staged mutes
    (PERFORM), the pattern pool (SAVE › PATTERNS), as the device has them: read when the tab opens, then as the
@@ -4394,7 +4472,7 @@ async function connect() {
         onPush: (f) => onPush(f),
         onGap: () => { rewatch = true; },
       });
-      i.onmidimessage = (e) => l.receive(e.data);
+      i.onmidimessage = (e) => { if (isMirror(e.data)) screenRows(e.data); else l.receive(e.data); };   /* ((custom) mirror */
       if (i.open) await i.open().catch(() => {});
       if (pairs.length === 1 || await l.request(req.info(), { timeout: 500, retries: 2, quiet: true }).then(() => true, () => false)) {
         [input, output, link] = [i, o, l];
@@ -4409,6 +4487,7 @@ async function connect() {
     connectedDevice = dev;
     setLabel($("connect"), t("disconnect"));
     await load(connectedDevice);
+    screenWant(tab === "screen");                   /* ((custom) the SCREEN tab open already */
   } catch (e) {
     console.error(e);
     if (connectedDevice && connectedDevice === dev) { /* an old connection must not close a replacement */
@@ -4424,6 +4503,7 @@ async function connect() {
 
 function disconnect(reasonKey = "disconnected") {
   samplesLeave();                                   /* the Samples tab goes: so do the input and the preview */
+  screenWant(false);
   if (dev) {
     dev.link.close();
     dev.input.onmidimessage = null;
@@ -5512,6 +5592,57 @@ function trimCanvas(f) {
 
 /* leaving the Samples tab or disconnecting: a recording is stopped (it stays in the draft), the
  * preview stops and its audio context closes */
+/* ((custom) firmware mirror.c) the SCREEN tab: the device's screen, live. While it shows, a hello a second (the first
+   asks for the whole screen); the rows paint the canvas (one putImageData a frame). Firmware without it sends none:
+   after 3 s with nothing, said */
+const scr = { timer: 0, img: null, dirty: false, last: 0, asked: 0 };
+function screenWant(on) {
+  on = on && !!dev;
+  if (on === !!scr.timer) return;
+  if (!on) { clearInterval(scr.timer); scr.timer = 0; return; }
+  const c = $("scr");
+  scr.img = scr.img || c.getContext("2d").createImageData(240, 240);
+  scr.asked = Date.now();
+  const hello = (full) => { try { dev && dev.output.send(mirrorHello(full)); } catch (e) { /* a closed port */ } screenState(); };
+  hello(true);
+  scr.timer = setInterval(() => hello(false), 1000);
+}
+function screenRows(d) {
+  const im = scr.img;
+  if (!im) return;
+  mirrorDecode(d, (x, y, run, c) => {
+    const r = (c >> 11 & 31) * 255 / 31, g = (c >> 5 & 63) * 255 / 63, b = (c & 31) * 255 / 31;
+    for (let i = 0; i < run && x + i < 240 && y < 240; i++) {
+      const o = (y * 240 + x + i) * 4;
+      im.data[o] = r; im.data[o + 1] = g; im.data[o + 2] = b; im.data[o + 3] = 255;
+    }
+  });
+  scr.last = Date.now();
+  if (!scr.dirty) {
+    scr.dirty = true;
+    requestAnimationFrame(() => { scr.dirty = false; $("scr").getContext("2d").putImageData(scr.img, 0, 0); screenState(); });
+  }
+}
+function screenState() {
+  const el_ = $("scrstate");
+  if (!el_) return;
+  const quiet = !scr.last || Date.now() - scr.last > 3000;
+  el_.textContent = scr.timer && quiet && Date.now() - scr.asked > 3000 ? t("screenNone") : "";
+}
+function screenSetup() {
+  const sel = $("scrscale");
+  try { const v = localStorage.getItem("felucca.scrscale"); if (v) sel.value = v; } catch (e) { /* no storage */ }
+  const apply = () => { $("scr").style.setProperty("--scr", sel.value); try { localStorage.setItem("felucca.scrscale", sel.value); } catch (e) { /* none */ } };
+  sel.addEventListener("change", apply);
+  apply();
+  $("scrpng").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.download = "fm1-screen.png";
+    a.href = $("scr").toDataURL("image/png");
+    a.click();
+  });
+}
+
 function samplesLeave() {
   ++recEpoch;
   recStarting = false;

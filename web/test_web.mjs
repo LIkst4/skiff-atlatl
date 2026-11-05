@@ -41,7 +41,8 @@ const E = vm.runInNewContext(proto + `
    FM4, fromDigital, fromPerc, DRUM_KIT_E, DX_KIT_DEF, DX_KITS, DRUMX_PKIT,
    PAL_BUILTIN, PAL_ROLES, colorWarnings, customTokens, hex565, from565hex, mix565, luma565,
    MENU: typeof MENU === "undefined" ? null : MENU, MENU_TABS: typeof MENU_TABS === "undefined" ? null : MENU_TABS,
-   readDeviceMenu: typeof readDeviceMenu === "undefined" ? null : readDeviceMenu })`,
+   readDeviceMenu: typeof readDeviceMenu === "undefined" ? null : readDeviceMenu,
+   mirrorHello, mirrorDecode, mirrorRows, isMirror, isMirrorHello, rgb565 })`,
 { setTimeout, clearTimeout, setInterval, clearInterval, console });
 
 async function editorMock() {
@@ -991,6 +992,35 @@ async function editorStepTies() {
   o.done();
 }
 
+/* ((custom) firmware mirror.c) the screen mirror: a hello, the rows; the mock's whole screen on 01, a part after */
+async function editorMirror() {
+  const m = E.makeMockDevice({ auto: false });
+  const inp = [...m.access.inputs.values()][0], out = [...m.access.outputs.values()][0];
+  const img = new Uint16Array(240 * 240).fill(0xFFFF), got = [];
+  inp.onmidimessage = (e) => { if (E.isMirror(e.data)) { got.push(e.data); E.mirrorDecode(e.data, (x, y, run, c) => img.fill(c, y * 240 + x, y * 240 + x + run)); } };
+  ok(E.mirrorHello(true).join() === "240,125,70,83,1,247" && E.isMirrorHello(E.mirrorHello(false)), "mirror: the hello F0 7D 46 53 00/01 F7");
+  const px = Array.from({ length: 240 }, (_, i) => (i < 100 ? 0x1234 : i * 263) & 0xFFFF), back = new Uint16Array(240);
+  const msgs = E.mirrorRows(px, 0, 7);
+  msgs.forEach((x) => E.mirrorDecode(x, (x0, y, run, c) => { if (y === 7) back.fill(c, x0, x0 + run); }));
+  ok(msgs.every((x) => x.length <= 70 && x[x.length - 1] === 0xF7) && back.every((c, i) => c === px[i]), "mirror: rows encode and decode exactly, 70 bytes a message at most");
+  out.send(Uint8Array.from(E.mirrorHello(true)));
+  await new Promise((r) => setTimeout(r, 20));
+  const rows = new Set(got.map((d) => d[5] | d[6] << 7));
+  ok(rows.size === 240 && !img.includes(0xFFFF) && img[10 * 240 + 5] === img[3 * 240 + 200], "mirror: the mock's whole screen on a hello (01)");
+  got.length = 0;
+  out.send(Uint8Array.from(E.mirrorHello(false)));
+  await new Promise((r) => setTimeout(r, 20));
+  ok(got.length > 0 && new Set(got.map((d) => d[5] | d[6] << 7)).size < 240, "mirror: then only what changes (the playhead's rows)");
+  m.stop();
+  const q = E.makeMockDevice({ auto: false, noMirror: true }), qi = [...q.access.inputs.values()][0];
+  let n = 0;
+  qi.onmidimessage = () => n++;
+  [...q.access.outputs.values()][0].send(Uint8Array.from(E.mirrorHello(true)));
+  await new Promise((r) => setTimeout(r, 20));
+  ok(n === 0, "mirror: firmware without it: nothing back");
+  q.stop();
+}
+
 /* ((custom) INFO 41 01 16, last) ARP: a track's ARP STEP read, set whole; out of range: no reply */
 async function editorArp() {
   const C = E.CMD;
@@ -1798,7 +1828,7 @@ function editorTabs() {
   const tabs = [...html.matchAll(/<button role="tab" data-tab="(\w+)"/g)].map((x) => x[1]);
   const panels = [...html.matchAll(/<section class="panel" id="p-(\w+)" data-tab="(\w+)"/g)].map((x) => [x[1], x[2]]);
   const TABS = JSON.parse((/const TABS = (\[[^\]]*\]);/.exec(html) || [])[1] || "[]");
-  ok(tabs.length === 9 && js(tabs) === js(TABS) && js(panels.map((x) => x[1])) === js(TABS) && panels.every(([a, b]) => a === b),
+  ok(tabs.length === 10 && js(tabs) === js(TABS) && js(panels.map((x) => x[1])) === js(TABS) && panels.every(([a, b]) => a === b),
     `editor: ${tabs.length} tabs, one panel each (${tabs.join(" ")})`);
   ok(/localStorage\.setItem\(TAB_KEY/.test(html) && /try \{ localStorage/.test(html) && /history\.replaceState\([^)]*"#" \+ name\)/.test(html)
     && /addEventListener\("hashchange"/.test(html), "editor: last tab in localStorage (try/catch) and in the URL hash");
@@ -2183,6 +2213,7 @@ await editorStepExtras();
 await editorStepTies();
 await editorKit();
 await editorArp();
+await editorMirror();
 await editorTransportNames();
 await editorLists();
 await editorSong2();

@@ -39,6 +39,7 @@ All by Hügelton Instruments (Leo Kuroshita), in this tree:
 | --- | --- | --- |
 | Felucca: firmware, tools, web pages, tests | GPL-3.0-only | `LICENSE` |
 | The INSERT's DENS, CONS and TAPE types: fixed-point curves written after Airwindows' Density, Console7 and ToTape (Chris Johnson, <https://github.com/airwindows/airwindows>), no code copied | MIT (Airwindows); this code GPL-3.0-only | `firmware/src/fx.c` (`aw_*`, `ins_aw`) |
+| The screen mirror's messages and queue: `screen_mirror.c` / `.h` by Patrick F. Kellogg (<https://github.com/pfkellogg/fm1-mirror>), as OberVave carries them; its use here (`mirror.c`, the web editor's SCREEN tab) this project's | MIT (screen_mirror); the rest GPL-3.0-only | `firmware/src/screen_mirror/`, `firmware/src/mirror.c` |
 | The PHASE engine's waveforms: a C port of the oscillator of CrispyZebra (<https://github.com/hugelton/CrispyZebra>) | GPL-3.0 | `firmware/src/eng_phase.c` |
 | The DRUM voices and kit | GPL-3.0-only | `firmware/src/drum_voice.c`, `firmware/src/eng_drum.c` |
 | The Hügelton Sample Pack: Felucca's drum sounds, made by `tools/gen_waves.py` (not CC0; the SLICE engine's BREAK was built from them through Skiff 1.1, the SLICE test's loop still is) | GPL-3.0-only | `tools/gen_waves.py` |

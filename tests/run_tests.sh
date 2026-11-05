@@ -261,6 +261,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/hostsim" tests/hostsim.c -lm
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/scale_test" tests/scale_test.c -lm
     run "scales: white-key mapping and note lifecycle" "$OUT/scale_test"
+    $CC -Ifirmware/src -o "$OUT/mirror_test" tests/mirror_test.c
+    run "(custom) screen mirror: nothing until a hello, the whole screen on one, the rows exact, a busy queue, 3 s" "$OUT/mirror_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/chord_test" tests/chord_test.c -lm
     run "chord keys: diatonic and fixed chords, voicings, MONO root, releases, recording, ARP, MIDI IN, kits" "$OUT/chord_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/follow_test" tests/follow_test.c -lm

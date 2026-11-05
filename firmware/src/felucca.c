@@ -120,6 +120,7 @@ static inline __attribute__((always_inline)) void *audio_far(void *p) { void *vo
 
 /* ------------------------------------------------- MIDI, sequencer --- */
 #include "usb.c"
+#include "mirror.c"              /* (custom) the screen over USB, when an app asks (lcd.c, main.c) */
 #if FELUCCA_UART
 #include "midi_uart.c"
 #endif
