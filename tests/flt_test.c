@@ -20,7 +20,7 @@
 
 #define SR 44100
 #define BLK 32
-static const char *NAMES[FT_N] = {"OFF", "LPMG", "LD", "SVF", "SK", "OB12", "OB24", "ACID", "COMB", "VOWEL"};
+static const char *NAMES[FT_N] = {"OFF", "LPMG", "LD", "SVF", "SK", "OB12", "OB24", "ACID", "COMB", "VOWEL", "ANLG"};
 static int bad;
 static void ck(const char *w, int ok)
 {
@@ -120,8 +120,8 @@ int main(void)
 
     /* 3 */
     {
-        static const uint32_t LP[] = {FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID};
-        for (k = 0; k < 7; k++) {
+        static const uint32_t LP[] = {FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID, FT_ANLG};
+        for (k = 0; k < 8; k++) {
             uint32_t t = LP[k];
             int chr = t == FT_LD ? 127 : 0;
             double lo = tone(t, 50, 0, chr, 100), hi = tone(t, 50, 0, chr, 6000);

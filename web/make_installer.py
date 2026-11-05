@@ -43,6 +43,7 @@ def main(pkg, version, out):
          f'<a href="{REPO}/blob/atlatl-dev/docs/PERFORMANCE.es.md" style="color:inherit">Guía de performance</a></p>'),
         ('<p class="small">Skiff by illuminus5,', '<p class="small">skiff-atlatl by LIkst4, with: OberVave\'s factory '
          'programs and X-MOD / DRIFT ideas (zvenson, GPL-3.0); the screen mirror from fm1-mirror (Patrick F. Kellogg, MIT); '
+         'X0X\'s TB-303 oscillator and filter (Charles Vestal, GPL-3.0; after Open303 by Robin Schmidt, MIT); '
          'Hortator\'s drum models (DEADACTIVE, GPL-3.0; its Plaits drum ports MIT, Emilie Gillet); models after Mutable '
          'Instruments\' Plaits and Rings (Emilie Gillet, MIT); POLY MOD laid out as Melodee\'s Prophet panel (Kerem Kilic); '
          'INSERT types after Airwindows (Chris Johnson, MIT).<br>A fork of Skiff by illuminus5,'),

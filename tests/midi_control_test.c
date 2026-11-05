@@ -352,7 +352,7 @@ static int cc_map_test(void)
     queued(0xB1, 74, 20, 1);
     bad += check("  another track (channel 2, not selected): not recorded", motion.count == 1u && trk[1].p[P_E2] != 0);
     seq_stop(); events_block(CTL);
-    bad += check("  stopped: the patch's own CUT comes back", trk[0].p[P_FCUT] == 40);   /* ((custom) SYNTH ACID LINE's FILTER */
+    bad += check("  stopped: the patch's own CUT comes back", trk[0].p[P_FCUT] == 36);   /* ((custom) SYNTH ACID LINE's FILTER */
     song.rec = 0;
     queued(0xB0, 74, 77, 1);
     bad += check("not armed: the CC is the new value, no event", trk[0].p[P_FCUT] == 77 && motion.count == 1u);

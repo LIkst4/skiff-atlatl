@@ -13,15 +13,18 @@
  *   SK      Sallen-Key (MS-20 style), diode-clipped resonance   LP / BP / HP
  *   OB 12   2-pole state variable, SEM / OB-X style  morph LP > NOTCH > HP, the top 16 values BP
  *   OB 24   4-pole OTA cascade, OB-Xa style        saturation of each stage
- *   ACID    diode-ladder style (303), 18-24 dB     the 3-pole share (squelch)
+ *   ACID    (custom) the 303's: after Open303's TeeBeeFilter, its feedback through a high-pass   FB HP: that
+ *           high-pass, ~30 .. ~430 Hz (63: ~150 Hz, the 303's)
  *   COMB    comb with damping, bipolar             left of centre: - feedback, right: +; farther: darker
  *   VOWEL   3 formant band-passes                  morph A > E > I > O > U (CUT shifts them +-1 oct)
+ *   ANLG    (custom) ANALOG's (Felucca's ANALOG engine): its 2-pole trapezoidal low-pass, DRIVE a soft clip
+ *           before it as ANALOG's   BP: the low-pass .. the band-pass
  *
  * Levels: the block is the track's sum (one voice peaks near 24000). Inside, x >> 2, clamped to +-32000; the states
  * are clamped to +-65000 so every product below fits 32 bits (g <= 13208 Q12, G <= 65535 Q16, k <= 17000 Q12). */
 #include "flt_tables.h"
 
-enum { FT_OFF, FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID, FT_COMB, FT_VOWEL, FT_N };
+enum { FT_OFF, FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID, FT_COMB, FT_VOWEL, FT_ANLG, FT_N };
 
 #define FLT_LINE 512u             /* COMB's delay line (int16): down to 87 Hz */
 #define FLT_SMAX 65000
@@ -29,8 +32,8 @@ enum { FT_OFF, FT_LPMG, FT_LD, FT_SVF, FT_SK, FT_OB12, FT_OB24, FT_ACID, FT_COMB
 typedef struct {
     int32_t s[8];                 /* integrator states (the ladders 4, an SVF 2, VOWEL 3 x 2) */
     int32_t ci;                   /* the cutoff index as heard (glides to the target a block at a time) */
-    int32_t hp;                   /* a DC / low cut state (ACID's input, COMB's output) */
-    int32_t y;                    /* the ladders' last output (the unit-delay feedback) */
+    int32_t hp;                   /* a DC / low cut state (COMB's output); ACID: its b0 a block ago */
+    int32_t y;                    /* the ladders' last output (the unit-delay feedback); ACID: its k a block ago */
     uint16_t wp;                  /* COMB's write position */
     uint8_t type;                 /* the type the states belong to (a change clears them) */
 } flt_t;
@@ -202,6 +205,78 @@ static void fl_vowel(flt_t *f, int32_t *b, uint32_t n, int32_t shift, int32_t R,
     }
 }
 
+/* (custom) ACID, the 303's: after Open303's TeeBeeFilter (Robin Schmidt, MIT) in its TB_303 mode, as X0X's
+ * bass303.c runs it (charlesvestal/fm1-x0x, GPL-3.0-only): four one-poles that load each other (a diode ladder's
+ * stages), the resonance fed back through a high-pass (so the bass stays when it rings), a 44 Hz high-pass before it
+ * and the output made up with the resonance (g2); here in fixed point at 1x, the input to the ladder a soft clip (it
+ * squelches rather than running away), b0 and k glided across the block; the cutoff an octave above the index (the
+ * 303's nominal cutoff is where it rings: without RESO it is darker than the other types'). States s[0..3] the stages, s[4] s[5] the
+ * feedback high-pass, s[6] the input's high-pass (44.5 Hz), s[7] the output's (24 Hz, as Open303's after it: what the
+ * clipped resonance leaves of DC); hp, y: b0, k a block ago */
+static void fl_acid(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, int32_t chr, int32_t dq)
+{
+    int32_t j = clamp(ci + 104, 0, 1024), i8 = j >> 3, fr = j & 7, i9 = i8 < 128 ? i8 + 1 : 128;
+    int32_t b0 = FLT_TB_B0[i8] + (((FLT_TB_B0[i9] - FLT_TB_B0[i8]) * fr) >> 3);       /* Q16 */
+    int32_t k1 = FLT_TB_K[i8] + (((FLT_TB_K[i9] - FLT_TB_K[i8]) * fr) >> 3);          /* Q8, at RESO 1 */
+    int32_t r = FLT_TB_R[clamp(res, 0, 127)], kr = (k1 * r) >> 12;                    /* Q12; Q8 */
+    int32_t g2 = (((((k1 * 16) / 17 - 4096) * r) >> 12) + 4096) * ((4096 + r) >> 1) >> 10;   /* Q12: 2 (.. ) (1 + r) */
+    int32_t hz = 30 + chr * chr / 40, fa = 65536 - ((hz * 598) >> 6), fb0 = (65536 + fa) >> 1;   /* FB HP, Q16 */
+    int32_t y1 = f->s[0], y2 = f->s[1], y3 = f->s[2], y4 = f->s[3], fx = f->s[4], fy = f->s[5], li = f->s[6],
+            lo = f->s[7];
+    int32_t bq = f->hp ? f->hp : b0, kq = f->hp ? f->y : kr, db = (b0 - bq) / (int32_t)n, dk = (kr - kq) / (int32_t)n;
+    uint32_t i;
+    if (!n)
+        return;
+    for (i = 0; i < n; i++) {                    /* (the states 64 x the level: the small b0 of low cutoffs keep their
+                                                  * steps; the soft clip on the level as the other types) */
+        int32_t x = clamp(b[i] >> 2, -32000, 32000) << 6, t, u, o, hy;
+        bq += db;
+        kq += dk;
+        hy = x - li;                                                    /* 44.5 Hz high-pass (Open303's) */
+        li += (int32_t)(((int64_t)hy * 415) >> 16);
+        t = (int32_t)(((int64_t)kq * y4) >> 8);                         /* the resonance, through its high-pass */
+        fy = (int32_t)(((int64_t)(t - fx) * fb0 + (int64_t)fy * fa) >> 16);
+        fx = t;
+        u = clamp((int32_t)(((int64_t)hy * dq) >> 12) - fy, -60000000, 60000000);
+        u = (softclip(u >> 6) << 6) + (u & 63);                        /* the squelch: soft at +-32k */
+        y1 += (int32_t)(((int64_t)(bq << 1) * (u - y1 + y2)) >> 16);
+        y2 += (int32_t)(((int64_t)bq * (y1 - 2 * y2 + y3)) >> 16);
+        y3 += (int32_t)(((int64_t)bq * (y2 - 2 * y3 + y4)) >> 16);
+        y4 = clamp(y4 + (int32_t)(((int64_t)bq * (y3 - 2 * y4)) >> 16), -25000000, 25000000);
+        o = (int32_t)(((((int64_t)g2 * y4) >> 18) * (4096 + r)) >> 12);   /* (made up: g2, and 1 + r more: as loud as
+                                                                         * the other types when it rings) */
+        o = clamp(o, -2000000, 2000000) << 8;
+        lo += (int32_t)(((int64_t)(o - lo) * 224) >> 16);               /* 24 Hz high-pass */
+        b[i] = fl_sat((o - lo) >> 8) << 2;
+    }
+    f->s[0] = y1, f->s[1] = y2, f->s[2] = y3, f->s[3] = y4, f->s[4] = fx, f->s[5] = fy, f->s[6] = li, f->s[7] = lo;
+    f->hp = b0;
+    f->y = kr;
+}
+
+/* (custom) ANLG: ANALOG's filter (Felucca's eng_analog.c, retired): DRIVE its soft clip (1x .. 3x), the 2-pole
+ * trapezoidal SVF (dsp.c tsvf) on half the level; CHAR blends the band-pass in. s[0] s[1] its integrators */
+static void fl_anlg(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, int32_t chr, int32_t drv)
+{
+    tsvf_t c;
+    int32_t drive = 32768 + clamp(drv, 0, 127) * 512, ic1 = f->s[0], ic2 = f->s[1];
+    uint32_t i;
+    tsvf_coef(&c, clamp(ci, 0, 1024) * 32, clamp(res, 0, 127));
+    for (i = 0; i < n; i++) {
+        int32_t s = clamp(b[i], -600000, 600000), v1, v2, v3;
+        if (drv)
+            s = softclip(((s >> 2) * (drive >> 2)) >> 11);
+        v3 = (s >> 1) - ic2;
+        v1 = (c.a1 * ic1 + c.a2 * v3) >> 13;
+        v2 = ic2 + ((c.a2 * ic1 + c.a3 * v3) >> 13);
+        ic1 = clamp(2 * v1 - ic1, -150000, 150000);
+        ic2 = clamp(2 * v2 - ic2, -150000, 150000);
+        b[i] = fl_sat(v2 + (((v1 - v2) * chr) >> 7)) << 1;
+    }
+    f->s[0] = ic1;
+    f->s[1] = ic2;
+}
+
 /* the filter on b[0..n): ty FT_*, cut 0..127, res 0..127, chr 0..127, drv 0..127, cmod: added to the cutoff index
  * (an envelope or LFO, 8 a semitone-ish: 1024 over 9.8 octaves = 8.7 an octave / 12 ... see flt_tables).
  * line: COMB's FLT_LINE int16 (may be 0 for the other types). */
@@ -239,16 +314,11 @@ static void flt_run(flt_t *f, int16_t *line, int32_t *b, uint32_t n, uint32_t ty
         k = res * 126;
         fl_ladder(f, b, n, g, k, dq + chr * 120, 4, chr > 0, 4096 + k / 4);
         break;
-    case FT_ACID:                                /* input low cut (the coupling), 18..24 dB, sharp squelch */
-        {
-            uint32_t i;
-            for (i = 0; i < n; i++) {
-                f->hp += (b[i] - f->hp) >> 8;
-                b[i] -= f->hp;
-            }
-        }
-        k = res * 136;
-        fl_ladder(f, b, n, g, k, dq, 5u + (uint32_t)(chr * 32), 0, 4096 + k / 5);
+    case FT_ACID:                                /* (custom) the 303's (fl_acid) */
+        fl_acid(f, b, n, f->ci, res, chr, dq);
+        break;
+    case FT_ANLG:                                /* (custom) ANALOG's (fl_anlg): its own DRIVE */
+        fl_anlg(f, b, n, f->ci, res, chr, drv);
         break;
     case FT_SVF:                                 /* R 1.0 .. 0.008: rings, never runs away */
         R = 4096 - res * 32;

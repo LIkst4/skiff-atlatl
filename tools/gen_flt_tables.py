@@ -19,6 +19,31 @@ out.append("static const int16_t FLT_VOWEL[5][3] = {")
 for v in VOW:
     out.append("    {" + ", ".join(str(index(f)) for f in v) + "},")
 out.append("};")
+# (custom) ACID: the 303 filter's coefficients (Open303's TeeBeeFilter, TB_303 mode, as X0X computes them at 44.1 kHz),
+# every 8th cutoff index (flt.c interpolates): b0 Q16, the feedback k Q8 (its value at RESO 1, before x r), the
+# cutoff held below 12 kHz (the approximation is for an oversampled rate: above it runs away at 1x)
+def tb(i):
+    f = min(freq(i), 12000.0)
+    fx = f * 0.707106781 / FS
+    b0 = (0.00045522346 + 6.1922189 * fx) / (1.0 + 12.358354 * fx + 4.4156345 * fx * fx)
+    k = fx * (fx * (fx * (fx * (fx * (fx + 7198.6997) - 5837.7917) - 476.47308) + 614.95611) + 213.87126) + 16.998792
+    return int(round(b0 * 65536)), int(round(k * 256))
+TB = [tb(min(i * 8, 1024)) for i in range(129)]
+out.append("/* (custom) ACID (the 303's filter): b0 Q16, k Q8, at cutoff indexes 0, 8 .. 1024 */")
+out.append("static const uint16_t FLT_TB_B0[129] = {")
+for k in range(0, 129, 16):
+    out.append("    " + ", ".join(str(v[0]) for v in TB[k:k + 16]) + ",")
+out.append("};")
+out.append("static const uint16_t FLT_TB_K[129] = {")
+for k in range(0, 129, 16):
+    out.append("    " + ", ".join(str(v[1]) for v in TB[k:k + 16]) + ",")
+out.append("};")
+# RESO 0..127 -> Open303's skewed resonance (1 - e^-3n) / (1 - e^-3), Q12
+R = [int(round((1.0 - math.exp(-3.0 * n / 127.0)) / (1.0 - math.exp(-3.0)) * 4096)) for n in range(128)]
+out.append("static const uint16_t FLT_TB_R[128] = {")
+for k in range(0, 128, 16):
+    out.append("    " + ", ".join(str(v) for v in R[k:k + 16]) + ",")
+out.append("};")
 out.append("#define FLT_IDX_HZ(f) /* (host tools) */ 0")
 p = os.path.join(os.path.dirname(__file__), "..", "firmware", "src", "flt_tables.h")
 open(p, "w").write("\n".join(out) + "\n")

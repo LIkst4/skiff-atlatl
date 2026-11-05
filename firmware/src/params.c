@@ -43,7 +43,7 @@ static const char *const N_LPOL[] = {"BI", "UNI"};
 static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
 static const char *const N_SYPMD[] = {"FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"};   /* (custom) SYNTH's POLY MOD DEST */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
-                                     "VOWEL"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
+                                     "VOWEL", "ANLG"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR",
                                       "DENS", "CONS", "TAPE"};   /* ((custom) after Airwindows, appended: fx.c ins_aw) */
 /* the INSERT's CRUSH: BITS 1..16 and RATE (the held sample's rate, fx.c INS_HOLD) over the range in 16 even parts */
@@ -283,7 +283,7 @@ static const param_desc_t *ins_desc(int32_t type, uint32_t k)
 /* (custom) the FILTER's CHAR as its TYPE means it (flt.c's table): TP's range and default, another label */
 #define PU(l) {l, 0, 0, 127, 0, F_PCT, 0}
 static const param_desc_t FCHR_DESC[] = {PU("CHAR"), PU("TONE"), PU("SLOPE"), PU("MORPH"), PU("MODE"), PU("MORPH"),
-                                         PU("SAT"), PU("SQUELCH"), PU("POLAR"), PU("VOWEL")};
+                                         PU("SAT"), PU("FB HP"), PU("POLAR"), PU("VOWEL"), PU("BP")};
 #undef PU
 /* (custom) DRUM's MOD routes to CUTOFF: the track FILTER's envelope and LFO depths (fx.c trk_fenv) */
 static const param_desc_t DRUM_FMOD_DESC[2] = {{"ENV>FLT", 0, -64, 63, 0, F_BIPCT, 0}, {"LFO>FLT", 0, -64, 63, 0, F_BIPCT, 0}};

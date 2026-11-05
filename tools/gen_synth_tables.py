@@ -49,6 +49,98 @@ for b in range(33):
     s = sum(a)
     out.append("    {" + ", ".join(str(int(round(x / s * 32767))) for x in a) + "},")
 out.append("};")
+
+# (custom) AWAVE: 8 waves modelled on analog circuits (one cycle simulated in time, M points, its harmonics taken out
+# and the table built again from them, band-limited) x 3 band limits x 128 points
+M = 2048
+AW_LIMITS = (48, 16, 6)          # harmonics: below ~420 Hz, below ~1.3 kHz, above (eng_synth.c sy_awave)
+
+def rc_lp(x, a, cycles=24):
+    """a one-pole low-pass run over many cycles: its steady state"""
+    y = 0.0
+    for _ in range(cycles):
+        out = []
+        for v in x:
+            y += a * (v - y)
+            out.append(y)
+    return out
+
+def rc_hp(x, a, cycles=24):
+    lp = rc_lp(x, a, cycles)
+    return [v - l for v, l in zip(x, lp)]
+
+def svf_lp(x, f, q, cycles=40):
+    """a resonant 2-pole low-pass (Chamberlin) at f (cycles of the wave per sample), steady state"""
+    lo = bp = 0.0
+    F = 2 * math.sin(math.pi * f)
+    for _ in range(cycles):
+        out = []
+        for v in x:
+            lo += F * bp
+            hi = v - lo - bp / q
+            bp += F * hi
+            out.append(lo)
+    return out
+
+def saw(t): return 2 * t - 1
+def pulse(t, w): return 1.0 if t < w else -1.0
+def tri(t): return 4 * t - 1 if t < 0.5 else 3 - 4 * t
+ts = [j / M for j in range(M)]
+AWAVES = [
+    ("CAP SAW", [(1 - math.exp(-t * 1.1)) / (1 - math.exp(-1.1)) * 2 - 1 for t in ts]),   # a capacitor's ramp
+    ("JUNO", [saw(t) + 0.55 * pulse(t, 0.42) for t in ts]),                      # saw and pulse mixed
+    ("SHARK", [(2 * t / 0.78 - 1) if t < 0.78 else (1 - 2 * (t - 0.78) / 0.22) for t in ts]),   # a lopsided triangle
+    ("TRI SAT", [math.tanh(2.6 * tri(t)) for t in ts]),                          # a triangle driven round
+    ("RC SQR", rc_hp(rc_lp([pulse(t, 0.5) for t in ts], 0.25), 0.0009)),         # a square, rounded and tilted (AC)
+    ("OB PULSE", rc_lp([pulse(t, 0.3) for t in ts], 0.2)),                       # 30 %, its edges rounded
+    ("SYNC", [saw((t * 1.72) % 1.0) for t in ts]),                               # a saw hard-synced at 1.72
+    ("RESO SAW", svf_lp([saw(t) for t in ts], 7.0 / M, 5.0)),                    # a saw through a ringing low-pass
+]
+
+def harmonics(x, hmax=63):
+    sp = {}
+    for h in range(1, hmax + 1):
+        re = sum(v * math.cos(2 * math.pi * h * j / M) for j, v in enumerate(x)) * 2 / M
+        im = sum(v * math.sin(2 * math.pi * h * j / M) for j, v in enumerate(x)) * 2 / M
+        sp[h] = (re, im)
+    return sp
+
+def aw_table(sp, lim):
+    s = [0.0] * N
+    for h, (re, im) in sp.items():
+        if h > lim:
+            continue
+        for i in range(N):
+            a = 2 * math.pi * h * i / N
+            s[i] += re * math.cos(a) + im * math.sin(a)
+    pk = max(abs(v) for v in s) or 1.0
+    return [int(round(v / pk * 32000)) for v in s]
+
+out.append("/* (custom) AWAVE: waves modelled on analog circuits (tools/gen_synth_tables.py), %d band limits: %s harmonics */"
+           % (len(AW_LIMITS), ", ".join(map(str, AW_LIMITS))))
+out.append("#define SYN_AWN %d" % len(AWAVES))
+out.append("static const int16_t SYN_AWT[%d][%d][%d] = {" % (len(AWAVES), len(AW_LIMITS), N))
+for name, x in AWAVES:
+    sp = harmonics(x)
+    out.append("    {   /* %s */" % name)
+    for lim in AW_LIMITS:
+        out.append("        {" + ", ".join(map(str, aw_table(sp, lim))) + "},")
+    out.append("    },")
+out.append("};")
+out.append("static const char *const N_SYN_AWAVE[%d] = {%s};" % (len(AWAVES), ", ".join('"%s"' % w[0] for w in AWAVES)))
+
+# (custom) 303: Open303's square (as X0X's bass303.c computes it): 0.5 (tanh(F (2p - 1) + O) + its mean), F =
+# dB2amp(36.9), O = 4.37; one cycle, 256 points and the end (the hard edge at p = 0: a polyBLEP in eng_synth.c)
+F = 10 ** (36.9 / 20)
+O = 4.37
+def lncosh(y): return y - math.log(2) + math.log1p(math.exp(-2 * y))
+sq_dc = -(lncosh(F + O) - lncosh(F - O)) / (2 * F)
+sq = [0.5 * (math.tanh(F * (2 * (i / 256) - 1) + O) + sq_dc) for i in range(257)]
+out.append("/* (custom) 303: Open303's square, 0.5 (tanh(F (2p - 1) + O) + mean), 256 points and the end, Q15 */")
+out.append("static const int16_t SY_303SQ[257] = {")
+for k in range(0, 257, 16):
+    out.append("    " + ", ".join(str(int(round(v * 32767))) for v in sq[k:k + 16]) + ",")
+out.append("};")
 p = os.path.join(os.path.dirname(__file__), "..", "firmware", "src", "synth_tables.h")
 open(p, "w").write("\n".join(out) + "\n")
 print("synth tables ->", os.path.normpath(p))

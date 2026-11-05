@@ -19,7 +19,16 @@
  *     CHORD  (custom, after Plaits' chords) four saws at a chord's notes: SHAPE picks it (OCT 5 SUS4 m m7 m9 m11 69 M9
  *            M7 M), MOD (shown INV) its inversion (0..4: the lowest notes an octave up)
  *     SWARM  (custom, after Plaits' swarm / the supersaw) seven saws spread around the note: SHAPE the spread (0 .. ~2
- *            semitones out), MOD (shown SIDES) the six around against the middle one
+ *            semitones out, on a curve: half way ~70 cents), MOD (shown SIDES) the six around against the middle one
+ *     SQR    (custom, ANALOG's square / pulse) SHAPE the width (50 % .. 5 %), MOD (shown SUB) as VA's
+ *     TRI    (custom, ANALOG's triangle) SHAPE drives it round (a triangle .. a rounded trapezoid), MOD (SUB) as VA's
+ *     PWM    (custom, ANALOG's PWM) a pulse whose width moves by itself: SHAPE the centre (50 % .. 10 %), MOD (shown
+ *            DEPTH) how far an inner triangle (~0.8 Hz) swings it; the SHP routings move the centre
+ *     303    (custom, X0X's TB-303 oscillator, Open303's) SHAPE its saw .. its square (a transistor-shaped saw, half as
+ *            loud, as Open303 blends them), MOD (SUB) as VA's. With the ACID filter: the 303
+ *     AWAVE  (custom) a wavetable of 8 waves modelled on analog circuits (CAP SAW JUNO SHARK TRI SAT RC SQR OB PULSE SYNC
+ *            RESO SAW, tools/gen_synth_tables.py), SHAPE scans them, MOD (shown WARP) as WAVE's; three band limits (48,
+ *            16 and 6 harmonics)
  *   (CHORD and SWARM keep their phases in the MODAL's area, synth_vc_t ma / mb: a model or the other)
  *   POLY MOD (custom, the Prophet-5's): ENV AMT (ENV 2: its own page) and OSC B (B's signal, at any MIX) on DEST: FREQ A
  *   (ENV: +-4 octaves; B: FM, A's rate +-2x at 127), PW A (SHAPE A), FILTER, FRQ+FLT or ALL. B moves PW A and FILTER
@@ -41,15 +50,20 @@
  * envelope), s[2] its hold (ORGAN: the click's countdown); B's in synth_vc_t. */
 #include "synth_tables.h"
 
-enum { SY_VA, SY_WAVE, SY_ADD, SY_NOISE, SY_ORGAN, SY_MODAL, SY_FOLD, SY_CHORD, SY_SWARM, SY_N, SY_SYNC = SY_N,
-       SY_RING };   /* OSC A's (stored: appended); B's own two after */
-/* OSC B's stored values (appended): OFF, the models 1..5 (1 + SY_*), SYNC, RING, (custom) MODAL, FOLD, CHORD, SWARM */
-enum { SYB_OFF, SYB_SYNC = 6, SYB_RING, SYB_MODAL, SYB_FOLD, SYB_CHORD, SYB_SWARM, SYB_N };
-static const char *const N_SY_OSC[] = {"VA", "WAVE", "ADD", "NOISE", "ORGAN", "MODAL", "FOLD", "CHORD", "SWARM"};
+enum { SY_VA, SY_WAVE, SY_ADD, SY_NOISE, SY_ORGAN, SY_MODAL, SY_FOLD, SY_CHORD, SY_SWARM, SY_SQR, SY_TRI, SY_PWM, SY_303,
+       SY_AWAVE, SY_N, SY_SYNC = SY_N, SY_RING };   /* OSC A's (stored: appended); B's own two after */
+/* OSC B's stored values (appended): OFF, the models 1..5 (1 + SY_*), SYNC, RING, (custom) MODAL, FOLD, CHORD, SWARM,
+ * SQR, TRI, PWM, 303, AWAVE (B's value - SYB_MODAL + SY_MODAL: A's model) */
+enum { SYB_OFF, SYB_SYNC = 6, SYB_RING, SYB_MODAL, SYB_FOLD, SYB_CHORD, SYB_SWARM, SYB_SQR, SYB_TRI, SYB_PWM, SYB_303,
+       SYB_AWAVE, SYB_N };
+static const char *const N_SY_OSC[] = {"VA", "WAVE", "ADD", "NOISE", "ORGAN", "MODAL", "FOLD", "CHORD", "SWARM", "SQR",
+                                       "TRI", "PWM", "303", "AWAVE"};
 static const char *const N_SY_OSCB[] = {"OFF", "VA", "WAVE", "ADD", "NOISE", "ORGAN", "SYNC", "RING", "MODAL", "FOLD",
-                                        "CHORD", "SWARM"};
+                                        "CHORD", "SWARM", "SQR", "TRI", "PWM", "303", "AWAVE"};
+_Static_assert(NELEM(N_SY_OSC) == SY_N && NELEM(N_SY_OSCB) == SYB_N, "SYNTH's model names");
+_Static_assert(SYB_AWAVE - SYB_MODAL == SY_AWAVE - SY_MODAL, "OSC B's models as A's");
 /* OSC B's stored value -> its model (SY_*, SY_SYNC, SY_RING); 0 (OFF) -> SY_BOFF */
-#define SY_BOFF 15u
+#define SY_BOFF 31u
 static uint32_t sy_bmodel(int32_t b)
 {
     return b <= 0 ? SY_BOFF : b < SYB_SYNC ? (uint32_t)b - 1u : b == SYB_SYNC ? SY_SYNC : b == SYB_RING ? SY_RING
@@ -289,12 +303,13 @@ static __attribute__((noinline)) void sy_chord(uint32_t *ph, uint32_t *xp, uint3
 static __attribute__((noinline)) void sy_swarm(uint32_t *ph, uint32_t *xp, uint32_t inc, int32_t sh, int32_t mod,
                                                int32_t *y, uint32_t n, int32_t g)
 {
-    int32_t sp = sh >> 2, gs = mod * 258, gc = 32767 - mod * 140, nm;   /* the spread (Q15 of ~11 %), the levels */
+    int32_t sp = mulq15(sh, 9830 + mulq15(sh, 22937)), gs = mod * 258, gc = 32767 - mod * 140, nm;   /* ((custom) the
+                                                          * spread on a curve: x (0.3 + 0.7 x), Q15 of ~12 %), the levels */
     uint32_t i, k, ik[7];
     nm = (int32_t)((32767u * 32768u) / (uint32_t)(gc + ((gs * 5) >> 1) + 1));   /* (the six ~ sqrt 6 = 2.5 x one) */
     if (nm > 32767)
         nm = 32767;
-    for (k = 0; k < 7u; k++)                             /* (+-11 % at full SHAPE) */
+    for (k = 0; k < 7u; k++)                             /* (+-12 % at full SHAPE: ~2 semitones) */
         ik[k] = (uint32_t)((int64_t)inc + (((int64_t)inc * mulq15(SY_SWM[k], sp)) >> 18));
     gs = mulq15(gs, nm);
     gc = mulq15(gc, nm);
@@ -308,6 +323,68 @@ static __attribute__((noinline)) void sy_swarm(uint32_t *ph, uint32_t *xp, uint3
         y[i] += mulq15(x + mulq15(z, gs), g);
     }
     *ph += inc * n;
+}
+
+/* (custom) SQR TRI PWM: ANALOG's oscillators (Felucca's eng_analog.c, retired) as models; 303: X0X's (charlesvestal/
+ * fm1-x0x dsp/bass303.c, after Open303 by Robin Schmidt, MIT) saw and square; AWAVE: the analog-modelled table.
+ * *sub: SUB's phase (PWM: its inner triangle's) */
+static __attribute__((noinline)) void sy_anlg(uint32_t md, uint32_t *ph, uint32_t inc, int32_t sh, int32_t mod,
+                                              int32_t *y, uint32_t n, int32_t g, uint32_t *sub, const int32_t *pm)
+{
+    uint32_t p = *ph, s2 = *sub, i2 = inc >> 1, i;
+    int32_t sl = md == SY_PWM || md == SY_AWAVE ? 0 : mod * 200;   /* SUB, Q15 */
+#define PQ(i) (pm ? p + (uint32_t)pm[i] : p)
+    if (md == SY_AWAVE) {                                    /* SHAPE scans the 8 waves, MOD warps (as WAVE) */
+        int32_t pos = sh * (SYN_AWN - 1) / 127;
+        uint32_t lim = inc < 0x026A0000u ? 0u : inc < 0x07400000u ? 1u : 2u;   /* below ~420 Hz, ~1.25 kHz, above */
+        uint32_t k = mod ? 32768u - (uint32_t)mod * 240u : 0u;
+        for (i = 0; i < n; i++, p += inc) {
+            uint32_t q = sy_warp(PQ(i), k), w = (uint32_t)pos >> 8, j = q >> 25, fr = (q >> 10) & 0x7FFFu;
+            const int16_t *a = SYN_AWT[w][lim], *c = SYN_AWT[w + 1u < SYN_AWN ? w + 1u : w][lim];
+            int32_t xa = a[j] + (((a[(j + 1u) & 127u] - a[j]) * (int32_t)fr) >> 15);
+            int32_t xc = c[j] + (((c[(j + 1u) & 127u] - c[j]) * (int32_t)fr) >> 15);
+            y[i] += mulq15(xa + (((xc - xa) * (pos & 255)) >> 8), g);
+        }
+        *ph = p;
+        return;
+    }
+    {
+        uint32_t pw = 0x80000000u;
+        int32_t dr = 0;
+        if (md == SY_SQR)                                    /* 50 % .. 5 % */
+            pw -= (uint32_t)sh * 59447u;
+        else if (md == SY_PWM) {                             /* the centre 50 % .. 10 %, the inner triangle ~0.8 Hz */
+            int32_t tr = osc_tri(s2), sw = mulq15(tr, mod * 258);   /* +-1 at DEPTH 127: +-40 % */
+            int64_t w = (int64_t)0x80000000u - (int64_t)sh * 52842 + (int64_t)sw * 52428;
+            pw = (uint32_t)(w < 0x08000000 ? 0x08000000 : w > 0xF8000000u ? 0xF8000000u : w);
+            s2 += 77925u * n;
+        } else if (md == SY_TRI)                             /* the drive: 1x .. 5x into a soft clip, blended in */
+            dr = sh;
+        for (i = 0; i < n; i++, p += inc) {
+            uint32_t q = PQ(i);
+            int32_t x;
+            if (md == SY_TRI) {
+                x = osc_tri(q);
+                if (dr)
+                    x += mulq15(softclip(x + ((x * (dr >> 6)) >> 7)) - x, dr);
+            } else if (md == SY_303) {                       /* Open303's saw (inverted) .. its square */
+                int32_t sw = -osc_saw(q + 0x80000000u, inc), sq;
+                uint32_t j = q >> 24, fr = (q >> 16) & 255u;
+                sq = SY_303SQ[j] + (((SY_303SQ[j + 1u] - SY_303SQ[j]) * (int32_t)fr) >> 8) - (blep(q, inc) >> 1);
+                x = sw + mulq15(sq - sw, sh);
+            } else {
+                x = osc_pulse(q, inc, pw) << 1;
+            }
+            if (sl) {
+                x += mulq15(osc_pulse(s2, i2, 0x80000000u) << 1, sl) >> 1;
+                s2 += i2;
+            }
+            y[i] += mulq15(x, g);
+        }
+    }
+#undef PQ
+    *ph = p;
+    *sub = s2;
 }
 
 /* one oscillator of model md into y[0..n) (added at gain g, Q15): its phase *ph at inc; shape 0..127 << 8 */
@@ -437,6 +514,9 @@ static __attribute__((noinline)) void sy_osc(uint32_t md, uint32_t *ph, uint32_t
     case SY_SWARM:
         if (mm)
             sy_swarm(&p, (uint32_t *)mm->y, inc, sh, mod, y, n, g);
+        break;
+    case SY_SQR: case SY_TRI: case SY_PWM: case SY_303: case SY_AWAVE:   /* (custom) sy_anlg */
+        sy_anlg(md, &p, inc, sh, mod, y, n, g, sub, pm);
         break;
     default: {                                               /* NOISE */
         int32_t c = 32767 - (sh >> 1) * 2, h = *hold, l = *nl;   /* the colour: a one-pole */
@@ -580,7 +660,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     }
     cm = (m->cutoff >> 5) + (((v->pitch16 - 60 * 16) * 9) >> 5);   /* the routings; half key tracking */
     if (pfl)                                             /* (POLY MOD) -> FILTER: ENV +-~5 octaves, B +-~4 */
-        cm += ((e15 * pme) >> 6) + ((bs * pob) >> 13);
+        cm += ((e15 * pme) >> 12) + ((bs * pob) >> 13);   /* ((custom) ENV: >> 12, was >> 6: 32 x too far) */
     if (drift)
         cm += SY_CARD_CUT[vi] * drift / 64;              /* (DRIFT: the card's filter a little apart) */
     if (p[P_SYACC]) {                                    /* (303) the accent's envelope and the track's sweep */
@@ -605,7 +685,9 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 static const param_desc_t SY_MOD_DESC[SY_N] = {
     {"SUB", 0, 0, 127, 0, F_PCT, 0}, {"WARP", 0, 0, 127, 0, F_PCT, 0}, {"ODD", 0, 0, 127, 0, F_PCT, 0},
     {"PITCH", 0, 0, 127, 0, F_PCT, 0}, {"PERC", 0, 0, 127, 0, F_PCT, 0}, {"DAMP", 0, 0, 127, 0, F_PCT, 0},
-    {"SKEW", 0, 0, 127, 0, F_PCT, 0}, {"INV", 0, 0, 127, 0, F_PCT, 0}, {"SIDES", 0, 0, 127, 0, F_PCT, 0}};
+    {"SKEW", 0, 0, 127, 0, F_PCT, 0}, {"INV", 0, 0, 127, 0, F_PCT, 0}, {"SIDES", 0, 0, 127, 0, F_PCT, 0},
+    {"SUB", 0, 0, 127, 0, F_PCT, 0}, {"SUB", 0, 0, 127, 0, F_PCT, 0}, {"DEPTH", 0, 0, 127, 0, F_PCT, 0},
+    {"SUB", 0, 0, 127, 0, F_PCT, 0}, {"WARP", 0, 0, 127, 0, F_PCT, 0}};
 static const param_desc_t *synth_desc(const track_t *t, uint32_t k)
 {
     if (k == 2u)
@@ -624,8 +706,8 @@ static const preset_t SYNTH_PRESETS[] = {
      MORE(SYF(FT_OB12, 72, 25), {P_LD_SHP, 30}), TAG(PT_PAD)},
     {"LADDER BASS", {SY_VA, 0, 60, 1 + SY_VA, 0, -12, 10, 50}, {0, 60, 50, 30}, 40, 1, FX(0, 0, 5, 10),
      MORE(SYF(FT_LPMG, 40, 70), {P_FDRV, 40}), TAG(PT_BASS)},
-    {"ACID LINE", {SY_VA, 0, 0, 0, 0, 0, 0, 64}, {0, 55, 20, 30}, 50, 1, FX(20, 0, 45, 15),
-     MORE(SYF(FT_ACID, 40, 105), {P_FCHR, 40}), TAG(PT_BASS)},
+    {"ACID LINE", {SY_303, 0, 0, 0, 0, 0, 0, 64}, {0, 52, 30, 20}, 60, 1, FX(20, 0, 45, 15),
+     MORE(SYF(FT_ACID, 36, 110), {P_FCHR, 63}), TAG(PT_BASS)},   /* ((custom) the 303: its oscillator and filter) */
     {"WAVE SCAN", {SY_WAVE, 20, 0, 1 + SY_WAVE, 60, 12, 20, 50}, {40, 90, 110, 70}, 10, 0, FX(0, 40, 30, 60),
      MORE(SYF(FT_SVF, 90, 30), {P_LD_SHP, 50}), TAG(PT_PAD)},
     {"VOX PAD", {SY_WAVE, 108, 0, 1 + SY_WAVE, 100, 0, 25, 64}, {80, 90, 118, 90}, 0, 0, FX(0, 70, 20, 80),
@@ -660,28 +742,29 @@ static const preset_t SYNTH_PRESETS[] = {
     {"SY MUSICBOX", {SY_WAVE, 127, 30, 1 + SY_ADD, 110, 24, 0, 40}, {0, 90, 0, 80}, 0, 0, FX(0, 30, 40, 60),
      MORE(SYF(FT_SVF, 118, 0)), TAG(PT_PLUCK)},
     {"SY KOTO", {SY_VA, 20, 0, 1 + SY_WAVE, 110, 12, 4, 34}, {0, 72, 0, 50}, 50, 0, FX(0, 0, 25, 30),
-     MORE(SYF(FT_SK, 70, 60), {P_ED_PIT, 2}), TAG(PT_PLUCK)},    /* (custom) ANALOG's, TRIO's, NOISE's and WHEEL's sounds, made here (those engines retired: their sounds load as
-     * these, retire.c RETIRE_MAP) */
-    {"SAW LEAD", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 25, 64}, {4, 70, 100, 50}, 20, 1, FX(0, 10, 45, 30),
-     MORE(SYF(FT_LPMG, 90, 30)), TAG(PT_LEAD)},
-    {"SOFT PAD", {SY_VA, 30, 0, 1 + SY_VA, 30, 0, 30, 50}, {80, 90, 110, 95}, 10, 0, FX(0, 60, 20, 70),
-     MORE(SYF(FT_LPMG, 60, 10)), TAG(PT_PAD)},
-    {"SQR BASS", {SY_VA, 64, 40, 0, 0, 0, 0, 0}, {0, 60, 40, 30}, 30, 1, FX(5, 0, 10, 10),
-     MORE(SYF(FT_LPMG, 50, 70)), TAG(PT_BASS)},
-    {"PWM STR", {SY_VA, 90, 0, 1 + SY_VA, 100, 0, 40, 64}, {60, 80, 110, 85}, 8, 0, FX(0, 50, 20, 60),
-     MORE(SYF(FT_LPMG, 75, 20), {P_LD_SHP, 30}), TAG(PT_PAD)},
+     MORE(SYF(FT_SK, 70, 60), {P_ED_PIT, 2}), TAG(PT_PLUCK)},
+    /* (custom) ANALOG's, TRIO's, NOISE's and WHEEL's sounds, made here (those engines retired: their sounds load as these,
+     * retire.c RETIRE_MAP); ANALOG's with its oscillators (SQR, PWM), its filter (ANLG) and its DETUNE in SYNTH's cents */
+    {"SAW LEAD", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 30, 64}, {4, 70, 100, 50}, 20, 1, FX(0, 10, 45, 30),
+     MORE(SYF(FT_ANLG, 90, 30), {P_FDRV, 10}), TAG(PT_LEAD)},
+    {"SOFT PAD", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 51, 64}, {80, 90, 110, 95}, 10, 0, FX(0, 60, 20, 70),
+     MORE(SYF(FT_ANLG, 60, 10)), TAG(PT_PAD)},
+    {"SQR BASS", {SY_SQR, 0, 0, 0, 0, 0, 0, 0}, {0, 60, 40, 30}, 30, 1, FX(5, 0, 10, 10),
+     MORE(SYF(FT_ANLG, 50, 70), {P_FDRV, 40}), TAG(PT_BASS)},
+    {"PWM STR", {SY_PWM, 20, 80, SYB_PWM, 30, 0, 20, 50}, {60, 80, 110, 85}, 8, 0, FX(0, 50, 20, 60),
+     MORE(SYF(FT_ANLG, 75, 20)), TAG(PT_PAD)},
     {"SUB BASS", {SY_WAVE, 0, 0, 0, 0, 0, 0, 0}, {0, 60, 100, 20}, 0, 1, FX(0, 0, 0, 10),
      MORE(SYF(FT_LPMG, 50, 0)), TAG(PT_BASS)},
-    {"SYNTH PLUCK", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 16, 64}, {0, 88, 0, 60}, 55, 0, FX(0, 20, 50, 30),
-     MORE(SYF(FT_LPMG, 30, 40)), TAG(PT_PLUCK)},
-    {"SYNTH BRASS", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 20, 64}, {35, 70, 90, 45}, 40, 0, FX(0, 20, 20, 40),
-     MORE(SYF(FT_OB12, 45, 20)), TAG(PT_LEAD)},
-    {"REESE", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 100, 64}, {0, 64, 127, 30}, 10, 1, FX(10, 20, 5, 10),
-     MORE(SYF(FT_LPMG, 52, 15), {P_LD_FLT, 8}), TAG(PT_BASS)},
+    {"SYNTH PLUCK", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 20, 50}, {0, 88, 0, 60}, 55, 0, FX(0, 20, 50, 30),
+     MORE(SYF(FT_ANLG, 30, 40)), TAG(PT_PLUCK)},
+    {"SYNTH BRASS", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 25, 64}, {35, 70, 90, 45}, 40, 0, FX(0, 20, 20, 40),
+     MORE(SYF(FT_ANLG, 45, 20), {P_FDRV, 10}), TAG(PT_LEAD)},
+    {"REESE", {SY_VA, 0, 0, 1 + SY_VA, 0, 0, 101, 64}, {0, 64, 127, 30}, 10, 1, FX(10, 20, 5, 10),
+     MORE(SYF(FT_ANLG, 52, 15), {P_LD_FLT, 8}), TAG(PT_BASS)},
     {"HARD SYNC", {SY_VA, 0, 0, SYB_SYNC, 0, 12, 0, 100}, {2, 70, 96, 40}, 16, 1, FX(0, 15, 40, 30),
      MORE(SYF(FT_LPMG, 88, 24), {P_GLIDE, 20}), TAG(PT_LEAD)},
     {"SUB SAW", {SY_VA, 0, 80, 0, 0, 0, 0, 0}, {0, 60, 110, 22}, 20, 1, FX(0, 0, 5, 10),
-     MORE(SYF(FT_LPMG, 70, 22)), TAG(PT_BASS)},
+     MORE(SYF(FT_ANLG, 70, 22), {P_FDRV, 6}), TAG(PT_BASS)},
     {"SINE KEY", {SY_WAVE, 0, 0, 1 + SY_WAVE, 0, 12, 0, 30}, {2, 80, 30, 70}, 0, 0, FX(0, 30, 25, 40),
      MORE(SYF(FT_OFF, 127, 0)), TAG(PT_KEYS)},
     {"SYN TOM", {SY_WAVE, 0, 0, 0, 0, 0, 0, 0}, {0, 76, 0, 60}, 0, 0, FX(0, 0, 10, 45),
@@ -723,8 +806,8 @@ static const preset_t SYNTH_PRESETS[] = {
     {"PEDAL BASS", {SY_ORGAN, 119, 0, 0, 0, 0, 0, 0}, {0, 64, 127, 30}, 0, 1, FX(0, 0, 0, 15),
      MORE(SYF(FT_OFF, 127, 0)), TAG(PT_BASS)},
     /* (custom) the new pieces: the 303 page, MODAL, X-MOD (OberVave's), DRIFT */
-    {"DEVIL ACID", {SY_VA, 0, 0, 0, 0, 0, 0, 64}, {0, 55, 20, 30}, 50, 1, FX(20, 0, 45, 15),
-     MORE(SYF(FT_ACID, 40, 105), {P_SYACC, 100}), TAG(PT_BASS)},
+    {"DEVIL ACID", {SY_303, 127, 0, 0, 0, 0, 0, 64}, {0, 58, 20, 20}, 66, 1, FX(30, 0, 45, 15),
+     MORE(SYF(FT_ACID, 34, 118), {P_SYACC, 100}), TAG(PT_BASS)},   /* ((custom) the 303's square) */
     {"STRUCK BAR", {SY_MODAL, 64, 40, 0, 0, 0, 0, 0}, {0, 90, 0, 60}, 0, 0, FX(0, 0, 10, 35),
      MORE(SYF(FT_OFF, 127, 0)), TAG(PT_PLUCK)},
     {"MODAL BELL", {SY_MODAL, 127, 10, 0, 0, 0, 0, 0}, {0, 100, 0, 90}, 0, 0, FX(0, 20, 30, 60),

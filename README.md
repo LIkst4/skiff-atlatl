@@ -47,6 +47,8 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
   and the ideas behind X-MOD and DRIFT (GPL-3.0).
 - [fm1-mirror](https://github.com/pfkellogg/fm1-mirror) by Patrick F. Kellogg: `screen_mirror.c` / `.h`, the screen
   mirror over USB (MIT).
+- [X0X](https://github.com/charlesvestal/fm1-x0x) by Charles Vestal: its TB-303 (after Open303 by Robin Schmidt,
+  MIT), the SYNTH's 303 oscillator and ACID filter (GPL-3.0).
 - [Hortator](https://github.com/deadactive/hortator) by DEADACTIVE: the MD kits' drum models (GPL-3.0; its ports of
   Plaits' drums MIT, Emilie Gillet).
 - [JIANT FM](https://github.com/juanjiant-bit/JIANT) by juanjiant-bit: the DRUM-X engine, now the DX and DX+ kits
@@ -65,10 +67,17 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 **SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
 - two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
   Mutable's Rings: BRIGHT, POSITION) or, after Mutable's Plaits, FOLD (wavefolder), CHORD (11 chords and inversions),
-  SWARM (supersaw); OSC B also SYNC or RING;
-- a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL), SUB, X-MOD and
+  SWARM (supersaw, its spread now wide from half way); OSC B also SYNC or RING;
+- (new) ANALOG's oscillators back as models: **SQR** (width 50–5 %), **TRI** (driven round), **PWM** (the width
+  moving by itself, DEPTH); **303**, X0X's TB-303 oscillator (Open303's saw … its square); **AWAVE**, a wavetable of 8
+  waves modelled on analog circuits (CAP SAW, JUNO, SHARK, TRI SAT, RC SQR, OB PULSE, SYNC, RESO SAW);
+- a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL, ANLG), SUB, X-MOD and
   DRIFT (after OberVave), a 303 page after the Devil Fish (ACCENT sweep, ACC DEC, MUFFLE);
 - **POLY MOD** after the Prophet-5: ENV 2 and OSC B onto FREQ A, PW A or the filter; **B LOW** makes OSC B an LFO;
+- (new) **ACID** is now the 303's filter, after Open303's TeeBeeFilter as X0X runs it (its resonance through a
+  high-pass, CHAR = **FB HP**, ~150 Hz at 63); **ANLG** is ANALOG's own filter (its drive and 2-pole low-pass, CHAR
+  blends the band-pass in). ACID LINE and DEVIL ACID play the 303; ANALOG's sounds (SAW LEAD, SQR BASS, PWM STR …)
+  are back on its oscillators and filter;
 - 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
   it; one without leaves yours.
 
