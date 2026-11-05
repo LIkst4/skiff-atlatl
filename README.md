@@ -17,14 +17,18 @@ synths and drums, patterns and songs, live performance, and a screen that shows 
 ## skiff-atlatl
 
 **skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) (itself built on Felucca), with more synthesis,
-Elektron-style sequencing and live tools. Everything below this section is Skiff's own README and still applies.
+sequencing and live tools inspired by Elektron's workflow. Everything below this section is Skiff's own README and still applies.
 
+- **Install:** the **[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)** (Chrome or Edge, the FM-1
+  on USB). Not Skiff's installer further below: that one installs the original Skiff.
 - **Try it:** [in the browser](https://likst4.github.io/skiff-atlatl/emu/) (the firmware itself, emulated) ·
   **[web editor](https://likst4.github.io/skiff-atlatl/editor/)** (Chrome or Edge, the FM-1 on USB)
 - **Download:** the `.fwsc` on the [releases page](https://github.com/LIkst4/skiff-atlatl/releases) (`build-atlatl-dev`:
   the latest build of the branch). The package carries the update loader: back up first, and you can always go back
   to the official firmware.
 - **Performance guide:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md) ([en español](docs/PERFORMANCE.es.md))
+
+<sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
 
 ### What's new in this fork
 
@@ -57,7 +61,7 @@ Elektron-style sequencing and live tools. Everything below this section is Skiff
 
 **Arpeggiator**:
 - the arp's RATE adds **4T** and **32T** triplets;
-- **ARP › ARP STEP**, a Bitwig-style step pattern: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
+- **ARP › ARP STEP**, a step pattern inspired by Bitwig's arpeggiator: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
 
 **Screen over USB**:
 - the web editor's **Screen** tab shows the FM-1's display live;
@@ -961,8 +965,8 @@ Free software: [GPL-3.0-only](LICENSE), the Hügelton Sample Pack included. Skif
 Felucca; its changes are marked (Skiff) in the sources. The bundled fonts and the ported DSP keep their own
 licences ([LICENSES/](LICENSES/)); details in [LICENSING.md](LICENSING.md).
 
-M-VAVE, FM-1 and SMK-37 are trademarks of their respective owners. Skiff and Felucca are not affiliated with or endorsed
-by them, and Skiff is not made or endorsed by Hügelton Instruments.
+M-VAVE, FM-1 and SMK-37 are trademarks of their respective owners. Skiff, skiff-atlatl and Felucca are not affiliated with or
+endorsed by them, and Skiff is not made or endorsed by Hügelton Instruments. Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.
 
 Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments (Felucca)<br>
 Copyright (C) 2026 illuminus5 (Skiff)

@@ -123,6 +123,8 @@ and is not made, endorsed or supported by Hügelton Instruments.
 firmware that runs on FM-1 hardware. It is not affiliated with, endorsed by or supported
 by those owners.
 
+Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl (this fork) is not affiliated with, endorsed or supported by them.
+
 ## Radio
 
 Skiff never enables the Bluetooth / Wi-Fi radio of the hardware.

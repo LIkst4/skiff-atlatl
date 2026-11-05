@@ -1,8 +1,8 @@
-# Performance mode, Elektron style: a guide
+# Performance mode, inspired by Elektron: a guide
 
 *skiff-atlatl on the M-VAVE FM-1 · [versión en español](PERFORMANCE.es.md)*
 
-Skiff plays live the way an Elektron box does. Patterns are queued and switch on the beat. Mutes and scenes land
+Skiff plays live in a way inspired by Elektron's grooveboxes. Patterns are queued and switch on the beat. Mutes and scenes land
 together. Knob "throws" spring back by themselves. A hold-to-play effects layer covers the master. Trig conditions,
 chance and parameter locks keep a loop moving without you touching it.
 
@@ -105,7 +105,7 @@ SHIFT + FX latches the effects.
 **Hold GLO.**
 
 - **F4 FILL**: while held, steps with the **FILL** condition play and steps with **!FILL** rest. Hold it at the end of
-  a phrase for a fill, exactly as on an Elektron.
+  a phrase for a fill, in the Elektron manner.
 - **F3 to D4**: solo T1 to T6 while held. **E4** unmutes everything. **G4** taps the tempo.
 - **KNOB 1–4**: the levels of the four tracks shown.
 - **GLO + PLAY** restarts from the top without stopping. **GLO + SELECT** sets the tempo.
@@ -132,7 +132,7 @@ These are set per step on **SEQ › NOTES / FEEL**. Select steps, then turn the 
 ## 9. The arpeggiator, live
 
 Set the arp on **ARP / ARP 2**: MODE, RATE (with **4T, 8T, 16T, 32T** triplets), OCTAVE, GATE, SWING and HOLD. The
-**ARP STEP** page adds a Bitwig-style step pattern:
+**ARP STEP** page adds a step pattern inspired by Bitwig's arpeggiator:
 
 - **KNOB 1 STEPS**: the pattern's length, 1–16. It runs against the notes' own cycle, so a 3-step pattern over 4 notes
   makes a polymeter.
@@ -159,3 +159,7 @@ settings: one with its arp on switches it on, one without leaves yours alone.
 
 To see the screen big while you play, open the editor's **Screen** tab. It also works with Patrick F. Kellogg's
 [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) app.
+
+---
+
+<sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>

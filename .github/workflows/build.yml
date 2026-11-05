@@ -56,10 +56,13 @@ jobs:
           cp web/editor.html site/editor/index.html
           cp -r web/fonts web/fukiai.ttf web/FUKIAI-LICENSE.txt web/fm1backup.js site/editor/
           cp web/conv/conv.js site/editor/conv/
+          sh web/conv/build.sh && cp build/conv/conv.wasm site/editor/conv/ || echo "no converter (the editor's Restore of pre-2.0 backups)"
+          python web/make_installer.py build/felucca.fwsc "2.2 · atlatl-dev ${GITHUB_SHA::7}" site
           printf '%s\n' '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width">' \
             '<title>skiff-atlatl</title><style>body{font:16px system-ui;max-width:640px;margin:40px auto;padding:0 16px}</style>' \
             '<h1>skiff-atlatl</h1><p>A groovebox firmware for the M-VAVE FM-1 (a fork of Skiff).</p>' \
-            '<ul><li><a href="emu/">Play it in the browser</a> (the firmware itself, emulated)</li>' \
+            '<ul><li><a href="installer/"><b>Install it</b></a> (Chrome or Edge, the FM-1 on USB; also the way back to the official firmware)</li>' \
+            '<li><a href="emu/">Play it in the browser</a> (the firmware itself, emulated)</li>' \
             '<li><a href="editor/">Web editor</a> (Chrome or Edge, the FM-1 on USB): sounds, steps, ARP STEP, the screen</li>' \
             '<li><a href="https://github.com/LIkst4/skiff-atlatl">Source and releases</a></li></ul>' > site/index.html
       - name: "(custom) The site as the Pages artifact"
