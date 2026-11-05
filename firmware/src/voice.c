@@ -310,6 +310,7 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->gate = 1;
     v->active = 1;
     v->stage = 1;
+    t->fenv_st = 1;                                      /* ((custom) DRUM: a hit restarts the FILTER's envelope) */
     v->stage2 = 1;                                      /* ((Skiff phase 9) ENV 2: its attack, from where it is) */
     v->age = ++vage;
     v->pitch16 = (int32_t)note * 16;

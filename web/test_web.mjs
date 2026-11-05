@@ -1997,7 +1997,7 @@ async function packages() {
   const logical = py(`import sys; raw = open(sys.argv[1], "rb").read()
 sys.stdout.buffer.write(b"".join(raw[i * 48:i * 48 + 47] for i in range(20)) + raw[960:])`, pkg);
   ok(eq(logicalImage(raw), logical), "fm1pkg.js logicalImage");
-  ok(/^FM-1_7\d\d$/.test(productOf(raw)), "fm1pkg.js productOf");   /* Skiff's identities (Felucca's: FM-1_9xx) */
+  ok(/^FM-1_742\d\d$/.test(productOf(raw)), "fm1pkg.js productOf");   /* ((custom) skiff-atlatl: FM-1_742XY; Skiff FM-1_7XY, Felucca FM-1_9xx) */
 }
 
 /* ------------------------------------------------- update protocol (fm1ota.js) --- */

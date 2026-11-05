@@ -519,6 +519,8 @@ typedef struct track {
     int32_t lfo_val;             /* Q15 */
     int32_t lfo_blk;             /* (custom) the LFO the block's voices hear (x its fade): track_render, before its tick */
     int32_t lfo_fade;            /* Q15 ramp after note-on */
+    int32_t fenv;                /* (custom) DRUM: the track FILTER's envelope (ENV's ATK DEC SUS REL; fx.c trk_fenv), Q24 */
+    uint8_t fenv_st;             /* .. its stage: 0 idle, 1 attack, 2 decay / sustain, 3 release; a hit restarts it */
     uint32_t lfo_rnd;
     int16_t lfo_prev;            /* (1.3) the S&H value of the cycle before (mod.c SLEW glides from it to lfo_rnd's) */
     uint32_t lfo_t;              /* (Skiff) control ticks since its retrigger (the graphs: ui_graph.c lfo_view_at) */

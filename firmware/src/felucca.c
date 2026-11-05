@@ -46,7 +46,7 @@
 #if BOARD_SMK37
 #define FELUCCA_ID SMK_MODEL "_700"   /* package identity (build.py: the .fwsc marker string) */
 #else
-#define FELUCCA_ID "FM-1_700"    /* package identity (build.py: the .fwsc marker string) */
+#define FELUCCA_ID "FM-1_74200"    /* package identity (build.py: the .fwsc marker string) */
 #endif
 #endif
 #ifndef FELUCCA_VERSION

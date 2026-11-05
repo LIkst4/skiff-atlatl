@@ -285,8 +285,12 @@ static const param_desc_t *ins_desc(int32_t type, uint32_t k)
 static const param_desc_t FCHR_DESC[] = {PU("CHAR"), PU("TONE"), PU("SLOPE"), PU("MORPH"), PU("MODE"), PU("MORPH"),
                                          PU("SAT"), PU("SQUELCH"), PU("POLAR"), PU("VOWEL")};
 #undef PU
+/* (custom) DRUM's MOD routes to CUTOFF: the track FILTER's envelope and LFO depths (fx.c trk_fenv) */
+static const param_desc_t DRUM_FMOD_DESC[2] = {{"ENV>FLT", 0, -64, 63, 0, F_BIPCT, 0}, {"LFO>FLT", 0, -64, 63, 0, F_BIPCT, 0}};
 static const param_desc_t *track_desc(const track_t *t, uint32_t id)
 {
+    if ((id == P_ED_FLT || id == P_LD_FLT) && (t->eng_req % NENGINES == ENGI_DRUM || t->eng_req % NENGINES == ENGI_DRUMX))
+        return &DRUM_FMOD_DESC[id == P_LD_FLT];
     if (id == P_FCHR)                                 /* ((custom) the FILTER's CHAR) */
         return &FCHR_DESC[(uint32_t)clamp(t->p[P_FTYPE], 0, (int32_t)NELEM(FCHR_DESC) - 1)];
     if (id >= P_IA && id <= P_IC)                     /* ((1.3) the INSERT's values as its TYPE names them) */
@@ -581,6 +585,8 @@ static const page_t PAGES[] = {
     {"DRIVE", FAM_FX, SC_TRACK, GR_DRIVE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* (Skiff phase 9) DIST's TYPE, TONE */
     {"FILTER", FAM_FX, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_FCHR}},   /* (custom) the track FILTER (flt.c) */
     {"FILTER 2", FAM_FX, SC_TRACK, GR_NONE, {P_FDRV, 0xFF, 0xFF, 0xFF}},       /* .. its DRIVE */
+    {"FLT MOD", FAM_FX, SC_TRACK, GR_NONE, {P_ED_FLT, P_LD_FLT, 0xFF, 0xFF}},  /* (custom) DRUM only: the FILTER's envelope
+                                                                         * (ENV, shown FLT ENV) and LFO depths */
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* (1.3, from Felucca 1.5) the track's INSERT */
     {"INSERT 2", FAM_FX, SC_TRACK, GR_INS, {P_IMIX, 0xFF, 0xFF, 0xFF}},  /* .. its dry / wet */
     {"SLICER", FAM_FX, SC_TRACK, GR_SLCR, {P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH}},

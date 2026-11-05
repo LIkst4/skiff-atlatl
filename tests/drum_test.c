@@ -1461,6 +1461,38 @@ static void demos(const char *dir)
            "keys, a beat (PUNCH, ROUND, the kits 80 10 66 55 77)\n", dir, (uint32_t)DVT_COUNT);
 }
 
+/* (custom) the track FILTER on DRUM moved by its envelope (ENV, shown FLT ENV) and its LFO: the cutoff (the filter's
+ * index, flt.c ci) opened by ENV>FLT on each hit, closed again by DEC to SUS 0; LFO>FLT moves it with no hit; neither
+ * at 0: the cutoff stays where CUTOFF puts it */
+static void fenv_run(int32_t ed, int32_t ld, uint32_t nb, int32_t *lo, int32_t *hi)
+{
+    int32_t o[2 * CTL];
+    uint32_t i;
+    kit_fresh();
+    trk[0].p[P_FTYPE] = FT_LPMG; trk[0].p[P_FCUT] = 30;
+    trk[0].p[P_ATK] = 0; trk[0].p[P_DEC] = 40; trk[0].p[P_SUS] = 0; trk[0].p[P_REL] = 20;
+    trk[0].p[P_ED_FLT] = (int16_t)ed; trk[0].p[P_LD_FLT] = (int16_t)ld; trk[0].p[P_LRATE] = 110;
+    trk_note_on(&trk[0], 42, 110);
+    *lo = 1 << 30, *hi = 0;
+    for (i = 0; i < nb; i++) {
+        mix_block(o, CTL);
+        *lo = tflt[0][0].ci < *lo ? tflt[0][0].ci : *lo;
+        *hi = tflt[0][0].ci > *hi ? tflt[0][0].ci : *hi;
+    }
+}
+static void filter_env(void)
+{
+    int32_t lo0, hi0, lo1, hi1, lol, hil, end1, x;
+    fenv_run(0, 0, 400, &lo0, &hi0);
+    fenv_run(63, 0, 400, &lo1, &hi1);
+    end1 = tflt[0][0].ci;
+    fenv_run(0, 63, 400, &lol, &hil);
+    x = lo0 == hi0 && lo0 == 30 * 8 && hi1 > lo0 + 300 && end1 < lo0 + 24 && hil - lol > 200;
+    printf("drum_test: (custom) DRUM's FILTER: at 0 the cutoff stays (%d); ENV>FLT opens it on a hit (to %d) and its decay "
+           "closes it (%d); LFO>FLT sweeps it (%d .. %d): %s\n", lo0, hi1, end1, lol, hil, x ? "ok" : "FAIL");
+    fails += !x;
+}
+
 int main(int argc, char **argv)
 {
     if (!getenv("NOCOST")) {
@@ -1481,6 +1513,7 @@ int main(int argc, char **argv)
     lane_budget();
     lane_levels();
     lane_tune_decay();
+    filter_env();
     engine();
     if (argc > 1)
         demos(argv[1]);

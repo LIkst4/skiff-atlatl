@@ -1,0 +1,11 @@
+{
+  "what": "A six-track groovebox for the FM-1, forked from Skiff: an editable SYNTH with Plaits, Rings and Prophet-style modulation and OberVave presets, Machinedrum models per drum lane, Elektron-style trig conditions, a step arpeggiator and live screen mirroring.",
+  "author": "LIkst4",
+  "kinds": [
+    "groove"
+  ],
+  "play": "https://likst4.github.io/skiff-atlatl/emu/",
+  "editor": "https://likst4.github.io/skiff-atlatl/editor/",
+  "cheat": "https://github.com/LIkst4/skiff-atlatl/blob/atlatl-dev/docs/PERFORMANCE.md",
+  "image": "docs/card.png"
+}

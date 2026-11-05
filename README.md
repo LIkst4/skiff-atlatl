@@ -14,6 +14,61 @@ synths and drums, patterns and songs, live performance, and a screen that shows 
   <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1%20%7C%20SMK--37%20Pro-555" alt="Hardware: M-VAVE FM-1 | SMK-37 Pro">
 </p>
 
+## skiff-atlatl
+
+**skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) (itself built on Felucca), with more synthesis,
+Elektron-style sequencing and live tools. Everything below this section is Skiff's own README and still applies.
+
+- **Try it:** [in the browser](https://likst4.github.io/skiff-atlatl/emu/) (the firmware itself, emulated) ·
+  **[web editor](https://likst4.github.io/skiff-atlatl/editor/)** (Chrome or Edge, the FM-1 on USB)
+- **Download:** the `.fwsc` on the [releases page](https://github.com/LIkst4/skiff-atlatl/releases) (`build-atlatl-dev`:
+  the latest build of the branch). The package carries the update loader: back up first, and you can always go back
+  to the official firmware.
+- **Performance guide:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md) ([en español](docs/PERFORMANCE.es.md))
+
+### What's new in this fork
+
+**SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
+- two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
+  Mutable's Rings: BRIGHT, POSITION) or, after Mutable's Plaits, FOLD (wavefolder), CHORD (11 chords and inversions),
+  SWARM (supersaw); OSC B also SYNC or RING;
+- a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL), SUB, X-MOD and
+  DRIFT (after OberVave), a 303 page after the Devil Fish (ACCENT sweep, ACC DEC, MUFFLE);
+- **POLY MOD** after the Prophet-5: ENV 2 and OSC B onto FREQ A, PW A or the filter; **B LOW** makes OSC B an LFO;
+- 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
+  it; one without leaves yours.
+
+**DRUM**:
+- DRUM-X merged in as the DX and DX+ kits;
+- Hortator's Machinedrum models (808, 909, TRX, EFM, TRX-P, MI kits) plus a **626** kit;
+- a **MODEL per lane** (any of the 41 on any kit's lane, lockable per step);
+- (new) the track **FILTER** moved by its own envelope and the LFO: **ENV** is **FLT ENV** on a DRUM track, and
+  **FX › FLT MOD** sets ENV>FLT and LFO>FLT.
+
+**GRAIN** grains real FLUTE and SAX recordings.
+
+**Effects**:
+- INSERT gains Airwindows-style **DENS**, **CONS** and **TAPE**;
+- the track FILTER is on every engine (FX › FILTER).
+
+**Sequencer, after the Syntakt**:
+- trig conditions **PRE / !PRE**, **1ST / !1ST** and **NEI / !NEI**, beside FILL and the ratios;
+- **RETRIG VEL** (ratchets fading in or out).
+
+**Arpeggiator**:
+- the arp's RATE adds **4T** and **32T** triplets;
+- **ARP › ARP STEP**, a Bitwig-style step pattern: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
+
+**Screen over USB**:
+- the web editor's **Screen** tab shows the FM-1's display live;
+- [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) works too.
+
+**Web editor**: ARP STEP, the new conditions and the Screen tab.
+
+skiff-atlatl's own identity is `FM-1_742XY`, so the hub and the installers can tell it from Skiff (`FM-1_7XY`).
+
+---
+
 <p align="center"><b>New in 2.2:</b> USB MIDI: everything the tracks play goes out, timed with the sound (steps, the
 arp, chords, ratchets), MIDI clock and Start / Stop, a track as an external synth's, knob CCs, remote buttons, Song
 Position; newer FM-1s with another flash chip save and update ·

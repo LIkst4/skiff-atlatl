@@ -62,10 +62,11 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_700"                # package identity; release builds are FM-1_7XY (Felucca's are FM-1_9XY)
+PRODUCT = "FM-1_74200"              # package identity ((custom) skiff-atlatl's own: release builds FM-1_742XY; Skiff's are
+                                     # FM-1_7XY, Felucca's FM-1_9XY)
 BOARD = "fm1"                       # fm1 (default) or smk37: BOARD env or --board
-BOARD_PRODUCT = {"fm1": "FM-1_700", "smk37": "SMK-37 Pro_700"}   # a dev build's identity
-BOARD_PREFIX = {"fm1": "FM-1_7", "smk37": "SMK-37 Pro_7"}        # a release build's: prefix + X + Y
+BOARD_PRODUCT = {"fm1": "FM-1_74200", "smk37": "SMK-37 Pro_74200"}   # a dev build's identity
+BOARD_PREFIX = {"fm1": "FM-1_742", "smk37": "SMK-37 Pro_742"}        # a release build's: prefix + X + Y
 BOARD_DEFS = {"fm1": [], "smk37": ["-DBOARD_SMK37=1"]}           # the FM-1 build gets no new flag (byte-identical)
 BOARD_STEM = {"fm1": "skiff", "smk37": "skiff-smk37"}            # a release package: STEM-X.Y.fwsc
 # smk37: the keyboard's model name (MODEL env or --model); one hardware, three names. pro adds no flag

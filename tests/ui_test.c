@@ -8569,15 +8569,16 @@ static int test_u3(void)
     set_engine_of(TSEL, ENGI_DRUM);
     TSEL->engine = TSEL->eng_req;
     press(B_ENV);
-    ok = ui.home && msg_is("NO ENV ON DRUM");
+    ok = !ui.home && str_eq(page_head(), "FLT ENV");   /* ((custom) DRUM: ENV is the track FILTER's envelope */
     press(B_SCL); frames(320);
-    ok &= ui.home && msg_is("NO SCALE ON DRUM");
-    go_title("MOD"); frame();                          /* ((2.0) LFO DEST's PIT FLT SHP, the ENV's: MOD's routes) */
-    ok &= mod_dead(TSEL, 0) && mod_dead(TSEL, 1) && mod_dead(TSEL, 2) && !mod_dead(TSEL, 3) && mod_dead(TSEL, 5);
+    ok &= str_eq(page_head(), "FLT ENV") && msg_is("NO SCALE ON DRUM");   /* (the page stays) */
+    go_title("MOD"); frame();                          /* ((2.0) LFO DEST's PIT FLT SHP, the ENV's: MOD's routes; (custom) */
+    ok &= mod_dead(TSEL, 0) && !mod_dead(TSEL, 1) && mod_dead(TSEL, 2) && !mod_dead(TSEL, 3) && mod_dead(TSEL, 4) &&
+          !mod_dead(TSEL, 5);                          /* the two to CUT live on DRUM: its FILTER) */
     go_title("NOTES"); frame();
     press(B_SEQ); frames(320);
     ok &= cur_page()->graph == GR_FEEL;                 /* ((2.0) NOTES: a drum track's grid) */
-    bad += check("U3 N5: DRUM: no ENV, no SCL (their buttons say so), MOD's LFO to PIT CUT SHAPE and ENV routes dimmed (LFO "
+    bad += check("U3 N5: DRUM: ENV is FLT ENV (custom), no SCL (its button says so), MOD's LFO to PIT SHAPE and ENV's PIT SHP dimmed, the CUT ones live (LFO "
                  "AMP not), NOTES then FEEL", ok);
     ui_power_on();                                      /* N3: a page the track no longer has */
     go_title("ENV"); frame();

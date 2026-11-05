@@ -639,14 +639,16 @@ static int page_visible(uint32_t i)
                                                                      * every track's) */
     if (PAGES[i].fam == FAM_EDIT && ((id >= P_SYSUB && id <= P_SYMUF) || id == P_SYMBRT || id == P_SYPME))   /* ((custom) SYNTH's own */
         return TSEL->eng_req % NENGINES == ENGI_SYNTH;
+    if (PAGES[i].fam == FAM_FX && id == P_ED_FLT)       /* ((custom) FLT MOD: DRUM's FILTER envelope and LFO) */
+        return drum_engine(TSEL->eng_req % NENGINES);
     if (PAGES[i].graph == GR_LANES)
         return TSEL->eng_req % NENGINES == ENGI_DRUM && !trk_dx(TSEL);
     if (PAGES[i].graph == GR_LMIX)                      /* ((2.0, #36) a kit's: DRUM, DRUM-X) */
         return drum_engine(TSEL->eng_req % NENGINES);
     if (PAGES[i].graph == GR_SMIX)                     /* ((#21) a SAMPLE track's on a USR set with samples) */
         return smx_zone(&id) != 0xFFu;
-    if (e->oneshot && (PAGES[i].fam == FAM_SCL || id == P_ATK || id == P_EG2_ATK || id == P_VOICE ||
-                       id == P_ALLOC))
+    if (e->oneshot && (PAGES[i].fam == FAM_SCL || (id == P_ATK && !drum_engine(TSEL->eng_req % NENGINES)) ||
+                       id == P_EG2_ATK || id == P_VOICE || id == P_ALLOC))   /* ((custom) DRUM: ENV is its FILTER's */
         return 0;
     if (e->ownenv && (id == P_ATK || id == P_EG2_ATK))   /* ((Skiff phase 9) ENV 2: where ENV is; (2.0) MOD dims the
                                                           * ENV's routes) */
@@ -791,6 +793,8 @@ static void transport_stop_now(void)
 static int mod_dead(const track_t *t, uint32_t r)
 {
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
+    if ((r == 1u || r == 5u) && drum_engine(t->eng_req % NENGINES))   /* ((custom) LFO -> CUT, ENV -> CUT: DRUM's FILTER */
+        return 0;
     return r < 3u ? e->oneshot : r >= 4u && r < MOD_SLOT0 && (e->oneshot || e->ownenv);
 }
 static int lock_page_ok(uint32_t i)
@@ -1298,6 +1302,8 @@ static const char *page_head(void)
     uint32_t off, all;
     if (sh)
         return sh->title();
+    if (pg->id[0] == P_ATK && pg->graph == GR_ADSR && drum_engine(TSEL->eng_req % NENGINES))
+        return "FLT ENV";                               /* ((custom) DRUM: ENV is the track FILTER's (fx.c trk_fenv)) */
     if (pg->scope == SC_ENGINE)                         /* ((Skiff U4, L5) EDIT: the engine's own name (OSC, KIT), the
                                                          * footer only where it is (n/m); the footer said it before) */
         return ENGINES[TSEL->eng_req % NENGINES]->page_title[pg->id[0] != P_E0];

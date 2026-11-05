@@ -52,14 +52,23 @@ jobs:
           mkdir -p site
           cp -r build/emu site/emu
           cp build/panel.js site/
-          printf '<!DOCTYPE html><meta http-equiv="refresh" content="0; url=emu/">\n' > site/index.html
+          mkdir -p site/editor/conv
+          cp web/editor.html site/editor/index.html
+          cp -r web/fonts web/fukiai.ttf web/FUKIAI-LICENSE.txt web/fm1backup.js site/editor/
+          cp web/conv/conv.js site/editor/conv/
+          printf '%s\n' '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width">' \
+            '<title>skiff-atlatl</title><style>body{font:16px system-ui;max-width:640px;margin:40px auto;padding:0 16px}</style>' \
+            '<h1>skiff-atlatl</h1><p>A groovebox firmware for the M-VAVE FM-1 (a fork of Skiff).</p>' \
+            '<ul><li><a href="emu/">Play it in the browser</a> (the firmware itself, emulated)</li>' \
+            '<li><a href="editor/">Web editor</a> (Chrome or Edge, the FM-1 on USB): sounds, steps, ARP STEP, the screen</li>' \
+            '<li><a href="https://github.com/LIkst4/skiff-atlatl">Source and releases</a></li></ul>' > site/index.html
       - name: "(custom) The site as the Pages artifact"
         if: github.event_name == 'push' && github.ref_name == 'atlatl-dev' && hashFiles('site/emu/felucca.wasm') != ''
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
       - name: "(custom) The package as the branch's pre-release (build-<branch>: a stable download link)"
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref_type == 'branch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -83,6 +92,19 @@ jobs:
           "$NM" --size-sort -S -t d build/felucca.o | awk '{s+=$2} END {print "total symbol bytes", s}' || true
       - name: Host tests
         run: SANITIZE=0 sh tests/run_tests.sh
+      - name: "(custom) A tag vX.Y: the release build (identity FM-1_742XY) as that tag's release, its source the tag's"
+        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          ./build.sh --release "$ver"
+          cp "build/skiff-$ver.fwsc" "build/skiff-atlatl-v$ver.fwsc"
+          pre=""; case "$ver" in 0.*|*-*) pre="--prerelease";; esac
+          notes="skiff-atlatl $GITHUB_REF_NAME, built by CI from ${GITHUB_SHA::7}. Install it with the FM-1's update (M-UPGRADE) or a firmware installer; the package carries the update loader, so the unit can go back to the official firmware. See README.md."
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" $pre --verify-tag --title "skiff-atlatl $GITHUB_REF_NAME" --notes "$notes"
+          gh release upload "$GITHUB_REF_NAME" "build/skiff-atlatl-v$ver.fwsc" --clobber
       - uses: actions/upload-artifact@v4
         if: always()
         with:

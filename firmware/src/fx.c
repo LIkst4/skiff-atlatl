@@ -997,24 +997,60 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
  * losses) through instances of their own, so the stereo keeps the same tone; COMB's line is b's only (d, e: mono) */
 static flt_t tflt[NTRK][3];
 static int16_t tflt_line[NTRK][FLT_LINE];
+/* (custom) DRUM's FILTER envelope, once a block: ENV's ATK DEC SUS REL (ENV SYNC's note values too) over the track, a hit
+ * (voice_start) restarting it; the release once no voice of the track is held (a step's gate over). -> its cutoff
+ * modulation, ENV -> CUTOFF and LFO -> CUTOFF (MOD's, shown on DRUM as ENV>FLT and LFO>FLT) as SYNTH's per voice */
+static __attribute__((noinline)) int32_t trk_fenv(track_t *t)
+{
+    const int16_t *p = t->p;
+    uint32_t i, g = 0;
+    for (i = 0; i < NVOICE && !g; i++)
+        g = t->v[i].active && t->v[i].gate;
+    if (!g && t->fenv_st && t->fenv_st < 3u)
+        t->fenv_st = 3;
+    switch (t->fenv_st) {
+    case 1:
+        t->fenv += (int32_t)(p[P_ESYNC] ? t->esync_k[0] : ENV_LIN[p[P_ATK] & 127]);
+        if (t->fenv >= (1 << 24)) {
+            t->fenv = 1 << 24;
+            t->fenv_st = 2;
+        }
+        break;
+    case 2:
+        t->fenv += mulq16(((int32_t)p[P_SUS] << 17) - t->fenv, p[P_ESYNC] ? t->esync_k[1] : ENV_EXP[p[P_DEC] & 127]);
+        break;
+    case 3:
+        t->fenv -= mulq16(t->fenv, p[P_ESYNC] ? t->esync_k[2] : ENV_EXP[p[P_REL] & 127]);
+        if (t->fenv < (1 << 12)) {
+            t->fenv = 0;
+            t->fenv_st = 0;
+        }
+        break;
+    default:
+        t->fenv = 0;
+        break;
+    }
+    return (((t->lfo_blk * p[P_LD_FLT]) >> 7) + (((t->fenv >> 9) * p[P_ED_FLT]) >> 7)) >> 5;
+}
 static __attribute__((noinline)) void track_filter(track_t *t, int32_t *b, int32_t *d, int32_t *e, uint32_t n)
 {
     uint32_t k = (uint32_t)(t - trk) % NTRK, ty = (uint32_t)clamp(t->p[P_FTYPE], 0, FT_N - 1), i;
     const int16_t *p = t->p;
-    flt_run(&tflt[k][0], tflt_line[k], b, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+    int32_t cm = drum_engine(t->engine) ? trk_fenv(t) : 0;   /* ((custom) DRUM: its envelope, its LFO) */
+    flt_run(&tflt[k][0], tflt_line[k], b, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
     if (d) {
         if (ty == FT_COMB)
             for (i = 0; i < n; i++)
                 d[i] = 0;
         else
-            flt_run(&tflt[k][1], 0, d, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+            flt_run(&tflt[k][1], 0, d, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
     }
     if (e) {
         if (ty == FT_COMB)
             for (i = 0; i < n; i++)
                 e[i] = 0;
         else
-            flt_run(&tflt[k][2], 0, e, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], 0);
+            flt_run(&tflt[k][2], 0, e, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
     }
 }
 
