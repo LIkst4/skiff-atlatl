@@ -178,14 +178,19 @@ static int32_t fm6_match(const uint8_t *p, int32_t s)
 /* track tr's patch was just put in as its own (a project, a user preset, the editor, a conversion): an FM6 track's
  * SLOT shows the factory patch it equals unchanged (F n; the SLOT it had first), else OWN; nothing reloads over it
  * (fm6_poll) */
+/* ((custom) SLOT's value by a pointer of its own: with t->p[P_E7] read and written here, clang made a signed halfword
+ * load with a pre-increment of 344, a form the FM-1 emulator does not decode (tools/emu_gaps.py); the hardware runs
+ * either) */
+static __attribute__((noinline)) int16_t *fm6_e7(track_t *t) { return &t->p[P_E7]; }
 static void fm6_adopt(uint32_t tr)
 {
     track_t *t = &trk[tr % NTRK];
-    int32_t s = t->p[P_E7];
+    int16_t *e7 = fm6_e7(t);
+    int32_t s = *e7;
     tr %= NTRK;
     fm6_own_ok &= (uint8_t)~(1u << tr);
     if (t->eng_req == ENGI_FM6)
-        t->p[P_E7] = (int16_t)(s = fm6_match(fm6_patch[tr], s));
+        *e7 = (int16_t)(s = fm6_match(fm6_patch[tr], s));
     fm6_slot[tr] = (uint8_t)s;
 }
 
