@@ -640,7 +640,9 @@ static int32_t env_tick(track_t *t, voice_t *v)
         break;
     case 3:
         v->env -= mulq16(v->env, t->esync_k[2]);
-        if (v->env < (1 << 12)) {
+        if (v->env < (1 << 12) && !ENGINES[t->engine]->ownenv && !ENGINES[t->engine]->oneshot) {   /* ((custom) REL 0
+                                                         * ends in one tick: an engine with its own envelopes (FM6) or of
+                                                         * hits (DRUM) ends the voice itself, as before; its release goes on) */
             v->env = 0;
             v->stage = 0;
             v->active = 0;

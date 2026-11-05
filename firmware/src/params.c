@@ -430,7 +430,10 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         break;
     case F_TIME: {
         uint32_t ms10 = TIME_MS_X10[v & 127];
-        if (ms10 < 100u) {
+        if (!ms10) {                                  /* ((custom) 0: 0 ms) */
+            fmt_int(val, 0);
+            *unit = "ms";
+        } else if (ms10 < 100u) {
             fmt_fix(val, (int32_t)ms10, 1);
             *unit = "ms";
         } else if (ms10 < 10000u) {
