@@ -653,7 +653,7 @@ def sheet_notes():
             "SCALE (CHROMATIC: semitones), START moves by steps (NUDGE stays on FEEL for less), LENGTH is 1 .. 100 % of "
             "the step then 2 .. 16 STEPS (ties), VELOCITY moves all by the same amount.")
     sh.para("FEEL, on the tiles (each step's value of the knob turned last): CHANCE (100 .. 1 %, OFF for a rest, then "
-            "FILL  !FILL  1:2 .. 4:4: COND joins it, as Elektron's trig conditions)  RATCHET  NUDGE  TYPE (-  ACC  SLD  "
+            "FILL  !FILL  1:2 .. 4:4: COND joins it)  RATCHET  NUDGE  TYPE (-  ACC  SLD  "
             "A+S).")
     sh.para("COPY and PASTE: SHIFT + OCT- copies the selection (the picked notes, their places and lengths, their steps' "
             "values), SHIFT + OCT+ pastes it at the cursor into the chords there (4 notes a step: more is refused and "

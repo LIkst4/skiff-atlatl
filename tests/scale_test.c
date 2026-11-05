@@ -564,7 +564,7 @@ static void solo_test(void)
     puts("scales: QNT SOLO's black keys walk the scale (7 and 5 notes, C3..C6, roots, octaves, TRN); white keys as WHITE");
 }
 
-/* (custom, after Bitwig's) ARP STEP: the step pattern's OFF rests (its note passed over), TRANSPOSE moves a step's note,
+/* (custom) ARP STEP: the step pattern's OFF rests (its note passed over), TRANSPOSE moves a step's note,
  * STACC a quarter of the GATE, the pattern's own length against the notes'; the project's bytes round trip; 4T 32T */
 static void arp_step_test(void)
 {

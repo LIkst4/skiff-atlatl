@@ -142,7 +142,7 @@ enum {                          /* per-track parameters */
                                                 * CHAR DRIVE; stored ids 146..150 */
     P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT,     /* (custom) SYNTH's own (eng_synth.c): SUB, SUB OCT, X-MOD, DRIFT; */
     P_SYACC, P_SYADEC, P_SYMUF,                /* its 303 page: ACCENT, ACC DEC, MUFFLE; stored ids 151..157 */
-    P_RTVEL,                                   /* (custom, after the Syntakt's) RETRIG VEL: RATCH's parts fade in (+) or
+    P_RTVEL,                                   /* (custom) RETRIG VEL: RATCH's parts fade in (+) or
                                                 * out (-) (seq.c seq_step); stored id 158 */
     P_SYMBRT, P_SYMPOS,                        /* (custom, after Rings) SYNTH's MODAL: BRIGHT, POSITION; ids 159, 160 */
     P_LMDL0, P_LMDL1, P_LMDL2, P_LMDL3, P_LMDL4, P_LMDL5, P_LMDL6, P_LMDL7,   /* (custom) DRUM's lanes' MODEL (EDIT >
@@ -442,12 +442,12 @@ static void nudge_unpack(step_t *s, const uint8_t *b, uint32_t n)
 }
 /* Skiff: a step's trig condition (seq.c step_cond_ok): FILL / !FILL while GLO + F4 is held (or not), A:B on pass A of
  * every B of its track's loop (take.c take_pass). Saved in bit 7 of the step's note bytes (project.c) */
-/* (custom, after Elektron's) PRE / !PRE: the track's last condition (its last step with one, or with a CHANCE below
+/* (custom) PRE / !PRE: the track's last condition (its last step with one, or with a CHANCE below
  * 100 %) passed / did not; 1ST / !1ST: the track's first pass since PLAY / any other. Appended: 16 values, the 4 bits
  * of the note bytes' bit 7 (project.c) */
 enum { TC_NONE, TC_FILL, TC_NFILL, TC_1_2, TC_2_2, TC_1_3, TC_2_3, TC_3_3, TC_1_4, TC_2_4, TC_3_4, TC_4_4,
        TC_PRE, TC_NPRE, TC_1ST, TC_N1ST,
-       TC_NEI, TC_NNEI,         /* (custom, after Elektron's) NEI / !NEI: the track before's last condition passed / did
+       TC_NEI, TC_NNEI,         /* (custom) NEI / !NEI: the track before's last condition passed / did
                                  * not (T1: none, never passed); its bit 4 stored apart (project.c step_put9) */
        TC_COUNT };
 _Static_assert(TC_COUNT <= 32, "a step's condition: 5 bits in the stores");

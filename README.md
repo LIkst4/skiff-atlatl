@@ -17,7 +17,7 @@ synths and drums, patterns and songs, live performance, and a screen that shows 
 ## skiff-atlatl
 
 **skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) (itself built on Felucca), with more synthesis,
-sequencing and live tools inspired by Elektron's workflow. Everything below this section is Skiff's own README and still applies.
+a deeper step sequencer and more live tools. Everything below this section is Skiff's own README and still applies.
 
 - **Install:** the **[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)** (Chrome or Edge, the FM-1
   on USB). Not Skiff's installer further below: that one installs the original Skiff.
@@ -49,7 +49,7 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 - [Airwindows](https://github.com/airwindows/airwindows) by Chris Johnson: Density, Console7 and ToTape, the INSERT's
   DENS, CONS and TAPE are written after (MIT; no code copied).
 
-<sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
+<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
 
 ### What's new in this fork
 
@@ -65,7 +65,7 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 
 **DRUM**:
 - DRUM-X merged in as the DX and DX+ kits;
-- Hortator's Machinedrum models (808, 909, TRX, EFM, TRX-P, MI kits) plus a **626** kit;
+- Hortator's drum models, the MD kits (808, 909, TRX, EFM, TRX-P, MI) plus a **626** kit;
 - a **MODEL per lane** (any of the 41 on any kit's lane, lockable per step);
 - (new) the track **FILTER** moved by its own envelope and the LFO: **ENV** is **FLT ENV** on a DRUM track, and
   **FX › FLT MOD** sets ENV>FLT and LFO>FLT.
@@ -76,13 +76,13 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 - INSERT gains Airwindows-style **DENS**, **CONS** and **TAPE**;
 - the track FILTER is on every engine (FX › FILTER).
 
-**Sequencer, after the Syntakt**:
+**Sequencer**:
 - trig conditions **PRE / !PRE**, **1ST / !1ST** and **NEI / !NEI**, beside FILL and the ratios;
 - **RETRIG VEL** (ratchets fading in or out).
 
 **Arpeggiator**:
 - the arp's RATE adds **4T** and **32T** triplets;
-- **ARP › ARP STEP**, a step pattern inspired by Bitwig's arpeggiator: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
+- **ARP › ARP STEP**, a step pattern for the arp: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
 
 **Screen over USB**:
 - the web editor's **Screen** tab shows the FM-1's display live;
@@ -987,7 +987,7 @@ Felucca; its changes are marked (Skiff) in the sources. The bundled fonts and th
 licences ([LICENSES/](LICENSES/)); details in [LICENSING.md](LICENSING.md).
 
 M-VAVE, FM-1 and SMK-37 are trademarks of their respective owners. Skiff, skiff-atlatl and Felucca are not affiliated with or
-endorsed by them, and Skiff is not made or endorsed by Hügelton Instruments. Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.
+endorsed by them, and Skiff is not made or endorsed by Hügelton Instruments. Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.
 
 Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments (Felucca)<br>
 Copyright (C) 2026 illuminus5 (Skiff)

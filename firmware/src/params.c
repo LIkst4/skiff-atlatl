@@ -634,14 +634,14 @@ static const page_t PAGES[] = {
     {"PROJECT", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, 0xFF, G_LOAD, G_SAVE}},
     {"ARP", FAM_ARP, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},
     {"ARP 2", FAM_ARP, SC_TRACK, GR_ARP2, {P_ASWING, P_APROB, P_AHOLD, P_AORDER}},
-    {"ARP STEP", FAM_ARP, SC_TRACK, GR_ARPSTEP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (custom, after Bitwig's) the arp's step
+    {"ARP STEP", FAM_ARP, SC_TRACK, GR_ARPSTEP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (custom) the arp's step
                                                                          * pattern (ui_arp.c) */
     {"NOTES", FAM_SEQ, SC_STEP, GR_ROLL, {0, 1, 2, 3}},   /* (Skiff 2.0, D: STEP ROLL CHANCE PLAY as two pages) the roll:
                                                          * PITCH START LENGTH VELOCITY of the selection (a DRUM track:
                                                          * the grid, LANE HIT ACC VELOCITY); PRESETS the step */
     {"FEEL", FAM_SEQ, SC_STEP, GR_FEEL, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"PATTERN", FAM_SEQ, SC_TRACK, GR_STEPS, {P_SLEN, P_SDIV, P_SSWING, P_SGATE}},   /* (2.0) PRESETS: the track's DIR */
-    {"RETRIG", FAM_SEQ, SC_TRACK, GR_NONE, {P_RTVEL, 0xFF, 0xFF, 0xFF}},   /* (custom, after the Syntakt's) RATCH's
+    {"RETRIG", FAM_SEQ, SC_TRACK, GR_NONE, {P_RTVEL, 0xFF, 0xFF, 0xFF}},   /* (custom) RATCH's
                                                                          * parts' velocity ramp */
     {"AUTOMATION", FAM_SEQ, SC_TRACK, GR_EVENTS, {0xFF, 0xFF, 0xFF, 0xFF}},   /* 1.1.5's AUTO LIST: the locks and events */
     {"SONG", FAM_SEQ, SC_TRACK, GR_SONG, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (Skiff phase 5) the lists (ui_input.c song_knob) */

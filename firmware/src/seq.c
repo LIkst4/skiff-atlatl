@@ -264,7 +264,7 @@ static int kb_solo(const track_t *t, uint32_t k)
 #include "follow.c"                              /* (2.1) chord follow */
 
 /* ------------------------------------------------------------- arp --- */
-/* (custom, after Bitwig's Arpeggiator) ARP STEP: a pattern of 1..16 steps the arp walks as it plays (a step a note,
+/* (custom) ARP STEP: a pattern of 1..16 steps the arp walks as it plays (a step a note,
  * its own length against the notes': a polymeter), each step ON, OFF (a rest: the note it would play passed over) or
  * STACC (a quarter of the GATE), its note TRANSPOSE semitones up or down (+-24). The default: 16 steps ON at 0, the arp
  * as before. Per track, the project's (project.c: SKF4's FM6 bytes' top bits); the arp's own place in it arp_spos */
@@ -296,7 +296,7 @@ static void arp_pat_get(uint32_t k, const uint8_t *b)
         a->tr[i] = (int8_t)clamp((int32_t)((b[i] & 63u) ^ 32u) - 32, -24, 24);
     }
 }
-/* (custom) the arp's RATE: N_DIV's ten, then (after Bitwig's) 4T and 32T */
+/* (custom) the arp's RATE: N_DIV's ten, then 4T and 32T */
 static uint32_t arp_period(uint32_t r)
 {
     return r == 10u ? div_samples(0) * 2u / 3u : r == 11u ? div_samples(0) / 12u : div_samples(r);
@@ -1562,7 +1562,7 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
     if (grace)                                      /* (Skiff) the grace: 9/16 of the velocity */
         for (i = 0; i < m; i++)
             vv[i] = (uint8_t)(vv[i] * 9u / 16u + 1u);
-    if (hits > 1u && t->p[P_RTVEL]) {               /* ((custom, the Syntakt's) RETRIG VEL: part j of the parts from
+    if (hits > 1u && t->p[P_RTVEL]) {               /* ((custom) RETRIG VEL: part j of the parts from
                                                      * soft to the step's velocity (+) or from it to soft (-)) */
         int32_t r = t->p[P_RTVEL], j = (int32_t)(hits - 1u - (skip & SEQ_REP ? t->rat_left : hits - 1u));
         int32_t x = r > 0 ? (int32_t)hits - 1 - j : j, a = r < 0 ? -r : r;   /* (x: parts from the full one) */

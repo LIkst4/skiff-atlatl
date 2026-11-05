@@ -4812,7 +4812,7 @@ function renderKit() {
     ...DX.values.map((n, i) => el("div", { class: "row kitrow" }, el("span", { text: n }), ...slider(n, "a", i), ...slider(n, "b", i))));
 }
 
-/* ((custom) INFO 41 01) the selected track's ARP STEP (the device's ARP > ARP STEP, after Bitwig's arpeggiator): STEPS,
+/* ((custom) INFO 41 01) the selected track's ARP STEP (the device's ARP > ARP STEP): STEPS,
    each step's TRANSPOSE and state (ON, OFF: a rest, STACC: a quarter of the GATE), read (ARP) when shown and each time
    the tab opens, each change sent whole (the track's latest wins) */
 const ARP_ST = ["ON", "OFF", "STACC"];

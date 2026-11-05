@@ -555,7 +555,7 @@ static int nudge(void)
     return bad;
 }
 
-/* (custom) the conditions after Elektron's: 1ST / !1ST (the first pass since PLAY or not), PRE / !PRE (the track's last
+/* (custom) the added conditions: 1ST / !1ST (the first pass since PLAY or not), PRE / !PRE (the track's last
  * condition, or CHANCE, passed or not) */
 static int conds(void)
 {
@@ -633,7 +633,7 @@ static int conds(void)
         ok &= !step_put9(raw, &b4);
         bad += check("  (custom) NEI / !NEI stored: a note's, a tie's, a rest's", ok);
     }
-    {   /* RETRIG VEL (the Syntakt's): x4 at -64 falls from the step's velocity, at +63 rises to it; 0 as before */
+    {   /* RETRIG VEL: x4 at -64 falls from the step's velocity, at +63 rises to it; 0 as before */
         uint32_t r, b, n, vel[3][4];
         static const int16_t RV[3] = {0, -64, 63};
         for (r = 0; r < 3u; r++) {

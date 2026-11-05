@@ -1,8 +1,8 @@
-# Modo performance inspirado en Elektron: guía
+# Modo performance: guía
 
 *skiff-atlatl en el M-VAVE FM-1 · [English version](PERFORMANCE.md)*
 
-Skiff se toca en vivo de una forma inspirada en las grooveboxes de Elektron: los patrones se ponen en cola y cambian a tiempo, los mutes y las escenas
+skiff-atlatl está hecho para tocarse en vivo, como una groovebox de hardware: los patrones se ponen en cola y cambian a tiempo, los mutes y las escenas
 entran juntos, las perillas "lanzan" valores que regresan solas, hay una capa de efectos sobre el master que suenan
 mientras los mantienes, y las condiciones de trig, la probabilidad y los p-locks mantienen vivo un loop sin tocarlo.
 
@@ -82,7 +82,7 @@ enganchados.
 ## 7. Capa GLO: fills, solos y tempo
 
 **Mantén GLO.** **F4 FILL:** mientras la mantienes suenan los pasos con condición **FILL** y callan los **!FILL** (el
-fill al final de una frase, al estilo Elektron). **F3–D4:** solo de T1–T6 mientras las mantienes; **E4** desmutea todo;
+fill al final de una frase). **F3–D4:** solo de T1–T6 mientras las mantienes; **E4** desmutea todo;
 **G4** tap tempo. **Perillas 1–4:** volumen de los cuatro tracks visibles. **GLO + PLAY** vuelve al inicio sin parar.
 
 ## 8. Que el loop evolucione solo
@@ -94,7 +94,7 @@ En **SEQ › NOTES / FEEL**, selecciona pasos y gira:
   no), **1ST / !1ST** (solo la primera vuelta tras PLAY, o todas las demás), **NEI / !NEI** (si la última condición del
   track *anterior* pasó o no: T2 mira a T1, T3 a T2…, para pregunta y respuesta entre tracks).
 - **RATCHET** (FEEL, perilla 2): ×1–×4 repeticiones dentro del paso, o FLAM; en la página SEQ **RETRIG**, **RETRIG VEL**
-  hace que suban (+) o bajen (−), como el retrig velocity del Syntakt.
+  hace que suban (+) o bajen (−).
 - **NUDGE** (FEEL, perilla 3): mueve el paso fuera de la rejilla, en 64avos.
 - **P-locks:** mantén un paso y gira las perillas 1–4: esos valores cambian solo en ese paso. **SEQ › AUTOMATION** los
   lista todos.
@@ -103,7 +103,7 @@ En **SEQ › NOTES / FEEL**, selecciona pasos y gira:
 ## 9. El arpegiador en vivo
 
 En **ARP / ARP 2**: MODE, RATE (con tresillos **4T, 8T, 16T, 32T**), OCTAVE, GATE, SWING, HOLD. La página **ARP STEP**
-agrega un patrón de pasos inspirado en el arpegiador de Bitwig: **perilla 1 STEPS** (1–16; corre contra el ciclo de las notas: polimetría),
+agrega un patrón de pasos al arpegiador: **perilla 1 STEPS** (1–16; corre contra el ciclo de las notas: polimetría),
 **perilla 2 STEP** (el paso a editar; PRESETS también), **perilla 3 TRANSP** (−24…+24 semitonos), **perilla 4 STATE**
 (**ON**, **OFF** = silencio, **STACC** = un cuarto del gate). 16 pasos ON en 0 es el arpegiador de siempre. Se guarda con
 el proyecto y se edita también en el editor web (pestaña Sound, ARP STEP). Muchos presets de SYNTH traen su propio
@@ -123,4 +123,4 @@ Para ver la pantalla en grande, abre la pestaña **Screen** del editor web (o la
 
 ---
 
-<sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 y Devil Fish son marcas o nombres de sus respectivos dueños. Se mencionan solo para describir en qué se inspiró cada función; skiff-atlatl no está afiliado a ellos ni cuenta con su respaldo.</sub>
+<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 y Devil Fish son marcas o nombres de sus respectivos dueños. Se mencionan solo para describir en qué se inspiró cada función; skiff-atlatl no está afiliado a ellos ni cuenta con su respaldo.</sub>

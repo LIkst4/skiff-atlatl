@@ -2,7 +2,7 @@
 /* FLT: the filter library (fixed point, no float, no 64-bit). One instance filters a mono block in place.
  * Shared by the track FILTER (a slot after any engine) and, later, the per-voice filter of an editable synth engine.
  *
- * Every type is an original implementation of a well-known topology; no code from Bitwig, Oberheim, Moog, Korg or
+ * Every type is an original implementation of a well-known topology; no code from Oberheim, Moog, Korg or
  * Roland products is used. The names describe the style, not a product.
  *
  *   TYPE    style                                  CHAR (the type's own knob)

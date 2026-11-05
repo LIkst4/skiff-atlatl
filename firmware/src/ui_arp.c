@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* (custom, after Bitwig's Arpeggiator) ARP > ARP STEP: the track's arp step pattern (seq.c arp_pat), a sheet (ui.c
+/* (custom) ARP > ARP STEP: the track's arp step pattern (seq.c arp_pat), a sheet (ui.c
  * sheet_t) of one window, on every track. Included by ui_input.c.
  *   KNOB 1 STEPS     the pattern's length, 1..16 (16, all ON at 0: the arp as before)
  *   KNOB 2 STEP      the step the other two edit (1..STEPS; PRESETS moves it too)

@@ -1,8 +1,8 @@
-# Performance mode, inspired by Elektron: a guide
+# Performance mode: a guide
 
 *skiff-atlatl on the M-VAVE FM-1 · [versión en español](PERFORMANCE.es.md)*
 
-Skiff plays live in a way inspired by Elektron's grooveboxes. Patterns are queued and switch on the beat. Mutes and scenes land
+skiff-atlatl is made to be played live, like a hardware groovebox. Patterns are queued and switch on the beat. Mutes and scenes land
 together. Knob "throws" spring back by themselves. A hold-to-play effects layer covers the master. Trig conditions,
 chance and parameter locks keep a loop moving without you touching it.
 
@@ -105,7 +105,7 @@ SHIFT + FX latches the effects.
 **Hold GLO.**
 
 - **F4 FILL**: while held, steps with the **FILL** condition play and steps with **!FILL** rest. Hold it at the end of
-  a phrase for a fill, in the Elektron manner.
+  a phrase for a fill.
 - **F3 to D4**: solo T1 to T6 while held. **E4** unmutes everything. **G4** taps the tempo.
 - **KNOB 1–4**: the levels of the four tracks shown.
 - **GLO + PLAY** restarts from the top without stopping. **GLO + SELECT** sets the tempo.
@@ -122,9 +122,9 @@ These are set per step on **SEQ › NOTES / FEEL**. Select steps, then turn the 
   - **NEI / !NEI**: only if the condition on the track *before* this one passed, or only if it didn't. T2 asks T1,
     T3 asks T2, and so on. Use it for call and response between tracks.
 - **RATCHET** (FEEL, KNOB 2): ×1 to ×4 repeats inside a step, or FLAM. On the SEQ **RETRIG** page, **RETRIG VEL** fades
-  the repeats in (+) or out (−), like the Syntakt's retrig velocity.
+  the repeats in (+) or out (−).
 - **NUDGE** (FEEL, KNOB 3): moves a step off the grid, in 64ths.
-- **Parameter locks:** hold a step and turn KNOB 1–4. Those values change for that step only, Elektron's p-locks.
+- **Parameter locks:** hold a step and turn KNOB 1–4. Those values change for that step only (p-locks).
   Every lock and recorded knob move is listed on **SEQ › AUTOMATION**.
 - **MOMENTARY:** hold **LFO** and turn knobs on any sound or FX page. When you let go they come back, like a temporary
   tweak.
@@ -132,7 +132,7 @@ These are set per step on **SEQ › NOTES / FEEL**. Select steps, then turn the 
 ## 9. The arpeggiator, live
 
 Set the arp on **ARP / ARP 2**: MODE, RATE (with **4T, 8T, 16T, 32T** triplets), OCTAVE, GATE, SWING and HOLD. The
-**ARP STEP** page adds a step pattern inspired by Bitwig's arpeggiator:
+**ARP STEP** page adds a step pattern to the arp:
 
 - **KNOB 1 STEPS**: the pattern's length, 1–16. It runs against the notes' own cycle, so a 3-step pattern over 4 notes
   makes a polymeter.
@@ -162,4 +162,4 @@ To see the screen big while you play, open the editor's **Screen** tab. It also 
 
 ---
 
-<sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
+<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
