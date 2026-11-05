@@ -28,6 +28,27 @@ sequencing and live tools inspired by Elektron's workflow. Everything below this
   to the official firmware.
 - **Performance guide:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md) ([en español](docs/PERFORMANCE.es.md))
 
+### Credits
+
+skiff-atlatl stands on these projects; thank you. The full list, with every licence, is in [LICENSING.md](LICENSING.md).
+
+- [Skiff](https://github.com/illuminus5/skiff) by illuminus5, and [Felucca](https://github.com/hugelton/Felucca) by
+  Leo Kuroshita (Hügelton Instruments), the firmware this fork is built on (GPL-3.0).
+- [OberVave](https://github.com/zvenson/obervave) by zvenson: the 63 factory programs brought over as SYNTH presets,
+  and the ideas behind X-MOD and DRIFT (GPL-3.0).
+- [fm1-mirror](https://github.com/pfkellogg/fm1-mirror) by Patrick F. Kellogg: `screen_mirror.c` / `.h`, the screen
+  mirror over USB (MIT).
+- [Hortator](https://github.com/deadactive/hortator) by DEADACTIVE: the MD kits' drum models (GPL-3.0; its ports of
+  Plaits' drums MIT, Emilie Gillet).
+- [JIANT FM](https://github.com/juanjiant-bit/JIANT) by juanjiant-bit: the DRUM-X engine, now the DX and DX+ kits
+  (GPL-3.0).
+- [Mutable Instruments' eurorack](https://github.com/pichenettes/eurorack) by Emilie Gillet: Plaits and Rings, the
+  models FOLD, CHORD, SWARM and MODAL are written after (MIT).
+- [Melodee](https://github.com/keremimo/melodee) by Kerem Kilic: its Prophet panel, the layout of POLY MOD (GPL-3.0;
+  no code taken).
+- [Airwindows](https://github.com/airwindows/airwindows) by Chris Johnson: Density, Console7 and ToTape, the INSERT's
+  DENS, CONS and TAPE are written after (MIT; no code copied).
+
 <sub>Elektron, Syntakt, Machinedrum, Bitwig, Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
 
 ### What's new in this fork

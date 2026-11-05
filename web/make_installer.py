@@ -41,7 +41,11 @@ def main(pkg, version, out):
         ('<p><a href="../../learn/" style="color:inherit" data-t="learn"></a></p>',
          f'<p><a href="{REPO}/blob/atlatl-dev/docs/PERFORMANCE.md" style="color:inherit">Performance guide</a> · '
          f'<a href="{REPO}/blob/atlatl-dev/docs/PERFORMANCE.es.md" style="color:inherit">Guía de performance</a></p>'),
-        ('<p class="small">Skiff by illuminus5,', '<p class="small">skiff-atlatl by LIkst4, a fork of Skiff by illuminus5,'),
+        ('<p class="small">Skiff by illuminus5,', '<p class="small">skiff-atlatl by LIkst4, with: OberVave\'s factory '
+         'programs and X-MOD / DRIFT ideas (zvenson, GPL-3.0); the screen mirror from fm1-mirror (Patrick F. Kellogg, MIT); '
+         'Hortator\'s drum models (DEADACTIVE, GPL-3.0; its Plaits drum ports MIT, Emilie Gillet); models after Mutable '
+         'Instruments\' Plaits and Rings (Emilie Gillet, MIT); POLY MOD laid out as Melodee\'s Prophet panel (Kerem Kilic); '
+         'INSERT types after Airwindows (Chris Johnson, MIT).<br>A fork of Skiff by illuminus5,'),
         ('<a href="https://github.com/illuminus5/skiff" target="_blank" rel="noopener" style="color:inherit">github.com/illuminus5/skiff</a>',
          f'<a href="{REPO}" target="_blank" rel="noopener" style="color:inherit">github.com/LIkst4/skiff-atlatl</a>'),
         ("M-VAVE, FM-1 and SMK-37 are trademarks of their respective owners.<br>",
