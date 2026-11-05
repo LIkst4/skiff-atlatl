@@ -623,7 +623,7 @@ static __attribute__((noinline)) void esync_coef(track_t *t)   /* (not inlined: 
     }
 }
 
-static int32_t env_tick(track_t *t, voice_t *v)
+static int32_t env_tick(track_t *t, voice_t *v, uint32_t hold)   /* hold: the engine ends its voices ((custom) REL 0) */
 {
     const int16_t *p = t->p;
     int32_t sus = (int32_t)p[P_SUS] << 17;              /* Q24 */
@@ -640,9 +640,9 @@ static int32_t env_tick(track_t *t, voice_t *v)
         break;
     case 3:
         v->env -= mulq16(v->env, t->esync_k[2]);
-        if (v->env < (1 << 12) && !ENGINES[t->engine]->ownenv && !ENGINES[t->engine]->oneshot) {   /* ((custom) REL 0
-                                                         * ends in one tick: an engine with its own envelopes (FM6) or of
-                                                         * hits (DRUM) ends the voice itself, as before; its release goes on) */
+        if (v->env < (1 << 12) && !hold) {              /* ((custom) REL 0 ends in one tick: an engine with its own
+                                                         * envelopes (FM6) or of hits (DRUM) ends the voice itself, as
+                                                         * before; its release goes on) */
             v->env = 0;
             v->stage = 0;
             v->active = 0;
@@ -754,7 +754,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
 {
     const engine_t *e = ENGINES[t->engine];
     const int16_t *p = t->p;
-    uint32_t i;
+    uint32_t i, hold = e->ownenv | e->oneshot;          /* ((custom) env_tick: the engine ends its voices */
     int32_t lfo = mulq15(t->lfo_val, t->lfo_fade);
     t->lfo_blk = lfo;                                   /* ((custom) for the engines: one value on one core or two) */
     /* TUNE in cents: whole 1/16 semitones in the pitch, the rest as a fine factor (no dead zone) */
@@ -806,7 +806,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         if (!v->active)
             continue;
         {
-            env = env_tick(t, v);
+            env = env_tick(t, v, hold);
             if (e->ownenv && v->active) {               /* the engine's envelopes (FM6): they end the voice */
                 if (e->done(t, v)) {
                     v->active = v->gate = 0;
