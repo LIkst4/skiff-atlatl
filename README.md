@@ -5,16 +5,25 @@
   </picture>
 </p>
 
-<p align="center"><b>A six-track groovebox firmware for the M-VAVE FM-1 and SMK-37 Pro</b><br>
-synths and drums, patterns and songs, live performance, and a screen that shows what every control does</p>
+<h1 align="center">skiff-atlatl</h1>
+
+<p align="center"><b>A six-track groovebox firmware for the M-VAVE FM-1, forked from Skiff</b><br>
+an editable SYNTH, drum models per lane, a step arpeggiator, more trig conditions and USB screen mirroring</p>
 
 <p align="center">
-  <a href="https://github.com/illuminus5/skiff/releases/latest"><img src="https://img.shields.io/github/v/release/illuminus5/skiff?label=release" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-blue.svg" alt="License: GPL-3.0-only"></a>
-  <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1%20%7C%20SMK--37%20Pro-555" alt="Hardware: M-VAVE FM-1 | SMK-37 Pro">
+  <a href="https://likst4.github.io/skiff-atlatl/installer/"><b>Install</b></a> ·
+  <a href="https://likst4.github.io/skiff-atlatl/emu/">Try it in the browser</a> ·
+  <a href="https://likst4.github.io/skiff-atlatl/editor/">Web editor</a> ·
+  <a href="docs/PERFORMANCE.md">Performance guide</a> (<a href="docs/PERFORMANCE.es.md">español</a>)
 </p>
 
-## skiff-atlatl
+<p align="center">
+  <a href="https://github.com/LIkst4/skiff-atlatl/releases"><img src="https://img.shields.io/github/v/release/LIkst4/skiff-atlatl?include_prereleases&label=release" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-blue.svg" alt="License: GPL-3.0-only"></a>
+  <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1-555" alt="Hardware: M-VAVE FM-1">
+</p>
+
+## About this fork
 
 **skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) (itself built on Felucca), with more synthesis,
 a deeper step sequencer and more live tools. Everything below this section is Skiff's own README and still applies.
