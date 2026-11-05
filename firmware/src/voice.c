@@ -621,9 +621,13 @@ static __attribute__((noinline)) void esync_coef(track_t *t)   /* (not inlined: 
         t->esync_k[1] = ENV_EXP[p[P_DEC] & 127];
         t->esync_k[2] = ENV_EXP[p[P_REL] & 127];
     }
+    if ((ENGINES[t->engine]->ownenv || ENGINES[t->engine]->oneshot) && t->esync_k[2] > 63208u)
+        t->esync_k[2] = 63208u;                         /* ((custom) REL 0 is one tick (ENV_EXP[0]): an engine with its own
+                                                         * envelopes (FM6) or of hits (DRUM) ends its voices itself, so
+                                                         * env_tick's release must not end them first: its old shortest */
 }
 
-static int32_t env_tick(track_t *t, voice_t *v, uint32_t hold)   /* hold: the engine ends its voices ((custom) REL 0) */
+static int32_t env_tick(track_t *t, voice_t *v)
 {
     const int16_t *p = t->p;
     int32_t sus = (int32_t)p[P_SUS] << 17;              /* Q24 */
@@ -640,9 +644,7 @@ static int32_t env_tick(track_t *t, voice_t *v, uint32_t hold)   /* hold: the en
         break;
     case 3:
         v->env -= mulq16(v->env, t->esync_k[2]);
-        if (v->env < (1 << 12) && !hold) {              /* ((custom) REL 0 ends in one tick: an engine with its own
-                                                         * envelopes (FM6) or of hits (DRUM) ends the voice itself, as
-                                                         * before; its release goes on) */
+        if (v->env < (1 << 12)) {
             v->env = 0;
             v->stage = 0;
             v->active = 0;
@@ -754,7 +756,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
 {
     const engine_t *e = ENGINES[t->engine];
     const int16_t *p = t->p;
-    uint32_t i, hold = e->ownenv | e->oneshot;          /* ((custom) env_tick: the engine ends its voices */
+    uint32_t i;
     int32_t lfo = mulq15(t->lfo_val, t->lfo_fade);
     t->lfo_blk = lfo;                                   /* ((custom) for the engines: one value on one core or two) */
     /* TUNE in cents: whole 1/16 semitones in the pitch, the rest as a fine factor (no dead zone) */
@@ -806,7 +808,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         if (!v->active)
             continue;
         {
-            env = env_tick(t, v, hold);
+            env = env_tick(t, v);
             if (e->ownenv && v->active) {               /* the engine's envelopes (FM6): they end the voice */
                 if (e->done(t, v)) {
                     v->active = v->gate = 0;
