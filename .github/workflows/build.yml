@@ -5,6 +5,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "(custom) the tag of a release made on GitHub (vX.Y or VX.Y): build it and attach its package"
+        required: false
+        default: ""
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -97,11 +102,16 @@ jobs:
       - name: Host tests
         run: SANITIZE=0 sh tests/run_tests.sh
       - name: "(custom) A tag vX.Y: the release build (identity FM-1_742XY) as that tag's release, its source the tag's"
-        if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+        if: >-
+          (github.event_name == 'push' && github.ref_type == 'tag' &&
+           (startsWith(github.ref_name, 'v') || startsWith(github.ref_name, 'V'))) ||
+          (github.event_name == 'workflow_dispatch' && inputs.release != '')
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release || github.ref_name }}
         run: |
-          ver="${GITHUB_REF_NAME#v}"
+          GITHUB_REF_NAME="$TAG"                      # (a tag, or the release asked for by hand)
+          ver="${TAG#[vV]}"
           ./build.sh --release "$ver"
           cp "build/skiff-$ver.fwsc" "build/skiff-atlatl-v$ver.fwsc"
           pre=""; case "$ver" in 0.*|*-*) pre="--prerelease";; esac
