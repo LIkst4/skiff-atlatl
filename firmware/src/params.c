@@ -433,6 +433,9 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         if (!ms10) {                                  /* ((custom) 0: 0 ms) */
             fmt_int(val, 0);
             *unit = "ms";
+        } else if (ms10 < 10u) {                      /* ((custom) under 1 ms: 0.1 .. 0.9) */
+            val[0] = '0', val[1] = '.', val[2] = (char)('0' + ms10), val[3] = 0;
+            *unit = "ms";
         } else if (ms10 < 100u) {
             fmt_fix(val, (int32_t)ms10, 1);
             *unit = "ms";

@@ -294,7 +294,8 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 
 static const preset_t PHASE_PRESETS[] = {
     /* name, {WAVE, WAVE2, DCW, ENV, DTN, LINE, SUB, FOLD}, {A D S R}, fenv, mono */
-    {"PD BRASS", {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0, FX(0, 20, 20, 40), TAG(PT_LEAD)},
+    {"PD BRASS", {0, 0, 30, 90, 0, 0, 0, 0}, {14, 70, 90, 40}, 0, 0, FX(0, 20, 20, 40), TAG(PT_LEAD)},   /* ((custom) ATK 14: its
+                                                         * 1.8 ms on the time curve from 0, as 8 was) */
     {"PD ORGAN", {3, 0, 40, 0, 0, 0, 0, 0}, {0, 127, 127, 30}, 0, 0, FX(0, 40, 0, 30), TAG(PT_KEYS)},
     {"PD STRINGS", {0, 4, 50, 40, 12, 0, 0, 0}, {40, 90, 100, 70}, 0, 0, FX(0, 50, 20, 60), TAG(PT_PAD)},
     {"RESO", {5, 0, 60, 60, 0, 0, 0, 0}, {0, 70, 30, 60}, 0, 0, FX(0, 0, 40, 40), TAG(PT_LEAD)},

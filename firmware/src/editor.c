@@ -25,7 +25,10 @@ enum { ED_KIT_GET = 74, ED_KIT_PUT };                 /* (Skiff W3) the DRUM-X k
 enum { ED_SMP_MIX = 81 };                             /* (Skiff, #21) a user slot's sounds' LEVEL REV DLY (INFO 57 01 bit 5) */
 enum { ED_ARP = 83 };                                 /* (custom) a track's ARP STEP (seq.c arp_pat; INFO 41 01 16) */
 
-static uint8_t ed_out[600];
+#ifndef ED_OUT_N
+#define ED_OUT_N 2700u
+#endif
+static uint8_t ed_out[ED_OUT_N];   /* ((custom) NAMES of FMINI's 192 and SYNTH's 127 presets: ~2.4 KB; it was 600) */
 static uint32_t ed_n;
 
 static void ed_begin(uint32_t cmd)
@@ -719,7 +722,12 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         if (na < 1u || a[0] >= NENGINES)
             return;
         ed_b(a[0]);
-        ed_b(ENGINES[a[0]]->npresets);
+        if (ENGINES[a[0]]->npresets < 127u)                /* ((custom) 127 or more (SYNTH 127, FMINI 192): 127, then the */
+            ed_b(ENGINES[a[0]]->npresets);                 /* count in two 7-bit bytes, low first) */
+        else {
+            ed_b(127u);
+            ed_v(ENGINES[a[0]]->npresets);
+        }
         for (i = 0; i < ENGINES[a[0]]->npresets; i++)
             ed_str(ENGINES[a[0]]->presets[i].name, 12);
         for (i = 0; i < 2u; i++)                           /* then the two edit-page titles */

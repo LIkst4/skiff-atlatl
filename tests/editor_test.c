@@ -663,6 +663,30 @@ static int fm6_patches(void)
         bad += check(i == 0u ? "FM6_GET of the bank: rc 3, no bank" : i == 1u ? "FM6_PUT to the bank: rc 3, no bank" :
                                "FM6_ERASE: rc 3, no bank", host_wire[i == 2u ? 6 : 7] == 3u);
     }
+    {   /* ((custom) NAMES: every engine's presets whole: SYNTH's 127 names did not fit the 600-byte reply ("short reply")) */
+        uint32_t e, okn = 1;
+        for (e = 0; e < NENGINES; e++) {
+            uint32_t p = 7, k, m, np;
+            a[0] = (uint8_t)e;
+            m = request(ED_NAMES, a, 1);
+            np = host_wire[6];
+            if (np == 127u) {                            /* 127 or more: the count in two bytes after */
+                np = (host_wire[7] | (uint32_t)host_wire[8] << 7) - 8192u;
+                p = 9;
+            }
+            for (k = 0; k < ENGINES[e]->npresets + 2u && p < m - 1u; k++) {
+                while (p < m - 1u && host_wire[p]) p++;
+                p++;
+            }
+            if (!(host_wire[5] == e && np == ENGINES[e]->npresets && k == ENGINES[e]->npresets + 2u &&
+                  p == m - 1u && host_wire[m - 1u] == 0xF7)) {
+                printf("  NAMES of engine %u (%s): %u presets, the reply %u bytes, %u names read\n", e, ENGINES[e]->name,
+                       ENGINES[e]->npresets, m, k);
+                okn = 0;
+            }
+        }
+        bad += check("NAMES: every engine's preset names and page titles, whole", okn);
+    }
     n = request(ED_FM6_LIST, a, 0);
     {   /* factory 8, bank 0, then used + name per factory slot */
         uint32_t p = 7, k, ok = host_wire[5] == FM6_NFACTORY && host_wire[6] == 0;

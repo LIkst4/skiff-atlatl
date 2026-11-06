@@ -44,12 +44,13 @@ def main(path):
           "    uint32_t i = p + 64u, o = (i * 21846u) >> 22;     /* i / 192: the octave above PITCH_OCT's - 10 */",
           "    return PITCH_OCT[i - o * 192u] >> (10u - o);",
           "}"]
-    # times 1 ms .. 10 s (exponential), env in Q24 (1.0 = 1<<24)
-    ms = [1.0 * (10000 ** (v / 127)) for v in range(128)]
-    # ((custom) value 0 is 0 ms: the envelopes' ATTACK, DECAY, RELEASE at 0 jump in one control tick (the voice's amp
-    # still ramps across that block: ~0.7 ms, no click); the rest of the curve as before)
-    L += arr("TIME_MS_X10", "uint32_t", [0] + [int(round(m * 10)) for m in ms[1:]], 10)
-    L += arr("ENV_LIN", "uint32_t", [1 << 24] + [max(1, int((1 << 24) * CTL / (m * FS / 1000))) for m in ms[1:]], 8)
+    # times 0 .. 10 s, env in Q24 (1.0 = 1<<24): ((custom) 10000^(v / 127) - 1 ms: from 0 with no jump (it was 1 ms ..
+    # 10 s, and 0 a jump to 0 ms), the same curve above a few ms. A time under a control tick (~0.73 ms) is one tick:
+    # the voice's amp ramps across that block)
+    ms = [10000 ** (v / 127) - 1.0 for v in range(128)]
+    L += arr("TIME_MS_X10", "uint32_t", [int(round(m * 10)) for m in ms], 10)
+    L += arr("ENV_LIN", "uint32_t", [min(1 << 24, int((1 << 24) * CTL / (m * FS / 1000))) if m > 0 else 1 << 24
+                                     for m in ms], 8)
     exp_k = [65535]
     for m in ms[1:]:
         tau = m / 1000 / 4.6                       # ~99 % of the way after "m" ms
