@@ -105,7 +105,8 @@ jobs:
           ./build.sh --release "$ver"
           cp "build/skiff-$ver.fwsc" "build/skiff-atlatl-v$ver.fwsc"
           pre=""; case "$ver" in 0.*|*-*) pre="--prerelease";; esac
-          notes="skiff-atlatl $GITHUB_REF_NAME, built by CI from ${GITHUB_SHA::7}. Install it with the FM-1's update (M-UPGRADE) or a firmware installer; the package carries the update loader, so the unit can go back to the official firmware. See README.md."
+          ident="FM-1_742$(echo "$ver" | cut -d- -f1 | cut -d. -f1-2 | tr -d .)"
+          notes="skiff-atlatl $GITHUB_REF_NAME (identity $ident), built by CI from ${GITHUB_SHA::7}: a six-track groovebox firmware for the M-VAVE FM-1, forked from Skiff. Install skiff-atlatl-v$ver.fwsc with a firmware installer (Chrome or Edge, the FM-1 on USB) or the FM-1's update (M-UPGRADE). Back up first: the package carries the update loader, so the unit can always go back to the official firmware. What it does, the credits and the licences: README.md and LICENSING.md; the performance guide: docs/PERFORMANCE.md (docs/PERFORMANCE.es.md en español)."
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" $pre --verify-tag --title "skiff-atlatl $GITHUB_REF_NAME" --notes "$notes"
           gh release upload "$GITHUB_REF_NAME" "build/skiff-atlatl-v$ver.fwsc" --clobber
