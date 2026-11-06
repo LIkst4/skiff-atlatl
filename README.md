@@ -78,6 +78,9 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 - a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL, ANLG), SUB, X-MOD and
   DRIFT (after OberVave), a 303 page after the Devil Fish (ACCENT sweep, ACC DEC, MUFFLE);
 - **POLY MOD** after the Prophet-5: ENV 2 and OSC B onto FREQ A, PW A or the filter; **B LOW** makes OSC B an LFO;
+- (new) **BLEND** (FX › FILTER 2, as Vital's filters): every filter type sweeps from its low-pass (0) through its
+  band-pass (64) to its high-pass (127), the ladders' (LP MG, LD, OB 24, ACID) from their stages as the Oberheim
+  Xpander's modes; p-lockable like any knob. COMB and VOWEL keep theirs;
 - (new) **ACID** is now the 303's filter, after Open303's TeeBeeFilter as X0X runs it (its resonance through a
   high-pass, CHAR = **FB HP**, ~150 Hz at 63); **ANLG** is ANALOG's own filter (its drive and 2-pole low-pass, CHAR
   blends the band-pass in). ACID LINE and DEVIL ACID play the 303; ANALOG's sounds (SAW LEAD, SQR BASS, PWM STR …)

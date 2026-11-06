@@ -30,6 +30,7 @@ static void ck(const char *w, int ok)
 static int16_t line[FLT_LINE];
 
 /* RMS of a sine of hz through the filter (after 0.3 s of settling) */
+static int g_blend;                     /* (custom) BLEND for tone() */
 static double tone(uint32_t ty, int cut, int res, int chr, double hz)
 {
     flt_t f;
@@ -37,6 +38,7 @@ static double tone(uint32_t ty, int cut, int res, int chr, double hz)
     double acc = 0;
     int i, k, cnt = 0;
     memset(&f, 0, sizeof f);
+    f.bl = (uint8_t)g_blend;
     for (k = 0; k < SR / BLK; k++) {
         for (i = 0; i < BLK; i++)
             b[i] = (int32_t)(20000 * sin(2 * M_PI * hz * (k * BLK + i) / SR));
@@ -128,6 +130,19 @@ int main(void)
             snprintf(w, sizeof w, "%-5s low-pass at CUT 50: 100 Hz %.2f, 6 kHz %.4f (-%.0f dB)", NAMES[t], lo, hi,
                      -20 * log10(hi / lo));
             ck(w, lo > 0.3 && hi < lo * 0.1);
+        }
+        for (k = 0; k < 8; k++) {                       /* (custom) BLEND: 127 a high-pass, 64 a band-pass, each type */
+            uint32_t t = LP[k];
+            double h_lo, h_hi, b_lo, b_mid, b_hi;
+            g_blend = 127;
+            h_lo = tone(t, 64, 20, 0, 60), h_hi = tone(t, 64, 20, 0, 12000);
+            g_blend = 64;
+            b_lo = tone(t, 64, 20, 0, 60), b_mid = tone(t, 64, 20, 0, 1000), b_hi = tone(t, 64, 20, 0, 12000);
+            g_blend = 0;
+            snprintf(w, sizeof w, "%-5s BLEND 127 (HP): 60 Hz %.3f, 12 kHz %.2f; 64 (BP): 60 Hz %.3f, 1 kHz %.2f, 12 kHz %.3f",
+                     NAMES[t], h_lo, h_hi, b_lo, b_mid, b_hi);
+            ck(w, h_hi > 0.6 && h_hi < 1.6 && h_lo < h_hi * 0.1 && b_mid > 0.3 && b_mid < 2.0 && b_lo < b_mid * 0.3 &&
+                      b_hi < b_mid * 0.3);
         }
         {
             double lo = tone(FT_OB12, 70, 0, 111, 60), hi = tone(FT_OB12, 70, 0, 111, 8000);

@@ -208,6 +208,7 @@ static const param_desc_t TP[P_COUNT] = {
     [P_FRES] = PD("RESO", F_PCT, 0, 127, 0),
     [P_FCHR] = PD("CHAR", F_PCT, 0, 127, 0),
     [P_FDRV] = PD("DRIVE", F_PCT, 0, 127, 0),
+    [P_FBLND] = PD("BLEND", F_PCT, 0, 127, 0),       /* (custom) LP (0) .. BP (64) .. HP (127), every type but COMB VOWEL */
     [P_SYSUB] = PD("SUB", F_PCT, 0, 127, 0),       /* (custom) SYNTH's own (eng_synth.c), 0: off, as before */
     [P_SYSUBO] = PE("SUB OCT", N_SYSUBO, 0),
     [P_SYXMOD] = PD("X-MOD", F_PCT, 0, 127, 0),
@@ -590,7 +591,7 @@ static const page_t PAGES[] = {
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"DRIVE", FAM_FX, SC_TRACK, GR_DRIVE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* (Skiff phase 9) DIST's TYPE, TONE */
     {"FILTER", FAM_FX, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_FCHR}},   /* (custom) the track FILTER (flt.c) */
-    {"FILTER 2", FAM_FX, SC_TRACK, GR_NONE, {P_FDRV, 0xFF, 0xFF, 0xFF}},       /* .. its DRIVE */
+    {"FILTER 2", FAM_FX, SC_TRACK, GR_NONE, {P_FDRV, P_FBLND, 0xFF, 0xFF}},    /* .. its DRIVE, (custom) BLEND */
     {"FLT MOD", FAM_FX, SC_TRACK, GR_NONE, {P_ED_FLT, P_LD_FLT, 0xFF, 0xFF}},  /* (custom) DRUM only: the FILTER's envelope
                                                                          * (ENV, shown FLT ENV) and LFO depths */
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* (1.3, from Felucca 1.5) the track's INSERT */

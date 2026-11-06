@@ -36,7 +36,25 @@ typedef struct {
     int32_t y;                    /* the ladders' last output (the unit-delay feedback); ACID: its k a block ago */
     uint16_t wp;                  /* COMB's write position */
     uint8_t type;                 /* the type the states belong to (a change clears them) */
+    uint8_t bl;                   /* (custom) BLEND (P_FBLND), set by the caller before flt_run: 0 LP .. 64 BP .. 127 HP */
 } flt_t;
+
+/* (custom) BLEND, as Vital's filters: 0 the type's own output (LP, or what CHAR makes of it) .. 64 its band-pass ..
+ * 127 its high-pass; the ladders' from their stages (as the Oberheim Xpander's modes: BP 4 (y2 - 2 y3 + y4), HP
+ * u - 4 y1 + 6 y2 - 4 y3 + y4), the state-variable ones' their own outputs. COMB and VOWEL keep theirs. fl_bw: the
+ * block's weight (Q12) and which pair it blends */
+typedef struct { int32_t w; uint32_t hi; } fl_bw_t;
+static inline fl_bw_t fl_bw(uint32_t bl)
+{
+    fl_bw_t r;
+    r.hi = bl > 64u;
+    r.w = r.hi ? (int32_t)(bl - 64u) * 65 : (int32_t)bl * 64;
+    return r;
+}
+static inline int32_t fl_mix(int32_t lp, int32_t bp, int32_t hp, fl_bw_t w)
+{
+    return w.hi ? bp + (int32_t)(((int64_t)(hp - bp) * w.w) >> 12) : lp + (int32_t)(((int64_t)(bp - lp) * w.w) >> 12);
+}
 
 static inline int32_t fl_sat(int32_t v) { return v < -FLT_SMAX ? -FLT_SMAX : v > FLT_SMAX ? FLT_SMAX : v; }
 static inline int32_t fl_q12(int32_t a, int32_t k) { return (a * k) >> 12; }
@@ -68,7 +86,8 @@ static void fl_ladder(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, in
                       int32_t sat, int32_t comp)
 {
     uint32_t G = fl_G(g), i;
-    if (taps == 4u && !sat) {                    /* LP MG, LD at 24 dB: the plain four poles, the common case */
+    fl_bw_t bw = fl_bw(f->bl);
+    if (taps == 4u && !sat && !f->bl) {                    /* LP MG, LD at 24 dB: the plain four poles, the common case */
         int32_t s0 = f->s[0], s1 = f->s[1], s2 = f->s[2], s3 = f->s[3], yl = f->y;
         for (i = 0; i < n; i++) {
             int32_t x = clamp(b[i] >> 2, -32000, 32000), u;
@@ -101,6 +120,8 @@ static void fl_ladder(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, in
         case 4: o = y4; break;
         default: o = y4 + fl_q12(y3 - y4, (int32_t)taps - 5); break;   /* taps 5 + 0..4095: y4 .. y3 */
         }
+        if (f->bl)                              /* (custom) BLEND: the stages' band- and high-pass */
+            o = fl_mix(o, 4 * (y2 - 2 * y3 + y4), u - 4 * y1 + 6 * y2 - 4 * y3 + y4, bw);
         b[i] = fl_sat(fl_q12(o, comp)) << 2;
     }
 }
@@ -112,6 +133,7 @@ static void fl_svf(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t R, int32
 {
     int32_t c1 = 2 * R + g, den = 4096 + fl_q12(2 * R, g) + fl_q12(g, g);
     uint32_t a = (uint32_t)((1u << 28) / (uint32_t)den), i;   /* 1 / den, Q16 */
+    fl_bw_t bw = fl_bw(f->bl);
     for (i = 0; i < n; i++) {
         int32_t x = fl_tanh(fl_q12(clamp(b[i] >> 2, -32000, 32000), drv)), hp, bp, lp, o[4], y;   /* DRIVE: soft, before */
         int32_t s1 = f->s[0];
@@ -128,6 +150,8 @@ static void fl_svf(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t R, int32
         o[2] = hp;
         o[3] = lp + hp;                         /* NOTCH */
         y = mode == 5u ? lp + fl_q12(hp - lp, m) : o[mode] + fl_q12(o[mode + 1u] - o[mode], m);
+        if (f->bl)                              /* (custom) BLEND */
+            y = fl_mix(y, bp, hp, bw);
         b[i] = fl_sat(fl_q12(y, comp)) << 2;
     }
 }
@@ -136,6 +160,7 @@ static void fl_svf(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t R, int32
 static void fl_sk(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, int32_t drv, uint32_t mode)
 {
     uint32_t G = fl_G(g), i;
+    fl_bw_t bw = fl_bw(f->bl);
     for (i = 0; i < n; i++) {
         int32_t x = fl_tanh(fl_q12(clamp(b[i] >> 2, -32000, 32000), drv)), fb, u, y1, y2, o;
         fb = fl_q12(f->s[2], k);                /* last band-pass, scaled */
@@ -145,6 +170,8 @@ static void fl_sk(flt_t *f, int32_t *b, uint32_t n, int32_t g, int32_t k, int32_
         y2 = fl_op(&f->s[1], y1, G);
         f->s[2] = fl_sat(y1 - y2);              /* the band between the poles feeds back */
         o = mode == 0 ? y2 : mode == 1 ? (y1 - y2) << 1 : x - y1 - (y1 - y2);
+        if (f->bl)                              /* (custom) BLEND */
+            o = fl_mix(o, (y1 - y2) << 1, x - y1 - (y1 - y2), bw);
         b[i] = fl_sat(o) << 2;
     }
 }
@@ -213,6 +240,7 @@ static void fl_vowel(flt_t *f, int32_t *b, uint32_t n, int32_t shift, int32_t R,
  * 303's nominal cutoff is where it rings: without RESO it is darker than the other types'). States s[0..3] the stages, s[4] s[5] the
  * feedback high-pass, s[6] the input's high-pass (44.5 Hz), s[7] the output's (24 Hz, as Open303's after it: what the
  * clipped resonance leaves of DC); hp, y: b0, k a block ago */
+#define ACID_BP 6                        /* (custom) BLEND: ACID's band-pass made up to ~1 at its peak */
 static void fl_acid(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, int32_t chr, int32_t dq)
 {
     int32_t j = clamp(ci + 104, 0, 1024), i8 = j >> 3, fr = j & 7, i9 = i8 < 128 ? i8 + 1 : 128;
@@ -225,6 +253,7 @@ static void fl_acid(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, i
             lo = f->s[7];
     int32_t bq = f->hp ? f->hp : b0, kq = f->hp ? f->y : kr, db = (b0 - bq) / (int32_t)n, dk = (kr - kq) / (int32_t)n;
     uint32_t i;
+    fl_bw_t bw = fl_bw(f->bl);
     if (!n)
         return;
     for (i = 0; i < n; i++) {                    /* (the states 64 x the level: the small b0 of low cutoffs keep their
@@ -243,7 +272,9 @@ static void fl_acid(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, i
         y2 += (int32_t)(((int64_t)bq * (y1 - 2 * y2 + y3)) >> 16);
         y3 += (int32_t)(((int64_t)bq * (y2 - 2 * y3 + y4)) >> 16);
         y4 = clamp(y4 + (int32_t)(((int64_t)bq * (y3 - 2 * y4)) >> 16), -25000000, 25000000);
-        o = (int32_t)(((((int64_t)g2 * y4) >> 18) * (4096 + r)) >> 12);   /* (made up: g2, and 1 + r more: as loud as
+        o = (int32_t)(((((int64_t)g2 * y4) >> 18) * (4096 + r)) >> 12);
+        if (f->bl)                              /* (custom) BLEND: the coupled stages' own band- and high-pass, unmade */
+            o = fl_mix(o, (ACID_BP * (y3 - 2 * y4)) >> 6, (u - y4) >> 6, bw);   /* (made up: g2, and 1 + r more: as loud as
                                                                          * the other types when it rings) */
         o = clamp(o, -2000000, 2000000) << 8;
         lo += (int32_t)(((int64_t)(o - lo) * 224) >> 16);               /* 24 Hz high-pass */
@@ -260,7 +291,9 @@ static void fl_anlg(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, i
 {
     tsvf_t c;
     int32_t drive = 32768 + clamp(drv, 0, 127) * 512, ic1 = f->s[0], ic2 = f->s[1];
+    int32_t kd = 8192 - clamp(res, 0, 127) * 7600 / 127;   /* tsvf_coef's damping, Q12: BLEND's high-pass */
     uint32_t i;
+    fl_bw_t bw = fl_bw(f->bl);
     tsvf_coef(&c, clamp(ci, 0, 1024) * 32, clamp(res, 0, 127));
     for (i = 0; i < n; i++) {
         int32_t s = clamp(b[i], -600000, 600000), v1, v2, v3;
@@ -271,7 +304,10 @@ static void fl_anlg(flt_t *f, int32_t *b, uint32_t n, int32_t ci, int32_t res, i
         v2 = ic2 + ((c.a2 * ic1 + c.a3 * v3) >> 13);
         ic1 = clamp(2 * v1 - ic1, -150000, 150000);
         ic2 = clamp(2 * v2 - ic2, -150000, 150000);
-        b[i] = fl_sat(v2 + (((v1 - v2) * chr) >> 7)) << 1;
+        v3 = v2 + (((v1 - v2) * chr) >> 7);
+        if (f->bl)                              /* (custom) BLEND: the band-pass at unity, the high-pass */
+            v3 = fl_mix(v3, (v1 * kd) >> 12, (s >> 1) - ((v1 * kd) >> 12) - v2, bw);
+        b[i] = fl_sat(v3) << 1;
     }
     f->s[0] = ic1;
     f->s[1] = ic2;
@@ -289,7 +325,9 @@ static void flt_run(flt_t *f, int16_t *line, int32_t *b, uint32_t n, uint32_t ty
         return;                                  /* bit for bit */
     }
     if (f->type != ty) {                         /* a new type from rest */
+        uint8_t bl = f->bl;
         memset(f, 0, sizeof *f);
+        f->bl = bl;
         f->type = (uint8_t)ty;
         f->ci = clamp(cut, 0, 127) * 8;
         if (line)

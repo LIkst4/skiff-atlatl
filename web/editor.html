@@ -1776,7 +1776,7 @@ const P_LTUNE = Array.from({ length: 8 }, (_, i) => 101 + i), P_LDECAY = Array.f
 const P_LFO2 = [117, 118, 119], P_SPRD = 120, P_INSERT = [121, 122, 123, 124], P_IMIX = 125, P_ESYNC = 126;
 const P_LPAN = Array.from({ length: 8 }, (_, i) => 127 + i);   /* (2.0, #36, P_COUNT 143, P_E0 135) core.h P_LPAN0..7: the
                                                    DRUM lanes' PAN, sound parameters as the lane levels */
-const P_FILTER = [138, 139, 140, 141], P_FDRV = 142;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
+const P_FILTER = [138, 139, 140, 141], P_FDRV = 142, P_FBLND = 165;   /* (custom, P_COUNT 151, P_E0 143) the track FILTER */
 const P_SYNTH3 = [143, 144, 145, 146], P_303 = [147, 148, 149, 38], P_RTVEL = 150, P_MODAL = [151, 152];
 const P_LMDL = Array.from({ length: 8 }, (_, i) => 153 + i), P_POLYMOD = [161, 162, 163, 164];   /* (custom, P_COUNT 173, P_E0
                                                                          * 165) SYNTH's POLY MOD */   /* (custom, P_COUNT 169, P_E0 161) DRUM's lanes' MODEL */   /* (custom, P_COUNT 158, P_E0 150) SYNTH's own: SUB SUB OCT
@@ -2743,7 +2743,8 @@ function makeMockDevice(opt = {}) {
   for (let i = 0; i < 8; i++) TP.push(E("MODEL", N_LMDL, 0));                   /* 153..160: (custom) a DRUM lane's MODEL */
   TP.push(D("ENV AMT", F.BIPCT, -64, 63, 0), D("OSC B", F.PCT, 0, 127, 0),      /* 161..164: (custom) SYNTH's POLY MOD */
     E("DEST", ["FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"], 0), E("B LOW", ["OFF", "ON"], 0));
-  const P_COUNT = 173, G_COUNT = 27, NSTEP = 64, P_E0 = 165, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("BLEND", F.PCT, 0, 127, 0));                                  /* 165: (custom) the FILTER's BLEND */
+  const P_COUNT = 174, G_COUNT = 27, NSTEP = 64, P_E0 = 166, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -4425,7 +4426,7 @@ const LAYOUT = (pe0) => [
   { t: "VOICE", pages: [["LEVEL", 0, [0]], ["VOICE", 0, [37, 38, 41, 42]], ["VOICE 2", 0, [43, 44, 39, 40]],
     ...(pe0 >= 127 ? [["SPREAD", 0, [P_SPRD]]] : [])] },   /* ((1.3) the voices left and right of PAN) */
   { t: "FX", pages: [["FX", 0, [33, 34, 35, 36]], ...(pe0 >= 117 ? [["DRIVE", 0, [33, ...P_DRIVE]]] : []),
-    ...(pe0 >= 143 ? [["FILTER", 0, P_FILTER], ["FILTER 2", 0, [P_FDRV]]] : []),   /* ((custom) the track FILTER) */
+    ...(pe0 >= 143 ? [["FILTER", 0, P_FILTER], ["FILTER 2", 0, pe0 >= 166 ? [P_FDRV, P_FBLND] : [P_FDRV]]] : []),   /* ((custom) the track FILTER) */
     ...(pe0 >= 150 && engName() === "SYNTH" ? [["SYNTH 3", 0, P_SYNTH3], ["303", 0, P_303]] : []),   /* ((custom) SYNTH's own) */
     ...(pe0 >= 153 && engName() === "SYNTH" ? [["MODAL", 0, P_MODAL]] : []),
     ...(pe0 >= 165 && engName() === "SYNTH" ? [["POLY MOD", 0, P_POLYMOD]] : []),

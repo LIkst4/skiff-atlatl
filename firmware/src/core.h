@@ -149,6 +149,7 @@ enum {                          /* per-track parameters */
                                                 * LANE MIX): 0 the kit's, 1.. one of the MD models (md/md.c); 161..168 */
     P_SYPME, P_SYPMB, P_SYPMD, P_SYBLOW,       /* (custom, the Prophet-5's POLY MOD) SYNTH's: ENV 2 and OSC B's amounts on
                                                 * DEST (FREQ A, PW A, FILTER ..), B LOW (OSC B an LFO); ids 169..172 */
+    P_FBLND,                                   /* (custom, as Vital's) the FILTER's BLEND: LP .. BP .. HP (flt.c); id 173 */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };

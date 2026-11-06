@@ -671,6 +671,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         if (vi == 0u)                                    /* (the sweep drains once a block, by voice 0's render) */
             sy_sweep[k] -= sy_sweep[k] / 400;
     }
+    S->f.bl = (uint8_t)clamp(p[P_FBLND], 0, 127);        /* (custom) BLEND */
     flt_run(&S->f, 0, y, n, (uint32_t)clamp(p[P_FTYPE], 0, FT_N - 1), p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
     if (p[P_SYMUF]) {                                    /* (Devil Fish) MUFFLE: the VCA's soft clip, louder in */
         int32_t kn = 16000 - p[P_SYMUF] * 100;

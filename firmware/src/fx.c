@@ -1037,6 +1037,7 @@ static __attribute__((noinline)) void track_filter(track_t *t, int32_t *b, int32
     uint32_t k = (uint32_t)(t - trk) % NTRK, ty = (uint32_t)clamp(t->p[P_FTYPE], 0, FT_N - 1), i;
     const int16_t *p = t->p;
     int32_t cm = drum_engine(t->engine) ? trk_fenv(t) : 0;   /* ((custom) DRUM: its envelope, its LFO) */
+    tflt[k][0].bl = tflt[k][1].bl = tflt[k][2].bl = (uint8_t)clamp(p[P_FBLND], 0, 127);   /* (custom) BLEND */
     flt_run(&tflt[k][0], tflt_line[k], b, n, ty, p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
     if (d) {
         if (ty == FT_COMB)
