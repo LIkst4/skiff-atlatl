@@ -1,5 +1,5 @@
 {
-  "what": "A six-track groovebox for the FM-1, forked from Skiff: an editable SYNTH with analog and 303 oscillators, an acid filter, Plaits and Rings models and OberVave presets, classic drum models per lane, more trig conditions, a step arpeggiator, a web editor and USB screen mirroring.",
+  "what": "A six-track groovebox for the FM-1, forked from Skiff: a SYNTH with analog, 303 and Plaits-style oscillators, an acid filter and OberVave presets, a Minimoog voice, classic drum models, more trig conditions, a step arpeggiator, 8-channel USB audio, a web editor and screen mirroring.",
   "author": "LIkst4",
   "kinds": [
     "groove"

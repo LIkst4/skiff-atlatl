@@ -47,6 +47,9 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
   and the ideas behind X-MOD and DRIFT (GPL-3.0).
 - [fm1-mirror](https://github.com/pfkellogg/fm1-mirror) by Patrick F. Kellogg: `screen_mirror.c` / `.h`, the screen
   mirror over USB (MIT).
+- [FMini-1](https://github.com/ruppert/fmini-1) by Guilherme Ruppert: the FMINI engine, its Minimoog voice
+  (GPL-3.0).
+- Kitten Synths by Black Kitten Devices: the 8-channel USB audio (its fix-17).
 - [X0X](https://github.com/charlesvestal/fm1-x0x) by Charles Vestal: its TB-303 (after Open303 by Robin Schmidt,
   MIT), the SYNTH's 303 oscillator and ACID filter (GPL-3.0).
 - [Hortator](https://github.com/deadactive/hortator) by DEADACTIVE: the MD kits' drum models (GPL-3.0; its ports of
@@ -80,6 +83,12 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
   are back on its oscillators and filter;
 - 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
   it; one without leaves yours.
+
+**FMINI**, the Minimoog voice of FMini-1 (Guilherme Ruppert): three oscillators, its ladder filter modelled on the
+Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRASS …).
+
+**USB audio, 8 channels** (after Kitten Synths' fix-17): 1–2 the master, 3–8 the six tracks, each on its own channel
+(before the shared effects), to record every track apart in a DAW.
 
 **DRUM**:
 - DRUM-X merged in as the DX and DX+ kits;
