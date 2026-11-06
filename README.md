@@ -32,8 +32,9 @@ a deeper step sequencer and more live tools. Everything below this section is Sk
   on USB). Not Skiff's installer further below: that one installs the original Skiff.
 - **Try it:** [in the browser](https://likst4.github.io/skiff-atlatl/emu/) (the firmware itself, emulated) ·
   **[web editor](https://likst4.github.io/skiff-atlatl/editor/)** (Chrome or Edge, the FM-1 on USB)
-- **Download:** the `.fwsc` on the [releases page](https://github.com/LIkst4/skiff-atlatl/releases) (`build-atlatl-dev`:
-  the latest build of the branch). The package carries the update loader: back up first, and you can always go back
+- **Download:** `skiff-atlatl-v1.0.fwsc` from the [releases page](https://github.com/LIkst4/skiff-atlatl/releases)
+  (identity FM-1_74210; a release vX.Y is FM-1_742XY); `build-atlatl-dev` is the latest build of the branch (FM-1_74200),
+  the one the installer above serves. The package carries the update loader: back up first, and you can always go back
   to the official firmware.
 - **Performance guide:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md) ([en español](docs/PERFORMANCE.es.md))
 
