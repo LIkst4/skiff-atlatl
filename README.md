@@ -8,37 +8,121 @@
 <h1 align="center">skiff-atlatl</h1>
 
 <p align="center"><b>A six-track groovebox firmware for the M-VAVE FM-1, forked from Skiff</b><br>
-an editable SYNTH, drum models per lane, a step arpeggiator, more trig conditions and USB screen mirroring</p>
+analog, 303 and Plaits-style oscillators, a Minimoog voice, filters that blend LP / BP / HP, classic drum models per
+lane, a step arpeggiator, more trig conditions, 8-channel USB audio and screen mirroring</p>
 
 <p align="center">
-  <a href="https://likst4.github.io/skiff-atlatl/installer/"><b>Install</b></a> ·
+  <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><b>Download v1.1</b></a> ·
+  <a href="https://likst4.github.io/skiff-atlatl/installer/">Installer</a> ·
   <a href="https://likst4.github.io/skiff-atlatl/emu/">Try it in the browser</a> ·
   <a href="https://likst4.github.io/skiff-atlatl/editor/">Web editor</a> ·
   <a href="docs/PERFORMANCE.md">Performance guide</a> (<a href="docs/PERFORMANCE.es.md">español</a>)
 </p>
 
 <p align="center">
-  <a href="https://github.com/LIkst4/skiff-atlatl/releases"><img src="https://img.shields.io/github/v/release/LIkst4/skiff-atlatl?include_prereleases&label=release" alt="Latest release"></a>
+  <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><img src="https://img.shields.io/github/v/release/LIkst4/skiff-atlatl?label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/based%20on-Skiff%202.2-555" alt="Based on Skiff 2.2">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-blue.svg" alt="License: GPL-3.0-only"></a>
   <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1-555" alt="Hardware: M-VAVE FM-1">
 </p>
 
-## About this fork
+## About
 
-**skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) (itself built on Felucca), with more synthesis,
-a deeper step sequencer and more live tools. Everything below this section is Skiff's own README and still applies.
+**skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) 2.2 by illuminus5 (itself built on
+[Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments). It keeps everything Skiff does and adds more
+synthesis, a deeper sequencer and arpeggiator, and more tools for playing live and recording. Skiff's own README
+follows further below and still applies, except where the changes listed here say otherwise.
 
-- **Install:** the **[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)** (Chrome or Edge, the FM-1
-  on USB). Not Skiff's installer further below: that one installs the original Skiff.
-- **Try it:** [in the browser](https://likst4.github.io/skiff-atlatl/emu/) (the firmware itself, emulated) ·
-  **[web editor](https://likst4.github.io/skiff-atlatl/editor/)** (Chrome or Edge, the FM-1 on USB)
-- **Download:** `skiff-atlatl-v1.0.fwsc` from the [releases page](https://github.com/LIkst4/skiff-atlatl/releases)
-  (identity FM-1_74210; a release vX.Y is FM-1_742XY); `build-atlatl-dev` is the latest build of the branch (FM-1_74200),
-  the one the installer above serves. The package carries the update loader: back up first, and you can always go back
-  to the official firmware.
-- **Performance guide:** [docs/PERFORMANCE.md](docs/PERFORMANCE.md) ([en español](docs/PERFORMANCE.es.md))
+| | |
+|---|---|
+| **Current release** | **v1.1**, identity `FM-1_74211` ([release notes](https://github.com/LIkst4/skiff-atlatl/releases/latest)) |
+| **Identity** | release vX.Y is `FM-1_742XY`; builds of the `atlatl-dev` branch are `FM-1_74200`. Skiff's own is `FM-1_7XY`, so the hub and the installers tell them apart |
+| **Hardware** | M-VAVE FM-1 (both flash chips) |
+| **Licence** | GPL-3.0-only; the third-party parts and their licences in [LICENSING.md](LICENSING.md) |
 
-### Credits
+## Install
+
+- **Download** `skiff-atlatl-v1.1.fwsc` from the [latest release](https://github.com/LIkst4/skiff-atlatl/releases/latest)
+  and install it with a firmware installer (Chrome or Edge, the FM-1 on USB) or the FM-1's update (M-UPGRADE).
+- **Or** use the **[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)** in Chrome or Edge: it
+  installs the latest build of the `atlatl-dev` branch (`FM-1_74200`), the newest changes before the next release.
+  (Skiff's installer further below installs the original Skiff, not this.)
+- **Back up first.** The package carries the update loader, so the unit can always go back to the official firmware
+  (the installer's "Return to the official firmware").
+- **Try it before installing:** [in the browser](https://likst4.github.io/skiff-atlatl/emu/), the firmware itself
+  emulated. The **[web editor](https://likst4.github.io/skiff-atlatl/editor/)** reaches every page from a computer.
+
+## Changes from Skiff
+
+**SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
+- two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
+  Mutable's Rings: BRIGHT, POSITION) or, after Mutable's Plaits, FOLD (wavefolder), CHORD (11 chords and inversions),
+  SWARM (supersaw, its spread now wide from half way); OSC B also SYNC or RING;
+- ANALOG's oscillators back as models: **SQR** (width 50–5 %), **TRI** (driven round), **PWM** (the width
+  moving by itself, DEPTH); **303**, X0X's TB-303 oscillator (Open303's saw … its square); **AWAVE**, a wavetable of 8
+  waves modelled on analog circuits (CAP SAW, JUNO, SHARK, TRI SAT, RC SQR, OB PULSE, SYNC, RESO SAW);
+- a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL, ANLG), SUB, X-MOD and
+  DRIFT (after OberVave), a 303 page after the Devil Fish (ACCENT sweep, ACC DEC, MUFFLE);
+- **POLY MOD** after the Prophet-5: ENV 2 and OSC B onto FREQ A, PW A or the filter; **B LOW** makes OSC B an LFO;
+- **BLEND** (FX › FILTER 2, as Vital's filters): every filter type sweeps from its low-pass (0) through its
+  band-pass (64) to its high-pass (127), the ladders' (LP MG, LD, OB 24, ACID) from their stages as the Oberheim
+  Xpander's modes; p-lockable like any knob. COMB and VOWEL keep theirs;
+- **ACID** is now the 303's filter, after Open303's TeeBeeFilter as X0X runs it (its resonance through a
+  high-pass, CHAR = **FB HP**, ~150 Hz at 63); **ANLG** is ANALOG's own filter (its drive and 2-pole low-pass, CHAR
+  blends the band-pass in). ACID LINE and DEVIL ACID play the 303; ANALOG's sounds (SAW LEAD, SQR BASS, PWM STR …)
+  are back on its oscillators and filter;
+- 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
+  it; one without leaves yours.
+
+**FMINI**, the Minimoog voice of FMini-1 (Guilherme Ruppert): three oscillators, its ladder filter modelled on the
+Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRASS …).
+
+**USB audio, 8 channels** (after Kitten Synths' fix-17): 1–2 the master, 3–8 the six tracks, each on its own channel
+(before the shared effects), to record every track apart in a DAW.
+
+**DRUM**:
+- DRUM-X merged in as the DX and DX+ kits;
+- Hortator's drum models, the MD kits (808, 909, TRX, EFM, TRX-P, MI) plus a **626** kit;
+- a **MODEL per lane** (any of the 41 on any kit's lane, lockable per step);
+- the track **FILTER** moved by its own envelope and the LFO: **ENV** is **FLT ENV** on a DRUM track, and
+  **FX › FLT MOD** sets ENV>FLT and LFO>FLT.
+
+**GRAIN** grains real FLUTE and SAX recordings.
+
+**Effects**:
+- INSERT gains Airwindows-style **DENS**, **CONS** and **TAPE**;
+- the track FILTER is on every engine (FX › FILTER).
+
+**Sequencer**:
+- trig conditions **PRE / !PRE**, **1ST / !1ST** and **NEI / !NEI**, beside FILL and the ratios;
+- **RETRIG VEL** (ratchets fading in or out).
+
+**Arpeggiator**:
+- the arp's RATE adds **4T** and **32T** triplets;
+- **ARP › ARP STEP**, a step pattern for the arp: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
+
+**Screen over USB**:
+- the web editor's **Screen** tab shows the FM-1's display live;
+- [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) works too.
+
+**Envelopes**: ATTACK, DECAY and RELEASE start at 0 ms (instant) and rise smoothly (0.1, 0.2 … ms), on every engine.
+
+**Web editor**: ARP STEP, the new conditions, the new oscillators and filters, BLEND and the Screen tab; its own
+[installer](https://likst4.github.io/skiff-atlatl/installer/) with the fork's package.
+
+## Release history
+
+**v1.1**
+- **BLEND** on every filter: low-pass → band-pass → high-pass, as Vital's filters.
+- Envelope times start at 0 with no jump: 0, 0.1, 0.2 … 1.1 ms (value 10) … 10 s; ATTACK, DECAY and RELEASE at 0 are
+  instant.
+- The web editor connects to a real FM-1 again (the preset names of SYNTH's 127 and FMINI's 192 presets did not fit
+  one reply: "short reply").
+- The FM-1 emulator runs the whole firmware again (two instruction forms it does not decode, rewritten bit for bit).
+
+**v1.0**, the first release: everything listed under *Changes from Skiff*, on Skiff 2.2.
+
+## Credits
 
 skiff-atlatl stands on these projects; thank you. The full list, with every licence, is in [LICENSING.md](LICENSING.md).
 
@@ -66,62 +150,9 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
 
 <sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
 
-### What's new in this fork
+# Skiff's README
 
-**SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
-- two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
-  Mutable's Rings: BRIGHT, POSITION) or, after Mutable's Plaits, FOLD (wavefolder), CHORD (11 chords and inversions),
-  SWARM (supersaw, its spread now wide from half way); OSC B also SYNC or RING;
-- (new) ANALOG's oscillators back as models: **SQR** (width 50–5 %), **TRI** (driven round), **PWM** (the width
-  moving by itself, DEPTH); **303**, X0X's TB-303 oscillator (Open303's saw … its square); **AWAVE**, a wavetable of 8
-  waves modelled on analog circuits (CAP SAW, JUNO, SHARK, TRI SAT, RC SQR, OB PULSE, SYNC, RESO SAW);
-- a per-voice filter (LP MG, LD, SVF, SK, OB 12 / OB 24 after the Oberheim SEM, ACID, COMB, VOWEL, ANLG), SUB, X-MOD and
-  DRIFT (after OberVave), a 303 page after the Devil Fish (ACCENT sweep, ACC DEC, MUFFLE);
-- **POLY MOD** after the Prophet-5: ENV 2 and OSC B onto FREQ A, PW A or the filter; **B LOW** makes OSC B an LFO;
-- (new) **BLEND** (FX › FILTER 2, as Vital's filters): every filter type sweeps from its low-pass (0) through its
-  band-pass (64) to its high-pass (127), the ladders' (LP MG, LD, OB 24, ACID) from their stages as the Oberheim
-  Xpander's modes; p-lockable like any knob. COMB and VOWEL keep theirs;
-- (new) **ACID** is now the 303's filter, after Open303's TeeBeeFilter as X0X runs it (its resonance through a
-  high-pass, CHAR = **FB HP**, ~150 Hz at 63); **ANLG** is ANALOG's own filter (its drive and 2-pole low-pass, CHAR
-  blends the band-pass in). ACID LINE and DEVIL ACID play the 303; ANALOG's sounds (SAW LEAD, SQR BASS, PWM STR …)
-  are back on its oscillators and filter;
-- 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
-  it; one without leaves yours.
-
-**FMINI**, the Minimoog voice of FMini-1 (Guilherme Ruppert): three oscillators, its ladder filter modelled on the
-Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRASS …).
-
-**USB audio, 8 channels** (after Kitten Synths' fix-17): 1–2 the master, 3–8 the six tracks, each on its own channel
-(before the shared effects), to record every track apart in a DAW.
-
-**DRUM**:
-- DRUM-X merged in as the DX and DX+ kits;
-- Hortator's drum models, the MD kits (808, 909, TRX, EFM, TRX-P, MI) plus a **626** kit;
-- a **MODEL per lane** (any of the 41 on any kit's lane, lockable per step);
-- (new) the track **FILTER** moved by its own envelope and the LFO: **ENV** is **FLT ENV** on a DRUM track, and
-  **FX › FLT MOD** sets ENV>FLT and LFO>FLT.
-
-**GRAIN** grains real FLUTE and SAX recordings.
-
-**Effects**:
-- INSERT gains Airwindows-style **DENS**, **CONS** and **TAPE**;
-- the track FILTER is on every engine (FX › FILTER).
-
-**Sequencer**:
-- trig conditions **PRE / !PRE**, **1ST / !1ST** and **NEI / !NEI**, beside FILL and the ratios;
-- **RETRIG VEL** (ratchets fading in or out).
-
-**Arpeggiator**:
-- the arp's RATE adds **4T** and **32T** triplets;
-- **ARP › ARP STEP**, a step pattern for the arp: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
-
-**Screen over USB**:
-- the web editor's **Screen** tab shows the FM-1's display live;
-- [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) works too.
-
-**Web editor**: ARP STEP, the new conditions and the Screen tab.
-
-skiff-atlatl's own identity is `FM-1_742XY`, so the hub and the installers can tell it from Skiff (`FM-1_7XY`).
+*Everything below is Skiff's own README (2.2), kept as it is; the installer, links and issue tracker in it are Skiff's.*
 
 ---
 
