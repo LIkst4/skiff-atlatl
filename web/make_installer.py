@@ -34,7 +34,7 @@ def main(pkg, version, out):
                        "packages": [{"product": product, "pkg": "../firmware/" + NAME}]})
     swaps = [
         ("/*LIB*/", lib), ("/*META*/", meta),
-        ("<title>Skiff</title>", "<title>skiff-atlatl installer</title>"),
+        ("<title>Skiff</title>", "<title>skiff-atlatl installer</title><link rel=\"icon\" type=\"image/png\" href=\"../favicon.png\">"),
         ("<h1>Skiff</h1>", "<h1>skiff-atlatl</h1>\n  <p class=\"small\">A fork of Skiff for the FM-1 (" + H.escape(version)
          + "). This page installs skiff-atlatl, not the original Skiff.</p>"),
         ("../../firmware/", "../firmware/"),

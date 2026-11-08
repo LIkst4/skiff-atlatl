@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/skiff-logo.svg">
-    <img src="docs/logo/skiff-logo-light.svg" alt="Skiff" width="560">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/atlatl-logo.svg">
+    <img src="docs/logo/atlatl-logo-light.svg" alt="skiff-atlatl" width="520">
   </picture>
 </p>
 
@@ -147,6 +147,8 @@ skiff-atlatl stands on these projects; thank you. The full list, with every lice
   no code taken).
 - [Airwindows](https://github.com/airwindows/airwindows) by Chris Johnson: Density, Console7 and ToTape, the INSERT's
   DENS, CONS and TAPE are written after (MIT; no code copied).
+
+The logo is skiff-atlatl's own (`tools/make_logo.py`): a stepped hook, an atlatl's, in LED squares; its lettering is [Silkscreen](https://github.com/googlefonts/silkscreen) by Jason Kottke (SIL Open Font License 1.1), drawn as shapes.
 
 <sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
 
