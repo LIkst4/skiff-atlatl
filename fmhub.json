@@ -7,5 +7,6 @@
   "play": "https://likst4.github.io/skiff-atlatl/emu/",
   "editor": "https://likst4.github.io/skiff-atlatl/editor/",
   "cheat": "https://github.com/LIkst4/skiff-atlatl/blob/atlatl-dev/docs/PERFORMANCE.md",
-  "image": "docs/card.png"
+  "image": "docs/card.png",
+  "color": "#00F5D4"
 }
