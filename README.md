@@ -21,7 +21,7 @@ lane, a step arpeggiator, more trig conditions, 8-channel USB audio and screen m
 
 <p align="center">
   <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><img src="https://img.shields.io/github/v/release/LIkst4/skiff-atlatl?label=release" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/based%20on-Skiff%202.2-555" alt="Based on Skiff 2.2">
+  <img src="https://img.shields.io/badge/based%20on-Skiff%202.5-555" alt="Based on Skiff 2.5">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-blue.svg" alt="License: GPL-3.0-only"></a>
   <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1-555" alt="Hardware: M-VAVE FM-1">
 </p>
@@ -126,6 +126,9 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - The arpeggiator recorded into the sequencer stays on the steps however long it is held (each arp step was rounded up
   to the audio block, so a held arp drifted later and later: its notes landed late, then a step late), and an arp
   started while the sequencer plays starts on its grid.
+- **FX › FILTER** draws the filter: its curve from low-pass through band-pass to high-pass by BLEND, COMB's teeth,
+  VOWEL's formants. The **ARP** page's graph shows the **ARP STEP** pattern (rests, STACC, each step's transpose, the
+  step playing).
 
 **v1.0**, the first release: everything listed under *Changes from Skiff*, on Skiff 2.2.
 
