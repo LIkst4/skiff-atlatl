@@ -265,6 +265,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "(custom) screen mirror: nothing until a hello, the whole screen on one, the rows exact, a busy queue, 3 s" "$OUT/mirror_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/chord_test" tests/chord_test.c -lm
     run "chord keys: diatonic and fixed chords, voicings, MONO root, releases, recording, ARP, MIDI IN, kits" "$OUT/chord_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/arp_rec_test" tests/arp_rec_test.c -lm
+    run "(custom) the ARP recorded: on the steps however long held, started on the grid while playing" "$OUT/arp_rec_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/follow_test" tests/follow_test.c -lm
     run "(2.1) chord follow: roots, KEY SCALE FIT, NOTE, the tick order, ties, keys MIDI ARP, recording, STOP, kits, ids" "$OUT/follow_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/speaker_test" tests/speaker_test.c -lm

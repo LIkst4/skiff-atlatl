@@ -302,6 +302,9 @@ static uint32_t arp_period(uint32_t r)
     return r == 10u ? div_samples(0) * 2u / 3u : r == 11u ? div_samples(0) / 12u : div_samples(r);
 }
 
+/* (custom) the samples the sequencer has played since PLAY (events_block; a Song Position's place too): an arp started
+ * while it plays starts on its grid (arp_step), so what it records falls on the steps */
+static uint32_t arp_clk;
 static void arp_add(track_t *t, uint32_t note)
 {
     uint32_t i, k = in_key - 1u;
@@ -697,7 +700,7 @@ static __attribute__((noinline)) void arp_fire(track_t *t, uint32_t period)
 
 static void arp_step(track_t *t, uint32_t n, uint32_t gate_n)
 {
-    uint32_t period;
+    uint32_t period, lim;
     int32_t sw;
     if (t->arp_note) {
         if (t->arp_off <= gate_n)
@@ -713,9 +716,26 @@ static void arp_step(track_t *t, uint32_t n, uint32_t gate_n)
     period = arp_period((uint32_t)t->p[P_ARATE]);
     sw = t->p[P_ASWING] * (int32_t)period / 250;
     t->arp_pos += n;
-    if (t->arp_pos < period + (uint32_t)((t->arp_idx & 1u) ? sw : -sw) && t->arp_pos != 0xFFFFFFF + n)
+    if (t->arp_pos >= 0xFFFFFFFu) {                 /* the first key: now; (custom) playing, on the sequencer's grid */
+        t->arp_pos = 0;
+        if (song.playing) {                         /* (its steps a whole number of the arp's from PLAY: arp_clk) */
+            uint32_t ph = arp_clk % period;         /* (seq_tick: its steps as this block began) */
+            t->arp_pos = ph;
+            if (ph > period / 2u)
+                return;                             /* early for the next one: it starts there */
+        }
+        arp_fire(t, period);
         return;
-    t->arp_pos = 0;
+    }
+    lim = period + (uint32_t)((t->arp_idx & 1u) ? sw : -sw);
+    if (t->arp_pos < lim)
+        return;
+    /* (custom) what the block ran past the step is kept, as the sequencer keeps it (seq_tick): set to 0, each arp step
+     * was a whole number of blocks long, up to 31 samples more than the sequencer's, a held arp drifting later and later
+     * against the steps it records into (on the unit: a bar's notes a step late after a few bars) */
+    t->arp_pos -= lim;
+    if (t->arp_pos >= period)
+        t->arp_pos = 0;                             /* (the RATE made faster meanwhile) */
     arp_fire(t, period);
 }
 
@@ -1309,6 +1329,7 @@ static void seq_start(void)
                                                            * runs free, no note restarts it) */
     }
     song.tick = 0;
+    arp_clk = 0;                                   /* (custom) the arp's grid from the top */
     beat_pos = 0; beat_n = 0;                      /* the ARP LED's beat from the top too */
     launch_steps = 0; launch_pos = CLK_START;      /* (Skiff) the launch points' steps from the top, as the click's */
     clk_pos = CLK_START;                           /* the metronome's first beat with step 0 */
@@ -1448,6 +1469,7 @@ static __attribute__((noinline)) void seq_locate(uint32_t pos)
     launch_steps = pos;
     beat_n = (uint8_t)((pos >> 2) & 3u);
     beat_pos = (pos & 3u) * div_samples(2);
+    arp_clk = pos * div_samples(2);                /* (custom) the arp's grid: pos 1/16s in */
 }
 
 /* play one step: TIE extends, REST releases, NOTE (re)triggers its notes, then its lane hits (their GM
@@ -2167,6 +2189,8 @@ static __attribute__((noinline)) void events_block(uint32_t n)
         beat_pos = beat_pos < beat_samples() ? beat_pos : 0u;
         beat_n = (beat_n + 1u) & 3u;
     }
-    if (song.playing)
+    if (song.playing) {
         song.tick++;
+        arp_clk += clock_mode ? seq_n : n;          /* (custom) the arp's grid (arp_step) */
+    }
 }
