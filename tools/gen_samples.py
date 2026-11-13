@@ -83,8 +83,9 @@ SET_VARIANTS = [   # (Skiff phase 9) SAMPLE's presets after PERC's slot: (name, 
 ]
 
 # PIANO's notes cut to 0.75 s (saves flash), faded out over the last SET_FADE s; (Skiff 1.3) FLUTE's and SAX's to 0.68 s:
-# their sustain loops (from 0.40 s) half as long, 0.28 s (18 KB of flash for 1.3's features)
-SET_KEEP = {"PIANO": 0.75, "FLUTE": 0.68, "SAX": 0.68}
+# their sustain loops (from 0.40 s) half as long, 0.28 s (18 KB of flash for 1.3's features); ((custom) 0.60 s, loops of
+# 0.20 s: 5 KB of flash for Skiff 2.5's features on the fork)
+SET_KEEP = {"PIANO": 0.75, "FLUTE": 0.60, "SAX": 0.60}
 SET_FADE = {"PIANO": 0.15}
 
 _wavs = {}
