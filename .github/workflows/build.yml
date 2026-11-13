@@ -44,8 +44,9 @@ jobs:
         run: |
           # (Skiff 2.5 on the fork: no sibling calls cost ~10 KB of flash the image no longer has; this variant is the
           # emulator's stress test only, so it goes without GRAIN's built-in FLUTE and SAX, 40 KB)
-          # (2.5 starts the FM-1 on 2 CORES; the emulator runs one core: icfg in core 1's entry stops it)
-          FELUCCA_CPU2=0 FELUCCA_BUILTIN_SAMPLES=0 FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls" ./build.sh
+          # (2.5 starts the FM-1 on 2 CORES; the emulator runs one core: icfg in core 1's entry stops it. FELUCCA_ONE_CORE:
+          # 1 CORE by default, the second core built as on the unit)
+          FELUCCA_BUILTIN_SAMPLES=0 FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls -DFELUCCA_ONE_CORE=1" ./build.sh
           cp build/felucca.fwsc "$RUNNER_TEMP/skiff-atlatl-emu.fwsc"
           python tools/emu_gaps.py build/felucca.dis || true
       - name: Build

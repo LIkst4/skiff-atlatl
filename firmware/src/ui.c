@@ -144,8 +144,8 @@ static void theme_apply(void)                  /* settings.palette, and over it 
  * has none */
 #define CPU2_BYTE (favorites.factory[15][5])
 #define CPU2_SET (CPU2_BYTE & 1u)
-#if FELUCCA_CPU2 && !BOARD_SMK37 && !defined(FELUCCA_WEB)
-#define CPU2_DEFAULT 1u
+#if FELUCCA_CPU2 && !BOARD_SMK37 && !defined(FELUCCA_WEB) && !defined(FELUCCA_ONE_CORE)
+#define CPU2_DEFAULT 1u                                /* ((custom) FELUCCA_ONE_CORE: the desktop emulator's build, 1 CORE) */
 #else
 #define CPU2_DEFAULT 0u
 #endif
