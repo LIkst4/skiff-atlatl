@@ -1268,29 +1268,32 @@ static void layer_rec(void)
     }
 }
 
+/* ((custom) the FX layer's knobs, one at a time: read in place, clang made a signed halfword load with a pre-increment
+ * (h[++r=276]), a form the FM-1 emulator does not decode (tools/emu_gaps.py); the hardware runs either) */
+static __attribute__((noinline)) int32_t perf_kv(uint32_t i) { return perf_k[i & 3u]; }
 static void layer_cards(uint32_t l)
 {
     char val[12];
     const char *unit;
     uint32_t c;
     if (l == LAYER_FX) {                                /* FILTER CRUSH THROW DEPTH */
-        int32_t m = perf_k[0];
+        int32_t m = perf_kv(0), k1 = perf_kv(1), k2 = perf_kv(2), k3 = perf_kv(3);
         fmt_int(val, m < 0 ? -m : m);
         draw_column(0, "FILTER", m ? val : "OFF", m < 0 ? "LP" : m > 0 ? "HP" : "", m ? VR_LIVE : VR_DIM, (m + 100) * 5,
                     ICON_CUTOFF);
-        fmt_int(val, perf_k[1]);
-        draw_column(1, "CRUSH", perf_k[1] ? val : "OFF", perf_k[1] ? "%" : "", perf_k[1] ? VR_LIVE : VR_DIM,
-                    perf_k[1] * 10, ICON_BITS);
-        fmt_int(val, perf_k[2]);
-        draw_column(2, "THROW", perf_k[2] ? val : "OFF", perf_k[2] ? "%" : "", perf_k[2] ? VR_LIVE : VR_DIM,
-                    perf_k[2] * 10, ICON_DELAY);
+        fmt_int(val, k1);
+        draw_column(1, "CRUSH", k1 ? val : "OFF", k1 ? "%" : "", k1 ? VR_LIVE : VR_DIM,
+                    k1 * 10, ICON_BITS);
+        fmt_int(val, k2);
+        draw_column(2, "THROW", k2 ? val : "OFF", k2 ? "%" : "", k2 ? VR_LIVE : VR_DIM,
+                    k2 * 10, ICON_DELAY);
         if (perf_harm_on()) {                           /* OCT UP / DN playing: KNOB 4 is its shimmer (SHIMR) */
-            fmt_int(val, perf_k[3]);
-            draw_column(3, "SHIMR", perf_k[3] ? val : "OFF", perf_k[3] ? "%" : "", perf_k[3] ? VR_LIVE : VR_DIM,
-                        perf_k[3] * 10, ICON_FEEDBACK);
+            fmt_int(val, k3);
+            draw_column(3, "SHIMR", k3 ? val : "OFF", k3 ? "%" : "", k3 ? VR_LIVE : VR_DIM,
+                        k3 * 10, ICON_FEEDBACK);
         } else {
-            fmt_int(val, 100 - perf_k[3]);
-            draw_column(3, "DEPTH", val, "%", VR_LIVE, (100 - perf_k[3]) * 10, ICON_MIX);
+            fmt_int(val, 100 - k3);
+            draw_column(3, "DEPTH", val, "%", VR_LIVE, (100 - k3) * 10, ICON_MIX);
         }
     } else if (l == LAYER_GLO) {                        /* the four tracks' LEVEL (the track's icon; muted: dim; */
         for (c = 0; c < 4u; c++) {                      /* (Skiff phase 6) the four shown, ui.c trk_top) */
