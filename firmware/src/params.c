@@ -597,7 +597,8 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_LMIX,                    /* (2.0, #36, the user's pick 1A) EDIT > LANE MIX: a kit's lane levels and pans */
        GR_FOLLOW,                  /* (2.1) SCL > FOLLOW: the chord it follows, as CHORD's (ui_graph.c graph_follow) */
        GR_ARPSTEP,                 /* (custom) ARP > ARP STEP: the arp's step pattern, a sheet (ui_arp.c) */
-       GR_FXDLY, GR_FXREV };       /* (2.5) FX > DELAY, REVERB: the track's send beside the bus's own (page_desc) */
+       GR_FXDLY, GR_FXREV,         /* (2.5) FX > DELAY, REVERB: the track's send beside the bus's own (page_desc) */
+       GR_TFLT };                  /* (custom) FX > FILTER, FILTER 2, FLT MOD: the track FILTER's curve (ui_pgraph.c) */
 
 typedef struct {
     const char *title;
@@ -622,9 +623,9 @@ static const page_t PAGES[] = {
                                                                           * DELAY's (page_desc); PRESETS: MODE */
     {"REVERB", FAM_FX, SC_TRACK, GR_FXREV, {P_REV, G_RTYPE, G_RSIZE, G_RDAMP}},  /* (2.5) .. GLO > REVERB's */
     {"DRIVE", FAM_FX, SC_TRACK, GR_DRIVE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* (Skiff phase 9) DIST's TYPE, TONE */
-    {"FILTER", FAM_FX, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_FCHR}},   /* (custom) the track FILTER (flt.c) */
-    {"FILTER 2", FAM_FX, SC_TRACK, GR_NONE, {P_FDRV, P_FBLND, 0xFF, 0xFF}},    /* .. its DRIVE, (custom) BLEND */
-    {"FLT MOD", FAM_FX, SC_TRACK, GR_NONE, {P_ED_FLT, P_LD_FLT, 0xFF, 0xFF}},  /* (custom) DRUM only: the FILTER's envelope
+    {"FILTER", FAM_FX, SC_TRACK, GR_TFLT, {P_FTYPE, P_FCUT, P_FRES, P_FCHR}},   /* (custom) the track FILTER (flt.c) */
+    {"FILTER 2", FAM_FX, SC_TRACK, GR_TFLT, {P_FDRV, P_FBLND, 0xFF, 0xFF}},    /* .. its DRIVE, (custom) BLEND */
+    {"FLT MOD", FAM_FX, SC_TRACK, GR_TFLT, {P_ED_FLT, P_LD_FLT, 0xFF, 0xFF}},  /* (custom) DRUM only: the FILTER's envelope
                                                                          * (ENV, shown FLT ENV) and LFO depths */
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* (1.3, from Felucca 1.5) the track's INSERT;
                                                                           * (2.5) PRESETS: its MIX (INSERT 2 before) */

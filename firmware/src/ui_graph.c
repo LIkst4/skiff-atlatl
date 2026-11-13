@@ -2852,6 +2852,10 @@ static void draw_graph(void)
             cv_oy = 0;
             graph_insert(t, c);
             break;
+        case GR_TFLT:                                /* ((custom) the track FILTER) */
+            cv_oy = 0;
+            graph_tflt(t, c);
+            break;
         case GR_DELAY:
         case GR_FXDLY:                               /* ((2.5) FX > DELAY: GLO's, the track's send in it) */
             cv_oy = 0;

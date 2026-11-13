@@ -585,6 +585,15 @@ static int32_t flt_level(int32_t d, int32_t res, int32_t shape)
 /* flt_level's curve across the panel (cut, res, shape: 0..127) in each theme's look (ANALOG's FLT, (2.5) FILTR): CRYPT
  * ASCII art (8 lines of 13 px) over its shade, a skull on its peak, a dagger at the cutoff; else the line over its fill
  * (NEON the sun's bands, QUARK a Monte Carlo fill) and the cutoff's line. *pkx, *pky: its peak (the first highest) */
+/* ((custom) the track FILTER's COMB and VOWEL: their own levels at d, as flt_level's, from tf (graph_tflt)) */
+typedef struct { int32_t ty, res, chr, cut; } tflt_view_t;
+static const tflt_view_t *tf_v;
+static int32_t tflt_level(int32_t d, int32_t res, int32_t shape);
+/* the curve at x (0..1000 on the panel): flt_level's (shape >= 0), or the track FILTER's COMB / VOWEL (shape -1) */
+static int32_t curve_level(int32_t fc, int32_t x, int32_t res, int32_t shape)
+{
+    return shape >= 0 ? flt_level(fc - x, res, shape) : tflt_level(x, res, shape);
+}
 static void flt_curve(int32_t cut, int32_t res, int32_t shape, uint16_t c, int32_t *pkx, int32_t *pky)
 {
     int32_t fc = cut * 1000 / 127, x, py = 0, xc = 12 + fc * 216 / 1000;
@@ -595,7 +604,7 @@ static void flt_curve(int32_t cut, int32_t res, int32_t shape, uint16_t c, int32
         uint8_t L[37];
         int32_t i, pk = 0;
         for (i = 0; i < 37; i++) {
-            L[i] = (uint8_t)(8 - flt_level(fc - i * 1000 / 36, res, shape) * 8 / 1000);
+            L[i] = (uint8_t)(8 - curve_level(fc, i * 1000 / 36, res, shape) * 8 / 1000);
             if (L[i] < L[pk])
                 pk = i;
         }
@@ -607,7 +616,7 @@ static void flt_curve(int32_t cut, int32_t res, int32_t shape, uint16_t c, int32
     }
     cv_rect(xc, 8, 1, 114, T_DIM);
     for (x = 0; x <= 216; x++) {
-        int32_t y = 120 - flt_level(fc - x * 1000 / 216, res, shape) * 104 / 1000;
+        int32_t y = 120 - curve_level(fc, x * 1000 / 216, res, shape) * 104 / 1000;
         pg_under(12 + x, y, 16, 120, fill);          /* ((Skiff N4, Q4) NEON the sun's bands under it, QUARK a Monte
                                                       * Carlo fill) */
         if (x)
@@ -663,6 +672,100 @@ static void graph_ins_filter(const track_t *t, uint16_t c)
 }
 
 
+/* ((custom) the track FILTER's COMB: peaks at the cutoff's harmonics (+ feedback, CHAR right of 64) or between them
+ * (-), as high as RESO, a 100th of the panel an octave's tenth; VOWEL: its three formants (A E I O U by CHAR, CUTOFF
+ * shifting them), RESO narrowing them, at their levels (fl_vowel) */
+static int32_t tflt_level(int32_t x, int32_t res, int32_t shape)
+{
+    const tflt_view_t *v = tf_v;
+    int32_t best = 0, k;
+    (void)shape;
+    if (v->ty == FT_COMB) {
+        int32_t fc = v->cut * 1000 / 127, neg = v->chr < 64, h = 160 + res * 3;
+        static const int16_t HP[8] = {0, 100, 158, 200, 232, 258, 281, 300};      /* 100 log2 k */
+        static const int16_t HN[8] = {-100, 58, 132, 181, 217, 246, 270, 291};    /* 100 log2 (k - 1/2) */
+        for (k = 0; k < 8; k++) {                    /* the harmonics k (k - 1/2: - feedback), 100 a panel's octave */
+            int32_t d = x - fc - (neg ? HN[k] : HP[k]), w = 20 - k * 2;
+            int32_t l = d > -w && d < w ? 620 + h * (w * w - d * d) / (w * w) : 620 - h / 3;
+            best = l > best ? l : best;
+        }
+        return best > 1000 ? 1000 : best;
+    }
+    {                                                /* VOWEL */
+        static const int16_t LV[3] = {1000, 780, 600};
+        int32_t pos = v->chr * 4 * 4096 / 127, m = pos & 4095, vi = pos >> 12, w = 70 - res * 50 / 127;
+        if (vi >= 4) {
+            vi = 3;
+            m = 4095;
+        }
+        best = 300;
+        for (k = 0; k < 3; k++) {
+            int32_t ci = FLT_VOWEL[vi][k] + (((FLT_VOWEL[vi + 1][k] - FLT_VOWEL[vi][k]) * m) >> 12) + v->cut * 8 - 512;
+            int32_t d = x - ci * 1000 / 1024, l = d > -w && d < w ? 300 + (LV[k] - 300) * (w * w - d * d) / (w * w) : 300;
+            best = l > best ? l : best;
+        }
+        return best;
+    }
+}
+
+/* (custom) FX > FILTER, FILTER 2 and FLT MOD: the track FILTER across the panel as FILTR's (flt_curve): every type but
+ * COMB and VOWEL from low-pass into band-pass into high-pass by BLEND (flt.c fl_bw), its line top left as FILTR's
+ * SHAPE; COMB its teeth, VOWEL its formants (tflt_level); the TYPE low left, the cutoff's value by its line; OFF a
+ * flat line, dimmed */
+static void graph_tflt(const track_t *t, uint16_t c)
+{
+    tflt_view_t v;
+    int32_t ty = clamp(t->p[P_FTYPE], 0, FT_N - 1), cut = clamp(t->p[P_FCUT], 0, 127), res = clamp(t->p[P_FRES], 0, 127);
+    int32_t bl = clamp(t->p[P_FBLND], 0, 127), xc = 12 + cut * 1000 / 127 * 216 / 1000, px, py, w;
+    int32_t own = ty == FT_COMB || ty == FT_VOWEL;
+    char b[16];
+    v.ty = ty;
+    v.res = res;
+    v.chr = clamp(t->p[P_FCHR], 0, 127);
+    v.cut = cut;
+    tf_v = &v;
+    if (!ty) {                                       /* OFF: the sound as it comes, flat */
+        pg_hline(12, 228, 120 - 620 * 104 / 1000, T_DIM);
+        pg_text(12, 135, "OFF", T_DIM);
+        return;
+    }
+    flt_curve(cut, res, own ? -1 : bl, c, &px, &py);
+    if (ux.quark)
+        qk_nucleus(px, py, T_THEME, 7);
+    else if (ux.neon)
+        ne_spark(px, py + 1, T_ACCENT, 2);
+    if (!own) {                                      /* BLEND: LP BP HP, its place a mark (FILTR's SHAPE) */
+        int32_t m = 12 + bl * 80 / 127;
+        pg_text(12, 18, "LP", bl <= 32 ? T_TEXT : T_DIM);
+        pg_text(46, 18, "BP", bl > 32 && bl < 96 ? T_TEXT : T_DIM);
+        pg_text(80, 18, "HP", bl >= 96 ? T_TEXT : T_DIM);
+        pg_hline(12, 92, 24, T_LINE);
+        if (ux.quark)
+            qk_disc(m + 2, 24, 3, T_ACCENT);
+        else if (ux.neon)
+            ne_spark(m + 2, 25, T_ACCENT, 1);
+        else if (ux.crypt)
+            cr_ch(m, 30, &AF_S, '^', CR_GOLD);
+        else
+            cv_rrect(m, 22, 5, 5, 2, T_ACCENT, T_SURF);
+    }
+    pg_text(12, 135, TP[P_FTYPE].names[ty], T_DIM);
+    val_unit(b, track_desc(t, P_FCUT), cut);
+    w = text_w(&AF_S, b);
+    if (ux.crypt && xc < 170)
+        pg_text(xc + 10, 117, b, CR_GOLD);
+    else if (ux.crypt)
+        pg_text_r(xc - 6, 117, b, CR_GOLD);
+    else if (own ? xc + 5 + w < 226 : xc + 5 > 96 && xc + 5 + w < 226)   /* (top, by the line: clear of BLEND's) */
+        pg_text(xc + 5, 20, b, T_TEXT);
+    else if (own ? xc - 4 - w > 12 : xc - 4 - w > 96)
+        pg_text_r(xc - 4, 20, b, T_TEXT);
+    else if (xc + 5 + w < 226)                        /* (else low, over the fill) */
+        pg_text(xc + 5, 114, b, T_TEXT);
+    else
+        pg_text_r(xc - 4, 114, b, T_TEXT);
+}
+
 /* ARP and ARP 2: the arp's notes over 16 of its steps, as arp_step plays them (the held notes, or C E G as an
  * example; ORDER, OCTAVE, MODE), a tile as long as GATE, the off steps late by SWING; the steps CHANCE would skip (a
  * fixed pick of about as many) outlined; RND and WALK's picks fixed too */
@@ -707,7 +810,21 @@ static void graph_arp(const track_t *t, uint16_t c)
     for (i = 0; i < 16u; i++) {
         uint32_t k = i % (2u * len > 2u ? 2u * len - 2u : 1u), r, n = 1;
         int32_t x = 30 + (int32_t)(i * 124u / 10u) + ((i & 1u) ? sw : 0), skip;
-        uint32_t rows[4];
+        uint32_t rows[4], ak = trk_index(t), st = AS_ON, tile = (uint32_t)gw;
+        int32_t tr = 0, dy = 0, now = 0;
+        if (ak < NTRK) {                             /* ((custom) ARP STEP: tile i is its step i % LEN: OFF none (a dot),
+                                                      * STACC a quarter as long, its TRANSPOSE up or down by its semitones
+                                                      * (the rows' spacing), in the accent colour; the step playing now framed */
+            uint32_t sp = i % arp_len(ak);
+            st = arp_pat[ak].st[sp] % AS_N;
+            tr = arp_pat[ak].tr[sp];
+            if (st == AS_STACC)
+                tile = (uint32_t)gw / 4u + 1u;
+            dy = tr * (len > 1u && list[len - 1u] > list[0] ? (int32_t)(len - 1u) * pitch / (int32_t)(list[len - 1u] - list[0])
+                                                            : pitch / 4);
+            dy = clamp(dy, -60, 60);
+            now = m && t->arp_note && sp == (arp_spos[ak] + arp_len(ak) - 1u) % arp_len(ak);
+        }
         switch (m) {
         case AM_DN: r = len - 1u - i % len; break;
         case AM_UPDN: r = k < len ? k : 2u * len - 2u - k; break;
@@ -729,22 +846,28 @@ static void graph_arp(const track_t *t, uint16_t c)
             for (n = 0; n < (cnt < 4u ? cnt : 4u); n++)
                 rows[n] = (i % oct) * cnt + n;
         skip = ((i * 2654435761u >> 25) & 127u) > (uint32_t)t->p[P_APROB];
+        if (st == AS_OFF) {                          /* ((custom) ARP STEP OFF: a rest, a dot on the lowest row's line */
+            cv_rect(x + gw / 2 - 1, base - 1, 3, 3, T_MID);
+            continue;
+        }
         for (j = 0; j < n; j++) {
-            int32_t y = base - (int32_t)rows[j] * pitch - th / 2;
-            uint16_t col = !m ? T_DIM : i % 4u == 0u ? T_TEXT : c;
+            int32_t y = clamp(base - (int32_t)rows[j] * pitch - th / 2 - dy, 8, 120 - th);
+            uint16_t col = !m ? T_DIM : tr ? T_ACCENT : i % 4u == 0u ? T_TEXT : c;
             if (ux.crypt) {                          /* (Skiff C4) CRYPT: a note a # (2x where there is room), a skipped one
                                                       * a crossed skull */
                 if (skip)
                     cr_skull(x - 1, y + th / 2 - 4, T_MID, T_SURF, 1);
                 else
-                    cr_ch(x - 1, base - (int32_t)rows[j] * pitch + (pitch >= 16 ? 7 : 4), pitch >= 16 ? &AF_V : &AF_S, '#',
+                    cr_ch(x - 1, (dy ? clamp(base - (int32_t)rows[j] * pitch - dy, 26, 115) : base - (int32_t)rows[j] * pitch) + (pitch >= 16 ? 7 : 4), pitch >= 16 ? &AF_V : &AF_S, '#',
                           !m ? T_DIM : i % 4u == 0u ? T_TEXT : T_THEME);
                 continue;
             }
             if (skip)
-                cv_frame(x, y, gw, th, T_MID);
+                cv_frame(x, y, (int32_t)tile, th, T_MID);
             else
-                cv_rect(x, y, gw, th, col);
+                cv_rect(x, y, (int32_t)tile, th, col);
+            if (now)                                 /* ((custom) the ARP STEP playing now) */
+                cv_frame(x - 2, y - 2, (int32_t)tile + 4, th + 4, T_TEXT);
         }
     }
 }
