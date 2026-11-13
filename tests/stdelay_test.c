@@ -93,10 +93,10 @@ static void ref_buses(const int32_t *cho_in, const int32_t *dly_in, int32_t *wet
         }
     }
     for (i = 0; i < n; i++) {
-        int32_t x = ref_dly[(rf.dly_w - dl) & (DLY_LEN - 1u)];
+        int32_t x = ref_dly[dly_at(rf.dly_w, dl)];   /* ((custom) the fork's line: no power of two, fx.c dly_at) */
         rf.dly_lp += mulq15(x - rf.dly_lp, col);
-        ref_dly[rf.dly_w & (DLY_LEN - 1u)] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(rf.dly_lp, dfb), -32768, 32767);
-        rf.dly_w++;
+        ref_dly[rf.dly_w] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(rf.dly_lp, dfb), -32768, 32767);
+        rf.dly_w = dly_next(rf.dly_w);
         wet[i] += mulq15(x << 1, dmix);
     }
 }

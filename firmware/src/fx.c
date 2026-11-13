@@ -2,9 +2,10 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Effects: per-track DIST insert, then sends into three
  * shared buses (chorus, tempo delay, reverb). Mono buses (HALL with its stereo difference), stereo dry mix. */
-#define DLY_LEN 57344u           /* 1.30 s: 1/4 at 47 BPM fits ((custom) 65536 before: 8 KB of the pool for the
+#define DLY_LEN 56832u           /* 1.29 s: 1/4 at 47 BPM fits ((custom) 65536 before: 8 KB of the pool for the
                                   * engines, 8 more for the 8-channel USB ring (usb.c ua_ring); no longer a power
-                                  * of two, the index wraps by a compare: dly_at) */
+                                  * of two, the index wraps by a compare: dly_at; (2.5) 57344 before: 1 KB more for
+                                  * the pool's 8 KB headroom, 32 parts to clear and two halves still whole) */
 /* (custom) the delay line's index dl samples behind the write index w (both inside the line, dl < DLY_LEN) */
 static inline uint32_t dly_at(uint32_t w, uint32_t dl) { return w >= dl ? w - dl : w + DLY_LEN - dl; }
 static inline uint32_t dly_next(uint32_t w) { return w + 1u >= DLY_LEN ? 0u : w + 1u; }
@@ -758,7 +759,7 @@ static __attribute__((noinline)) void dly_mono(const int32_t *in, int32_t *wet, 
  * from the right: rev_side_mix); back to 44.1 kHz between samples. The loop's products round towards 0 (as SPRING's):
  * a floor would hold a small offset round the lines for ever (MONO's does, as 2.2's); these die to exact silence. A
  * block of CTL samples (audio.c) */
-#define DLY_HALF (DLY_LEN / 2u)          /* ((custom) 28672: 1.30 s each at 22.05 kHz; no power of two either) */
+#define DLY_HALF (DLY_LEN / 2u)          /* ((custom) 28416: 1.29 s each at 22.05 kHz; no power of two either) */
 static inline int32_t mulq15z(int32_t x, int32_t g)     /* x g in Q15, towards 0 (|x g| < 2^31) */
 {
     int32_t v = x * g;
@@ -805,6 +806,7 @@ static __attribute__((noinline)) void dly_stereo(const int32_t *inl, const int32
  * line is cleared a 32nd a block (32 blocks, 23 ms with no echoes: the two layouts don't read each other's), and the new
  * mode starts from silence. dly_tw, dly_ts: that block's return and side */
 #define DLY_NCLR 32u
+_Static_assert(DLY_LEN % (2u * DLY_NCLR) == 0u, "the line in 32 parts to clear, two whole halves");
 static int32_t dly_tw[CTL] __attribute__((section(".pool")));
 static int32_t dly_ts[CTL] __attribute__((section(".pool")));
 static __attribute__((noinline)) void dly_switch(const int32_t *in, const int32_t *inr, int32_t *wet, int32_t *sd,
