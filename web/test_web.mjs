@@ -135,19 +135,19 @@ async function editorMock() {
     ok(fk.p[135] === 2 && fk.p[136] === 1 && fk.preset === 2, "editor: a factory preset keeps the chord follow (the track's)");
     await rq(E.req.set(0, 135, 0));
     await rq(E.req.set(0, 136, 0));
-    /* (2.5) STRUM and DIR (core.h P_STRUM P_SDIR = 138, 139, just before P_E0 140): the track's, over DESC */
+    /* (2.5) STRUM and DIR (core.h P_STRUM P_SDIR = (custom) 166, 167, after the fork's, just before P_E0 168): the track's, over DESC */
     const sd = [];
-    for (let i = 138; i < 140; i++) sd.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
+    for (let i = 166; i < 168; i++) sd.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
     ok(sd.map((x) => x.label).join() === "STRUM,DIR" && sd[0].min === 0 && sd[0].max === 100 &&
        sd[1].names.join() === "DOWN,UP,ALT" && sd.every((x) => x.def === 0),
-      "editor: (2.5) STRUM (0..100 ms) and DIR (DOWN UP ALT) 138, 139 over DESC");
-    await rq(E.req.set(0, 138, 40));
-    await rq(E.req.set(0, 139, 2));
-    await rq(E.req.preset(0, 3));
+      "editor: (2.5) STRUM (0..100 ms) and DIR (DOWN UP ALT) 166, 167 over DESC");
+    await rq(E.req.set(0, 166, 40));
+    await rq(E.req.set(0, 167, 2));
+    await rq(E.req.preset(15, 3));                  /* ((custom) SYNTH's: ANALOG (0) is retired) */
     const sk = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
-    ok(sk.p[138] === 40 && sk.p[139] === 2 && sk.preset === 3, "editor: a factory preset keeps STRUM and DIR (the track's)");
-    await rq(E.req.set(0, 138, 0));
-    await rq(E.req.set(0, 139, 0));
+    ok(sk.p[166] === 40 && sk.p[167] === 2 && sk.preset === 3, "editor: a factory preset keeps STRUM and DIR (the track's)");
+    await rq(E.req.set(0, 166, 0));
+    await rq(E.req.set(0, 167, 0));
     /* the DRUM lane levels (core.h P_LN0..P_LN7 = 83..90, just before P_E0 91): percents, 100 % by default; the sound's,
        a factory preset sets them back */
     const lanes = [];

@@ -78,6 +78,7 @@ int main(void)
     /* 3 */
     {
         int32_t o[2 * CTL];
+        static const uint8_t zlo[2 * CTL];
         uint32_t d[UA_MAXF * UA_W], n, i, k, ok = 1;
         fresh();
         trk_note_on(&trk[2], 60, 100);                   /* T3 */
@@ -87,7 +88,7 @@ int main(void)
         ua_w = ua_r = 0;
         for (i = 0; i < 6u; i++) {
             mix_block(o, CTL);
-            uac_tap(o, CTL);
+            uac_tap(o, zlo, CTL);                         /* ((2.5) the low bits: none) */
         }
         if (ua_w != 6u * CTL)
             printf("  ua_w %u\n", ua_w), ok = 0;
