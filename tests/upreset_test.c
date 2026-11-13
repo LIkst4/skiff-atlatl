@@ -71,7 +71,8 @@ int main(void)
         ok &= up_value(&r, p_sid(i)) == (int16_t)(-40 + (int32_t)(i % 100u));
     bad += check("UP_PUT values (negative v14 too)", ok);
     bad += check("(2.1) a version 6 record, the pattern passed over",   /* (P_COUNT past UP_PMAX * 2: the pattern's */
-                 r.ver == UP_VER_SID && r.np == SID_COUNT && !up_pat(&r) && !r.sid[SID_COUNT]);   /* bytes were E6 E7) */
+                 r.ver == UP_VER_SID && r.np == SID_COUNT && !up_pat(&r) &&
+                 (SID_COUNT >= UP_SIDS || !r.sid[SID_COUNT]));   /* ((custom) 176: the record full, no byte past it) */   /* bytes were E6 E7) */
     bad += check("UP_PUT short frame -> args", up_parse(a, n - 1u, &r, &slot) == 1);
     {
         up_rec_t keep = r;
