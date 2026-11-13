@@ -1350,7 +1350,7 @@ static __attribute__((noinline)) AUDIO_RAM void mix_spread(track_t *t, int32_t *
         for (i = 0; i < n; i++)
             d[i] = (d[i] << 1) - b[i];                  /* left - right */
     if (t->p[P_FTYPE] && t->engine != ENGI_SYNTH)
-        track_filter(t, b, d, e, n);                    /* ((custom) SYNTH: its own, per voice) */                    /* (custom) */
+        AUDIO_FAR(track_filter)(t, b, d, e, n);                    /* ((custom) SYNTH: its own, per voice) */                    /* (custom) */
     track_dist(t, b, n);
     if (t->p[P_ITYPE] | t->ins_run)
         AUDIO_FAR(track_insert)(t, b, n);               /* (the mono sum, as DRIVE) */
@@ -1460,13 +1460,13 @@ static void mix_part_stem(track_t *t, uint32_t n SM_DECL)
     uint32_t i, m = n < CTL ? n : CTL;
     for (i = 0; i < m; i++)
         s[i] = SM(l)[i] + SM(r)[i];
-    mix_part(t, n SM_ARG(sm));
+    AUDIO_FAR(mix_part)(t, n SM_ARG(sm));               /* ((2.5) mix_part in RAM: past a direct call's reach) */
     for (i = 0; i < m; i++)
         s[i] = (SM(l)[i] + SM(r)[i] - s[i]) >> 1;
 }
-#define MIX_PART mix_part_stem
+#define MIX_PART AUDIO_FAR(mix_part_stem)               /* ((2.5) called from RAM (c1_parts) and from XIP alike */
 #else
-#define MIX_PART mix_part
+#define MIX_PART AUDIO_FAR(mix_part)
 #endif
 #if FELUCCA_CPU2
 static __attribute__((noinline)) AUDIO_RAM void mix_part(track_t *t, uint32_t n SM_DECL)   /* (either core runs it: out of
