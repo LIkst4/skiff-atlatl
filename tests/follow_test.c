@@ -373,15 +373,18 @@ static int store(void)
     uint32_t n;
     setup();
     F->p[P_FOLLOW] = 3; F->p[P_FMODE] = FM_FIT; F->p[P_FNOTE] = FN_LAST;
-    n = sid_put(b, F->p);
+    n = sid_put(b, F->p, 0);
     memset(q, 0, sizeof q);
-    ok = n == 1u + SID_COUNT && sid_get(q, b, n) == n && !memcmp(q, F->p, sizeof q);
+    ok = n == 1u + SID_COUNT && sid_get(q, b, n, 0) == n;
+    for (uint32_t i = 0; i < P_COUNT; i++)                /* ((custom) DRUM's lane models not a SYNTH track's: core.h */
+        ok &= (i >= P_LMDL0 && i <= P_LMDL7) || q[i] == F->p[i];   /* sid_lanes) */
     ok &= p_sid(P_FOLLOW) == 143u && p_sid(P_FNOTE) == 145u && p_sid(P_E0) == 127u && p_sid(P_LPAN0) == 135u &&
-          sid_p(143) == P_FOLLOW && sid_p(127) == P_E0 && sid_p(135) == P_LPAN0;
+          sid_p_of(143, SID_COUNT, 0) == P_FOLLOW && sid_p_of(127, SID_COUNT, 0) == P_E0 &&
+          sid_p_of(135, SID_COUNT, 0) == P_LPAN0;
     bad += check("STORE: FOLLOW MODE NOTE by stored id 143..145, the rest as ever", ok);
     b[0] = 143;                                         /* (2.0's count: no chord follow) */
     memset(q, 0, sizeof q);
-    ok = sid_get(q, b, 1u + 143u) == 144u && !q[P_FOLLOW] && !q[P_FMODE] && !q[P_FNOTE] && q[P_E0] == F->p[P_E0] &&
+    ok = sid_get(q, b, 1u + 143u, 0) == 144u && !q[P_FOLLOW] && !q[P_FMODE] && !q[P_FNOTE] && q[P_E0] == F->p[P_E0] &&
          q[P_LPAN7] == F->p[P_LPAN7];
     bad += check("  a record of before: its values, OFF", ok);
     apply_preset_to(F, 2);

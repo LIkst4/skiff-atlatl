@@ -67,12 +67,12 @@ int main(void)
     bad += check("UP_PUT parses", up_parse(a, n, &r, &slot) == 0 && slot == 5u && r.engine == 2u &&
                                       up_valid(&r) && !memcmp(r.name, "Bass One", 8) && !r.name[8]);
     ok = 1;
-    for (i = 0; i < P_COUNT; i++)
-        ok &= up_value(&r, p_sid(i)) == (int16_t)(-40 + (int32_t)(i % 100u));
+    for (i = 0; i < P_COUNT; i++)                    /* ((custom) engine 2: SYNTH's own kept, DRUM's lane models not) */
+        ok &= (i >= P_LMDL0 && i <= P_LMDL7) || up_value(&r, p_sid(i)) == (int16_t)(-40 + (int32_t)(i % 100u));
     bad += check("UP_PUT values (negative v14 too)", ok);
     bad += check("(2.1) a version 6 record, the pattern passed over",   /* (P_COUNT past UP_PMAX * 2: the pattern's */
                  r.ver == UP_VER_SID && r.np == SID_COUNT && !up_pat(&r) &&
-                 (SID_COUNT >= UP_SIDS || !r.sid[SID_COUNT]));   /* ((custom) 176: the record full, no byte past it) */   /* bytes were E6 E7) */
+                 (SID_COUNT >= UP_SIDS || !r.sid[SID_COUNT]));   /* ((custom) no byte past them) */   /* bytes were E6 E7) */
     bad += check("UP_PUT short frame -> args", up_parse(a, n - 1u, &r, &slot) == 1);
     {
         up_rec_t keep = r;
@@ -390,6 +390,8 @@ int main(void)
         memset(&six, 0, sizeof six);
         six.used = UP_USED; six.engine = 2; memcpy(six.name, "SIX", 3);
         up_set_sound(&six, s);
+        for (i = P_LMDL0; i <= P_LMDL7; i++)                /* ((custom) engine 2: DRUM's lane models not its, at their */
+            s[i] = def[i];                                  /* defaults: core.h sid_lanes) */
         up_params(&six, v, def);
         ok = six.ver == UP_VER_SID && six.np == SID_COUNT && up_valid(&six) && !up_pat(&six) && !up_grid(&six) &&
              !memcmp(v, s, sizeof s) && UP_SIDS == 176u;
@@ -397,8 +399,8 @@ int main(void)
             ok &= !six.sid[k];
         bad += check("v6: by stored id, round trip, the rest 0", ok);
         got = six;
-        got.np = (uint8_t)UP_SIDS;                          /* a newer firmware's: more ids (as many as the record holds) */
-        memset(got.sid + SID_COUNT, 64 + 9, UP_SIDS - SID_COUNT);
+        got.np = (uint8_t)(UP_SIDS - 1u);                   /* a newer firmware's: more ids ((custom) not 174 or 176, */
+        memset(got.sid + SID_COUNT, 64 + 9, UP_SIDS - SID_COUNT);   /* the fork's 1.x counts: core.h SID_V1) */
         up_params(&got, v, def);
         ok = up_valid(&got) && !memcmp(v, s, sizeof s);
         got.np = 100;                                       /* an older one's: the first 100 */
@@ -406,6 +408,18 @@ int main(void)
         ok &= up_valid(&got) && !memcmp(v, s, 100u * sizeof v[0]) && v[100] == def[100] &&
               v[P_COUNT - 1u] == def[P_COUNT - 1u];
         bad += check("v6: a newer record's ids passed over, an older one's defaults", ok);
+        got = six;                                          /* ((custom) the fork's 1.x (174 ids, P_* + 8 past E0's) and */
+        got.np = (uint8_t)SID_V1;                           /* Skiff 2.5's (148: its STRUM DIR at 146, 147) */
+        for (k = 0; k < SID_V1; k++)
+            got.sid[k] = (uint8_t)(64u + k % 90u);
+        up_params(&got, v, def);
+        ok = up_valid(&got) && v[P_FTYPE] == (int16_t)((P_FTYPE + 8u) % 90u) && v[P_FBLND] == (int16_t)((P_FBLND + 8u) % 90u) &&
+             v[P_LMDL0] == (int16_t)((P_LMDL0 + 8u) % 90u) && v[P_STRUM] == def[P_STRUM] && v[P_E0] == (int16_t)(SID_E0 % 90u);
+        got.np = 148u;
+        up_params(&got, v, def);
+        ok &= v[P_STRUM] == 146 % 90 && v[P_SDIR] == 147 % 90 && v[P_FTYPE] == def[P_FTYPE] && v[P_FNOTE] == (int16_t)((P_FNOTE + 8u) % 90u);
+        bad += check("(custom) v6 of the fork's 1.x: every value where it was; Skiff 2.5's: its STRUM DIR, the FILTER's "
+                     "defaults", ok);
         got = six; got.sid[3] = 192u;
         ok = !up_valid(&got);
         got = six; got.np = (uint8_t)(UP_SIDS + 1u);

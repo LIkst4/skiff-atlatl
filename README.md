@@ -126,6 +126,10 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - The arpeggiator recorded into the sequencer stays on the steps however long it is held (each arp step was rounded up
   to the audio block, so a held arp drifted later and later: its notes landed late, then a step late), and an arp
   started while the sequencer plays starts on its grid.
+- Projects and user presets store **STRUM** and **DIR** where Skiff 2.5 does, so sounds and projects move between
+  Skiff 2.5 and skiff-atlatl both ways; SYNTH's own parameters and DRUM's lane models share their stored ids (a
+  track holds one engine), which leaves room in the user preset record for Skiff's next parameters. Projects and
+  presets saved with v1.0 / v1.1 load as before.
 - **FX › FILTER** draws the filter: its curve from low-pass through band-pass to high-pass by BLEND, COMB's teeth,
   VOWEL's formants. The **ARP** page's graph shows the **ARP STEP** pattern (rests, STACC, each step's transpose, the
   step playing).

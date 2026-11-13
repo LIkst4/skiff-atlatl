@@ -203,47 +203,88 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
  * 2.0's first records had the P_* positions (P_LEVEL 0 .. P_E7 134). (#36) The lane pans came before P_E0 (P_LPAN0 127):
  * their SIDs are the next free, 135..142, and the engine values keep 127..134. (2.1) Every parameter since, before P_E0
  * too, likewise: its SID is its P_* + 8 (the chord follow's 143..145). The globals likewise (GSID: today's G_*) */
-#define SID_COUNT ((uint32_t)P_COUNT)          /* the SIDs this firmware knows: 0 .. SID_COUNT - 1 */
+/* (custom) the fork's (skiff-atlatl 2.x): SIDs 146, 147 are Skiff 2.5's, STRUM and DIR, as in Skiff: a project or user
+ * preset loads both ways. The fork's parameters follow them: 148..154 every engine's (SID_FK), 155..167 the engine's
+ * own (SID_SY: SYNTH's, every engine but DRUM's; SID_LN: DRUM's lane models, DRUM and DRUM-X; never both in one
+ * track, so they share the ids: sid_lanes). A record's count tells its layout: SID_COUNT, this one; SID_V1 and
+ * SID_V1D, the fork's 1.x and its development build on 2.5 (P_* + 8 throughout: the fork's parameters at 146..173,
+ * STRUM DIR at 174, 175 then); fewer, Skiff's (146 and 147 STRUM DIR, past them not the fork's: passed over); more, a
+ * newer fork's (these as here, its own after them passed over; a later layout takes a count none of these is) */
+#define SID_COUNT 168u                         /* the SIDs this firmware writes: 0 .. SID_COUNT - 1 */
+#define SID_FORK 146u                          /* the first past Skiff 2.4's */
+#define SID_OWN 155u                           /* the engine's own, to SID_COUNT */
+#define SID_V1 174u                            /* skiff-atlatl 1.x's count */
+#define SID_V1D 176u                           /* .. and its development build on Skiff 2.5's */
 #define GSID_COUNT ((uint32_t)G_COUNT)
 #define SID_E0 127u                            /* the engine values' first SID (P_E0 before #36): frozen */
 _Static_assert(P_LPAN0 == SID_E0 && P_COUNT == P_E0 + 8u, "sid_p: the lane pans and those after them, then E0..E7");
-static uint32_t sid_p(uint32_t sid)            /* P_COUNT: not one of ours */
+_Static_assert(P_FNOTE + 1u == P_FTYPE && P_SDIR + 1u == P_E0 && P_E0 == SID_V1D - 8u, "the fork's 1.x layout: P_* + 8");
+static const uint8_t SID_FK[SID_OWN - SID_FORK] = {P_STRUM, P_SDIR, P_FTYPE, P_FCUT, P_FRES, P_FCHR, P_FDRV, P_RTVEL,
+                                                   P_FBLND};
+static const uint8_t SID_SY[SID_COUNT - SID_OWN] = {P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT, P_SYACC, P_SYADEC, P_SYMUF,
+                                                    P_SYMBRT, P_SYMPOS, P_SYPME, P_SYPMB, P_SYPMD, P_SYBLOW};
+static const uint8_t SID_LN[SID_COUNT - SID_OWN] = {P_LMDL0, P_LMDL1, P_LMDL2, P_LMDL3, P_LMDL4, P_LMDL5, P_LMDL6,
+                                                    P_LMDL7, P_COUNT, P_COUNT, P_COUNT, P_COUNT, P_COUNT};
+/* the parameter SID sid names in a record of n SIDs, of a track whose engine plays lanes or not (P_COUNT: none of ours) */
+static uint32_t sid_p_of(uint32_t sid, uint32_t n, int lanes)
 {
-    return sid < SID_E0 ? sid : sid < SID_E0 + 8u ? P_E0 + (sid - SID_E0) : sid < SID_COUNT ? sid - 8u : P_COUNT;
-}
-static uint32_t p_sid(uint32_t p)              /* .. back */
-{
-    return p < SID_E0 ? p : p >= P_E0 ? SID_E0 + (p - P_E0) : p + 8u;
+    if (sid < SID_E0)
+        return sid;
+    if (sid < SID_E0 + 8u)
+        return P_E0 + (sid - SID_E0);
+    if (sid < SID_FORK || ((n == SID_V1 || n == SID_V1D) && sid < SID_V1D))
+        return sid - 8u;                       /* (the lane pans, the chord follow; the fork's 1.x: all of them) */
+    if (n < SID_COUNT)
+        return sid < SID_FORK + 2u ? SID_FK[sid - SID_FORK] : P_COUNT;   /* Skiff's: its STRUM DIR, none after */
+    if (sid < SID_OWN)
+        return SID_FK[sid - SID_FORK];
+    if (sid < SID_COUNT)
+        return lanes ? SID_LN[sid - SID_OWN] : SID_SY[sid - SID_OWN];
+    return P_COUNT;
 }
 static uint32_t gsid_g(uint32_t sid) { return sid < GSID_COUNT ? sid : G_COUNT; }
-/* a track's parameters p into b by SID: their count, then each value + 64. How many bytes; 0 for a value no record
- * holds (below -64, above 127) */
-static uint32_t sid_put(uint8_t *b, const int16_t *p)
+/* .. back: the SID parameter p is stored by (this layout; a lane model's that of DRUM's records), SID_COUNT for none */
+static uint32_t p_sid(uint32_t p)
+{
+    uint32_t s;
+    int lanes;
+    for (lanes = 0; lanes < 2; lanes++)
+        for (s = 0; s < SID_COUNT; s++)
+            if (sid_p_of(s, SID_COUNT, lanes) == p)
+                return s;
+    return SID_COUNT;
+}
+/* a track's parameters p (its engine's: sid_lanes) into b by SID: their count, then each value + 64 (an id the engine
+ * leaves empty: 0). How many bytes; 0 for a value no record holds (below -64, above 127) */
+static uint32_t sid_put(uint8_t *b, const int16_t *p, int lanes)
 {
     uint32_t s;
     b[0] = (uint8_t)SID_COUNT;
     for (s = 0; s < SID_COUNT; s++) {
-        int32_t v = p[sid_p(s)];
+        uint32_t k = sid_p_of(s, SID_COUNT, lanes);
+        int32_t v = k < P_COUNT ? p[k] : 0;
         if (v < -64 || v > 127)
             return 0;
         b[1u + s] = (uint8_t)(v + 64);
     }
     return 1u + SID_COUNT;
 }
-/* .. back from b (max bytes there): the SIDs this firmware knows into p, the others passed over (a newer firmware's),
- * the ones b lacks left as p holds them (the caller's defaults: an older record's). How many bytes it took; 0 for a
- * record shorter than its count says or holding a byte past 191 (a value no record holds, as SKF3's reader refuses it).
- * The values are as stored: the caller bounds them to their parameters (project.c proj_bound) */
-static uint32_t sid_get(int16_t *p, const uint8_t *b, uint32_t max)
+/* .. back from b (max bytes there): the SIDs this firmware knows into p (by the record's layout: sid_p_of), the others
+ * passed over (a newer firmware's), the ones b lacks left as p holds them (the caller's defaults: an older record's).
+ * How many bytes it took; 0 for a record shorter than its count says or holding a byte past 191 (a value no record
+ * holds, as SKF3's reader refuses it). The values are as stored: the caller bounds them to their parameters
+ * (project.c proj_bound) */
+static uint32_t sid_get(int16_t *p, const uint8_t *b, uint32_t max, int lanes)
 {
     uint32_t n = max ? b[0] : 0u, s;
     if (!max || 1u + n > max)
         return 0;
     for (s = 0; s < n; s++) {
+        uint32_t k = sid_p_of(s, n, lanes);
         if (b[1u + s] > 191u)
             return 0;
-        if (sid_p(s) < P_COUNT)
-            p[sid_p(s)] = (int16_t)((int32_t)b[1u + s] - 64);
+        if (k < P_COUNT)
+            p[k] = (int16_t)((int32_t)b[1u + s] - 64);
     }
     return 1u + n;
 }
@@ -277,6 +318,8 @@ static uint32_t gsid_get(int16_t *g, const uint8_t *b, uint32_t max)
 #define ENGI_DRUM 10u
 #define ENGI_SYNTH 15u           /* (custom) SYNTH (eng_synth.c): its filter per voice is the track FILTER's */
 #define ENGI_DRUMX 14u           /* (Skiff) DRUM-X (eng_drumx.c): a drum track as DRUM's (seq.c drum_track) */
+/* (custom) an engine whose record holds DRUM's lane models in the engine's own SIDs, not SYNTH's (sid_p_of) */
+static int sid_lanes(uint32_t e) { return e == ENGI_DRUM || e == ENGI_DRUMX; }
 #define NHEAVY 4u                /* (Skiff phase 6) the tracks that play every engine; the ones after them are light: no
                                   * PHYS, no GRAIN (engines.c eng_allowed: their state is the big one) */
 _Static_assert(NTRK >= NHEAVY, "the light tracks come after the four");

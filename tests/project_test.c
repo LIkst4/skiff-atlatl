@@ -206,6 +206,41 @@ static int track_v3_ok(const proj_trk_t *n, const proj_trk_v3_t *o, uint32_t t)
     return ok;
 }
 
+/* (custom) the other engines' own of each track at their defaults: what SKF4 keeps of a track is its engine's */
+static int is_sy(uint32_t i);
+static int is_ln(uint32_t i);
+static void own_only(project_t *q)
+{
+    uint32_t t, i;
+    for (t = 0; t < NTRK; t++)
+        for (i = 0; i < P_COUNT; i++)
+            if (sid_lanes(q->t[t].engine) ? is_sy(i) : is_ln(i))
+                q->t[t].p[i] = param_desc_of(q->t[t].engine, i)->def;
+}
+/* (custom) SYNTH's own parameters, DRUM's lane models: the ids they share (core.h SID_SY, SID_LN) */
+static int is_sy(uint32_t i) { uint32_t k; for (k = 0; k < NELEM(SID_SY); k++) if (SID_SY[k] == i) return 1; return 0; }
+static int is_ln(uint32_t i) { return i >= P_LMDL0 && i <= P_LMDL7; }
+/* (custom) each parameter named by one SID of this layout, for SYNTH's tracks or DRUM's (the lane models) */
+static int p_sid_ok(void)
+{
+    static uint8_t seen[P_COUNT];
+    uint32_t s, i;
+    int lanes;
+    memset(seen, 0, sizeof seen);
+    for (lanes = 0; lanes < 2; lanes++)
+        for (s = 0; s < SID_COUNT; s++) {
+            uint32_t k = sid_p_of(s, SID_COUNT, lanes);
+            if (k < P_COUNT)
+                seen[k]++;
+        }
+    for (i = 0; i < P_COUNT; i++) {
+        if (seen[i] != (is_sy(i) || is_ln(i) ? 1u : 2u))
+            return 0;
+    }
+    return sid_p_of(146, SID_COUNT, 0) == P_STRUM && sid_p_of(147, SID_COUNT, 0) == P_SDIR &&
+           sid_p_of(148, SID_COUNT, 0) == P_FTYPE;
+}
+
 int main(void)
 {
     static project_v4_t v4;
@@ -991,6 +1026,7 @@ int main(void)
         memcpy(a.name, "SKF4 TEST", 9);
         a.fm6[k][5] = 77;
         memcpy(a.dx, DX_KIT_DEF, sizeof a.dx); a.dx[DV_SNARE].b[DXP_COLOR] = 9; a.dx_on = 1;
+        own_only(&a);                                    /* ((custom) a track keeps its engine's own: sid_lanes) */
         ok = proj_pack2(&st, &a, PROJ_SKF) && proj_import(&c, &st, (int)PROJ_STORE4);
         for (t = 0; t < NTRK; t++)
             ok &= c.t[t].engine == a.t[t].engine && c.t[t].preset == a.t[t].preset &&
@@ -1082,40 +1118,90 @@ int main(void)
         bad += check("a light track holding PHYS (crafted): its power-on sound, its list kept (four tracks: as is)", ok);
     }
     {   /* (2.0, Tier B 4) stored parameter ids (core.h sid_put / sid_get, gsid_*): by number, a count first; a newer
-         * record's numbers passed over, an older one's missing ones left at the caller's defaults */
-        static int16_t p[P_COUNT], r[P_COUNT], g[G_COUNT], h[G_COUNT];
+         * record's numbers passed over, an older one's missing ones left at the caller's defaults. ((custom) SID_COUNT
+         * 168: Skiff's STRUM DIR at 146, 147, the fork's after them, SYNTH's own and DRUM's lane models sharing 155..) */
+        static int16_t p[P_COUNT], r[P_COUNT], g[G_COUNT], h[G_COUNT], w[P_COUNT];
         static uint8_t b[512];
-        uint32_t n;
+        uint32_t n, lanes;
         for (i = 0; i < P_COUNT; i++)
             p[i] = (int16_t)((int32_t)(i * 7u % 192u) - 64);
         for (i = 0; i < G_COUNT; i++)
             g[i] = (int16_t)(i * 1000u - 9000u);
-        n = sid_put(b, p);
-        for (i = 0; i < P_COUNT; i++)
-            r[i] = 99;
-        ok = n == 1u + P_COUNT && b[0] == P_COUNT && sid_get(r, b, n) == n && !memcmp(r, p, sizeof p);
+        ok = 1;
+        for (lanes = 0; lanes < 2u; lanes++) {           /* (SYNTH's own, then DRUM's: each back, the other's not kept) */
+            n = sid_put(b, p, (int)lanes);
+            for (i = 0; i < P_COUNT; i++)
+                r[i] = 99;
+            ok &= n == 1u + SID_COUNT && b[0] == SID_COUNT && sid_get(r, b, n, (int)lanes) == n;
+            for (i = 0; i < P_COUNT; i++) {
+                int other = lanes ? is_sy(i) : is_ln(i);
+                ok &= r[i] == (other ? 99 : p[i]);
+            }
+        }
         n = gsid_put(b, g);
         ok &= n == 1u + 2u * G_COUNT && gsid_get(h, b, n) == n && !memcmp(h, g, sizeof g);
-        bad += check("(2.0) stored ids: a track's parameters and the globals by number, back as they were", ok);
-        (void)sid_put(b, p);
-        b[0] = (uint8_t)(P_COUNT + 5u);                  /* (a newer firmware's: five more numbers, unknown here) */
-        memset(b + 1u + P_COUNT, 64u + 9u, 5);
+        bad += check("(2.0) stored ids: a track's parameters and the globals by number, back as they were ((custom) "
+                     "SYNTH's own or DRUM's lane models: the track's engine's)", ok);
+        ok = SID_COUNT == 168u && p_sid_ok();
+        bad += check("  (custom) every parameter has its id: 146 147 STRUM DIR as Skiff's, the fork's 148..167", ok);
+        (void)sid_put(b, p, 0);
+        b[0] = (uint8_t)(SID_COUNT + 5u);                /* (a newer fork's: five more numbers, unknown here) */
+        memset(b + 1u + SID_COUNT, 64u + 9u, 5);
         for (i = 0; i < P_COUNT; i++)
             r[i] = 99;
-        ok = sid_get(r, b, 1u + P_COUNT + 5u) == 1u + P_COUNT + 5u && !memcmp(r, p, sizeof p);
+        ok = sid_get(r, b, 1u + SID_COUNT + 5u, 0) == 1u + SID_COUNT + 5u;
+        for (i = 0; i < P_COUNT; i++)
+            ok &= r[i] == (is_ln(i) ? 99 : p[i]);
         b[0] = 100;                                      /* (an older one: the first 100 only) */
         for (i = 0; i < P_COUNT; i++)
             r[i] = 99;
-        ok &= sid_get(r, b, 101u) == 101u && !memcmp(r, p, 100u * sizeof r[0]) && r[100] == 99 && r[P_COUNT - 1u] == 99;
-        ok &= !sid_get(r, b, 100u) && !gsid_get(h, b, 0u);   /* (shorter than its count says) */
+        ok &= sid_get(r, b, 101u, 0) == 101u && !memcmp(r, p, 100u * sizeof r[0]) && r[100] == 99 && r[P_COUNT - 1u] == 99;
+        ok &= !sid_get(r, b, 100u, 0) && !gsid_get(h, b, 0u);   /* (shorter than its count says) */
         p[3] = 128;
-        ok &= !sid_put(b, p);                            /* (a value no record holds; nor read: a byte past 191) */
+        ok &= !sid_put(b, p, 0);                         /* (a value no record holds; nor read: a byte past 191) */
         p[3] = 0;
-        (void)sid_put(b, p);
-        b[1u + P_COUNT - 1u] = 192u;
-        ok &= !sid_get(r, b, 1u + P_COUNT);
+        (void)sid_put(b, p, 0);
+        b[1u + SID_COUNT - 1u] = 192u;
+        ok &= !sid_get(r, b, 1u + SID_COUNT, 0);
         bad += check("  a newer record's numbers passed over, an older one's missing ones left; too short or out of "
                      "range refused", ok);
+        {   /* (custom) a pattern's locks of Skiff 2.5 (np 148): its STRUM (138) to ours, its E2 (142) to our E2 */
+            static motion_store_t ms;
+            memset(&ms, 0, sizeof ms);
+            ms.count = 3;
+            ms.event[0].id = 138; ms.event[1].id = 142; ms.event[2].id = 20;
+            ok = proj_motion_ids(&ms, 148u) && ms.event[0].id == P_STRUM && ms.event[1].id == P_E0 + 2u &&
+                 ms.event[2].id == 20u;
+            memset(&ms, 0, sizeof ms);                   /* (the fork's 1.x, np 174: its FILTER's 138 stays, E2 168 + 2) */
+            ms.count = 2;
+            ms.event[0].id = 138; ms.event[1].id = 168;
+            ok &= proj_motion_ids(&ms, 174u) && ms.event[0].id == P_FTYPE && ms.event[1].id == P_E0 + 2u;
+            bad += check("  (custom) locks of Skiff 2.5 (STRUM, E2) and of the fork's 1.x: each its parameter", ok);
+        }
+        /* (custom) the records of before: Skiff 2.5's (148: 146, 147 its STRUM DIR) and the fork's 1.x (174) and its
+         * development build on 2.5 (176), P_* + 8 there: every one of their values where it was */
+        b[0] = 148;
+        for (i = 0; i < 148u; i++)
+            b[1u + i] = (uint8_t)(64u + i % 100u);
+        for (i = 0; i < P_COUNT; i++)
+            r[i] = 99;
+        ok = sid_get(r, b, 149u, 0) == 149u && r[P_STRUM] == 146 % 100 && r[P_SDIR] == 147 % 100 &&
+             r[P_FTYPE] == 99 && r[P_E0] == 127 % 100 && r[P_FNOTE] == (int16_t)((P_FNOTE + 8u) % 100u);
+        bad += check("  (custom) Skiff 2.5's record: its STRUM DIR (146, 147) to STRUM DIR, not the FILTER", ok);
+        for (n = SID_V1; n <= SID_V1D; n += 2u) {
+            for (i = 0; i < P_COUNT; i++)
+                w[i] = (int16_t)((int32_t)(i * 5u % 150u) - 20);
+            b[0] = (uint8_t)n;
+            for (i = 0; i < n; i++)                      /* (as the fork's 1.x wrote it: P_* + 8 past the E0 SIDs) */
+                b[1u + i] = (uint8_t)(w[i < SID_E0 ? i : i < SID_E0 + 8u ? P_E0 + i - SID_E0 : i - 8u] + 64);
+            for (i = 0; i < P_COUNT; i++)
+                r[i] = 99;
+            ok = sid_get(r, b, 1u + n, 1) == 1u + n;
+            for (i = 0; i < P_COUNT; i++)
+                ok &= r[i] == ((n == SID_V1 && (i == P_STRUM || i == P_SDIR)) ? 99 : w[i]);
+            bad += check(n == SID_V1 ? "  (custom) the fork's 1.x record (174): every value where it was"
+                                     : "  (custom) its development build's on 2.5 (176): every value, STRUM DIR too", ok);
+        }
     }
     printf("%s\n", bad ? "PROJECT FORMAT TEST FAILED" : "project format test passed");
     return bad != 0;

@@ -663,6 +663,14 @@ when the track's engine is not the saved one).
   one's missing ones load at their defaults. Zeros up to the name at 2544..2555, the hash last. A save (and the
   autosave) writes SKF4; an SKF3 or SKF2 loads as before and keeps its format where it is stored (a rename, a backup
   restore). Skiff before 2.0 shows an SKF4 slot as empty.
+  **skiff-atlatl's SIDs** (core.h `sid_p_of`; version-6 user presets alike). 0..145 as Skiff's; 146, 147 Skiff 2.5's
+  STRUM and DIR (parameter ids 166, 167 here); 148..154 the fork's FILTER (TYPE CUTOFF RESO CHAR DRIVE), RETRIG VEL
+  and BLEND; 155..167 the engine's own: SYNTH's SUB, SUB OCT, X-MOD, DRIFT, ACCENT, ACC DEC, MUFFLE, BRIGHT,
+  POSITION, POLY MOD ENV 2, OSC B, DEST, B LOW for every engine but DRUM; DRUM's (and DRUM-X's) lane MODELs 1..8,
+  then five 0 bytes, for DRUM. n 168. A record's n tells its layout: 174 (the fork's 1.x) and 176 (its first build on
+  2.5) have the parameter id + 8 throughout (the fork's at 146..173, STRUM DIR at 174, 175 in the latter); fewer
+  than 168, Skiff's (146, 147 STRUM DIR, the fork's not there: their defaults); more, a newer fork's. A pattern's
+  locks keep parameter ids; one of Skiff 2.5 (its count 148) has STRUM DIR at 138, 139: read as 166, 167 here.
 - **The DRUM-X kit (Skiff phase 7).** One kit per project, for every DRUM-X track (engine 14): 8 lanes (KICK SNARE
   CLAP HAT CL HAT OP TOM RIM BELL), 11 bytes each: a mode byte (bits 0..1 the wave SIN FM MTL BEL, 2..3 the noise
   filter LP BP HP, 4 SNAP, 5..6 the pitch modulation DECAY LONG NOISE SINE, 7 DRIVE), then patch A and patch B, five

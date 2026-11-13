@@ -976,13 +976,16 @@ static int proj_pack(project_store_t *out, const project_t *q)
  * store's P_E0 (np - 8) on moved up with P_E0, as its values did (params_by_count); the ones below kept theirs. A
  * lock stays a lock: the id moves (a FUN8 / FUN7 of a 1.1 development build may hold
  * locks). 0: an id that store could not have named (np or more) */
+#define PROJ_NP_SK25 148u                     /* ((custom) Skiff 2.5's P_COUNT: its STRUM DIR at P_FNOTE + 1, + 2) */
 static int proj_motion_ids(motion_store_t *m, uint32_t np)
 {
     uint32_t i;
     for (i = 0; i < m->count && i < MOTION_MAX; i++) {
         uint32_t id = MOTION_ID(&m->event[i]);
         if (id >= np) return 0;
-        if (np < P_COUNT && id >= np - 8u)
+        if (np == PROJ_NP_SK25 && id >= P_FNOTE + 1u && id < np - 8u)   /* ((custom) Skiff 2.5's STRUM DIR, at 138 139 */
+            m->event[i].id = (uint8_t)(P_STRUM + (id - P_FNOTE - 1u));   /* there: the fork's FILTER here) */
+        else if (np < P_COUNT && id >= np - 8u)
             m->event[i].id = (uint8_t)(id + P_COUNT - np);
     }
     return 1;
@@ -1100,7 +1103,7 @@ static int proj_pack4(project_store_t *out, const project_t *q)
     pos += gsid_put(b + pos, q->g);
     for (t = 0; t < NTRK; t++) {
         b[pos] = q->t[t].engine; b[pos + 1u] = q->t[t].preset; b[pos + 2u] = q->t[t].user; pos += 3u;   /* (#20) */
-        if (!(n = sid_put(b + pos, q->t[t].p))) return 0;
+        if (!(n = sid_put(b + pos, q->t[t].p, sid_lanes(q->t[t].engine)))) return 0;
         pos += n;
     }
     {
@@ -1153,7 +1156,7 @@ static int proj_unpack4(project_t *q, const uint8_t *b)
         if (q->t[t].engine >= NENGINES) return 0;
         for (e = 0; e < P_COUNT; e++)
             q->t[t].p[e] = param_desc_of(q->t[t].engine, e)->def;
-        if (!(n = sid_get(q->t[t].p, b + pos, end - pos))) return 0;
+        if (!(n = sid_get(q->t[t].p, b + pos, end - pos, sid_lanes(q->t[t].engine)))) return 0;
         pos += n;
 #if FELUCCA_LEGACY
         for (e = 0; e < NSTEP; e++)

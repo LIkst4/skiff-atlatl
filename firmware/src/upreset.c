@@ -116,8 +116,11 @@ static void up_set_sound(up_rec_t *r, const int16_t *v)
     r->ver = UP_VER_SID;
     r->np = (uint8_t)SID_COUNT;
     memset(r->sid, 0, sizeof r->sid);
-    for (s = 0; s < SID_COUNT; s++)
-        r->sid[s] = (uint8_t)(v[sid_p(s)] + 64);
+    for (s = 0; s < SID_COUNT; s++) {                    /* ((custom) by its engine's layout: core.h sid_p_of; an id
+                                                          * it leaves empty 0) */
+        uint32_t k = sid_p_of(s, SID_COUNT, sid_lanes(r->engine));
+        r->sid[s] = (uint8_t)((k < P_COUNT ? v[k] : 0) + 64);
+    }
 }
 #if FELUCCA_LEGACY
 /* Legacy PHYS drums map through decoded parameters, not their disk representation. */
@@ -166,9 +169,11 @@ static void up_params(const up_rec_t *r, int16_t *out, const int16_t *def)
     if (r->ver >= UP_VER_SID) {
         for (i = 0; i < P_COUNT; i++)
             out[i] = def[i];
-        for (i = 0; i < r->np; i++)
-            if (sid_p(i) < P_COUNT)
-                out[sid_p(i)] = up_value(r, i);
+        for (i = 0; i < r->np; i++) {
+            uint32_t k = sid_p_of(i, r->np, sid_lanes(r->engine));   /* ((custom) the record's layout by its count) */
+            if (k < P_COUNT)
+                out[k] = up_value(r, i);
+        }
         return;
     }
     for (i = 0; i < r->np && i < NELEM(values); i++) values[i] = up_value(r, i);
