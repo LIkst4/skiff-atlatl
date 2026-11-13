@@ -42,7 +42,9 @@ jobs:
       - name: "(custom) Build the emulator's variant first (no sibling calls: the FM-1 emulator takes no GOTO ending THEN)"
         continue-on-error: true
         run: |
-          FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls" ./build.sh
+          # (Skiff 2.5 on the fork: no sibling calls cost ~10 KB of flash the image no longer has; this variant is the
+          # emulator's stress test only, so it goes without GRAIN's built-in FLUTE and SAX, 40 KB)
+          FELUCCA_BUILTIN_SAMPLES=0 FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls" ./build.sh
           cp build/felucca.fwsc "$RUNNER_TEMP/skiff-atlatl-emu.fwsc"
           python tools/emu_gaps.py build/felucca.dis || true
       - name: Build
