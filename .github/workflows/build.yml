@@ -103,6 +103,8 @@ jobs:
           find "$JIELI_TOOLCHAIN/" -name "*nm" | head
           NM=$(find "$JIELI_TOOLCHAIN/" -name "*nm" -type f | head -1); NM=${NM:-nm}
           "$NM" --size-sort -S -t d build/felucca.o | grep -v " [bB] " || true
+          echo "(custom) the biggest .bss (main RAM) symbols:"
+          "$NM" --size-sort -S -t d build/felucca.o | grep " [bB] " | tail -40 || true
           "$NM" --size-sort -S -t d build/felucca.o | awk '{s+=$2} END {print "total symbol bytes", s}' || true
       - name: Host tests
         run: SANITIZE=0 sh tests/run_tests.sh

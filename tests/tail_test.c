@@ -58,10 +58,10 @@ static uint32_t render(int32_t master, uint32_t eq)
     uint32_t f, i, n = 0;
     memset(trk, 0, sizeof trk);
     host_tracks_init();
-    host_preset(&trk[0], 0, 0);
-    for (i = 0; i < NELEM(ANALOG_PRESETS); i++)
-        if (str_eq(ANALOG_PRESETS[i].name, "SUB BASS"))
-            host_preset(&trk[0], 0, i);
+    host_preset(&trk[0], ENGI_SYNTH, 0);                /* ((custom) ANALOG retired: its SUB BASS is SYNTH's) */
+    for (i = 0; i < NELEM(SYNTH_PRESETS); i++)
+        if (str_eq(SYNTH_PRESETS[i].name, "SUB BASS"))
+            host_preset(&trk[0], ENGI_SYNTH, i);
     trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
     trk[0].p[P_REL] = 120;                             /* a long release: the tail to measure */
     song.master_q12 = (uint32_t)master;

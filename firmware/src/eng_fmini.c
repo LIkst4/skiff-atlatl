@@ -305,7 +305,7 @@ static void fmini_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         s3 = y4 + v4;
         w = fmini_mulr(y4 - sx, (uint32_t)gx16);
         sx += w + w;
-        out[i] += voice_amp((((y4 + 128) >> 8) * trim12) >> 12, m, i) << 1;
+        out[i] += voice_amp2((((y4 + 128) >> 8) * trim12) >> 12, m, i);   /* ((2.5, #110) rounded once) */
     }
     v->ph[0] = ph0;
     v->ph[1] = ph1;

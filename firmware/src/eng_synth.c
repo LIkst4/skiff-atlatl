@@ -97,8 +97,8 @@ typedef struct {
 static int32_t sy_sweep[NTRK];
 /* (custom, after OberVave's VINTAGE) DRIFT: each voice card a little out of tune (cents) and its filter a little
  * apart, and a slow random walk on the pitch */
-static const int8_t SY_CARD_CT[NVOICE] = {3, -5, 1, 6, -2, -6, 4, -1};
-static const int8_t SY_CARD_CUT[NVOICE] = {-6, 4, 8, -3, 2, -8, 5, -1};
+static const int8_t SY_CARD_CT[8] = {3, -5, 1, 6, -2, -6, 4, -1};   /* ((2.5) 16 voices: a card each 8, vi & 7) */
+static const int8_t SY_CARD_CUT[8] = {-6, 4, 8, -3, 2, -8, 5, -1};
 /* MODAL: the modes' ratios of three bodies, SHAPE morphing string -> bar -> bell (x 1024), their levels (Q15) */
 static const uint16_t SY_MODE_R[3][SY_NMODE] = {{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192},       /* a string */
                                                 {1024, 2822, 5534, 9147, 13660, 19087, 25406, 32635},   /* a free bar */
@@ -594,7 +594,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     if (drift) {                                         /* (custom, OberVave's VINTAGE) DRIFT: the card's tune and a walk */
         int32_t r = (int32_t)(noise32(&v->s[0]) >> 22) - 512;   /* (a step of the walk, +-512) */
         S->walk = clamp(S->walk + (r >> 5) - (S->walk >> 7), -1600, 1600);   /* (cents x 16, held near 0) */
-        dct = (SY_CARD_CT[vi] * 16 + S->walk / 16) * drift / (127 * 16) + SY_CARD_CT[vi] * drift / 127;
+        dct = (SY_CARD_CT[vi & 7u] * 16 + S->walk / 16) * drift / (127 * 16) + SY_CARD_CT[vi & 7u] * drift / 127;
     }
     if (pme && pfq)                                      /* (POLY MOD) ENV -> FREQ A: +-48 semitones at +-63 */
         dct += (e15 >> 5) * pme * 4800 / 64512;
@@ -662,7 +662,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     if (pfl)                                             /* (POLY MOD) -> FILTER: ENV +-~5 octaves, B +-~4 */
         cm += ((e15 * pme) >> 12) + ((bs * pob) >> 13);   /* ((custom) ENV: >> 12, was >> 6: 32 x too far) */
     if (drift)
-        cm += SY_CARD_CUT[vi] * drift / 64;              /* (DRIFT: the card's filter a little apart) */
+        cm += SY_CARD_CUT[vi & 7u] * drift / 64;              /* (DRIFT: the card's filter a little apart) */
     if (p[P_SYACC]) {                                    /* (303) the accent's envelope and the track's sweep */
         uint32_t k = (uint32_t)(t - trk) % NTRK;
         int32_t tb = 2 + p[P_SYADEC] * p[P_SYADEC] / 16;   /* ACC DEC: ~1.5 ms .. ~0.7 s */
@@ -676,11 +676,11 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     if (p[P_SYMUF]) {                                    /* (Devil Fish) MUFFLE: the VCA's soft clip, louder in */
         int32_t kn = 16000 - p[P_SYMUF] * 100;
         for (i = 0; i < n; i++)
-            out[i] += voice_amp(soft_knee(y[i] >> 1, kn), m, i) << 1;
+            out[i] += voice_amp2(soft_knee(y[i] >> 1, kn), m, i);   /* ((2.5, #110) rounded once) */
         return;
     }
     for (i = 0; i < n; i++)
-        out[i] += voice_amp(soft_knee(y[i] >> 1, 16000), m, i) << 1;
+        out[i] += voice_amp2(soft_knee(y[i] >> 1, 16000), m, i);
 }
 
 static const param_desc_t SY_MOD_DESC[SY_N] = {

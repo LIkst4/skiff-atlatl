@@ -1155,7 +1155,7 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
 /* (custom) the track FILTER (flt.c): after the engine, before DIST. b the mono sum; d, e (SPREAD's side, a panned kit's
  * losses) through instances of their own, so the stereo keeps the same tone; COMB's line is b's only (d, e: mono) */
 static flt_t tflt[NTRK][3];
-static int16_t tflt_line[NTRK][FLT_LINE];
+static int16_t tflt_line[NTRK][FLT_LINE] __attribute__((section(".pool")));   /* ((2.5) 92 KiB of RAM: in the pool) */
 /* (custom) DRUM's FILTER envelope, once a block: ENV's ATK DEC SUS REL (ENV SYNC's note values too) over the track, a hit
  * (voice_start) restarting it; the release once no voice of the track is held (a step's gate over). -> its cutoff
  * modulation, ENV -> CUTOFF and LFO -> CUTOFF (MOD's, shown on DRUM as ENV>FLT and LFO>FLT) as SYNTH's per voice */

@@ -438,7 +438,7 @@ static void test_filter(void)
     for (k = 0; k < 6u; k++) {
         char v[12];
         const char *u;
-        param_format(&INS_DESC[3][2], NM[k].v, v, &u);
+        param_format(&INS_DESC[6][2], NM[k].v, v, &u);
         ok &= str_eq(v, NM[k].val) && str_eq(u, NM[k].unit);
     }
     trk[0].p[P_ITYPE] = IT_FILTER;
