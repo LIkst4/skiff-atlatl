@@ -11,7 +11,7 @@
 // - fm1ota.js: a full install and an unplug during the write against a simulated FM-1
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import vm from "node:vm";
@@ -25,7 +25,7 @@ const py = (code, ...args) => execFileSync("python3", ["-c", code, ...args], { m
 const HERE = new URL(".", import.meta.url).pathname;
 /* what lives outside web/, each overridable (a web-only checkout passes them, or the checks skip):
    FELUCCA_DESC  the firmware's parameter / protocol table (tests/descdump.c -> build/host/desc.json)
-   FELUCCA_TOOLS the firmware's tools (tools/fm1_sample_upload.py, the sample format's reference)
+   FELUCCA_TOOLS the firmware's tools (tools/fm1_sample_upload.py, the sample format's reference; tools/gen_ui_palettes.py, the themes' colours)
    FELUCCA_ROOT  the Felucca tree with a ./build.sh build (the package check) */
 const DESC = process.env.FELUCCA_DESC || join(HERE, "../build/host/desc.json");
 const TOOLS = process.env.FELUCCA_TOOLS || join(HERE, "../tools");
@@ -35,7 +35,7 @@ const FW_ROOT = process.env.FELUCCA_ROOT || join(HERE, "..");
 const html = readFileSync(join(HERE, "editor.html"), "utf8");
 const proto = html.slice(html.indexOf("/*PROTO-BEGIN*/"), html.indexOf("/*PROTO-END*/"));
 const E = vm.runInNewContext(proto + `
-;({ frame, unframe, parse, songReply, req, Link, parseWav, resample, normalize, takeSample, kitZones, LANES, portPairs, autoTrim, zoomView, rootFromName, buildSlot, makeMockDevice, CMD, SMP,
+;({ frame, unframe, parse, songReply, req, Link, parseWav, resample, normalize, takeSample, kitZones, LANES, portPairs, apcPorts, apcAction, apcLeds, apcNear, APC, autoTrim, zoomView, rootFromName, buildSlot, makeMockDevice, CMD, SMP,
    UP, bank, capturePatch, auditionPatch, lightRefuses, startWatch, libraryFile, readLibraryFile, paramKeys, patternFromSteps, stepsFromPattern, upName,
    mixer, parseNotes, parseHits, hitsText, gridFromSteps, LANE_NOTE, LANE_OF, readDevicePreferences, devicePresetRows, TC_NAMES, engineOrder, ENGINE_ORDER, aliasOf, fmtValue, FM6, enumShown, F,
    FM4, fromDigital, fromPerc, DRUM_KIT_E, DX_KIT_DEF, DX_KITS, DRUMX_PKIT,
@@ -53,25 +53,25 @@ async function editorMock() {
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
   ok(info.nengines === 17 && info.engines[15] === "SYNTH" && info.engines[16] === "FMINI" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-" && info.engines[14] === "-"
- && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 174 && info.pe0 === 166 && info.engines[4] === "-",
-    "editor: INFO ((custom) P_COUNT 174, P_E0 166 from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
+ && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "-" && info.engines[8] === "GRAIN" && info.engines[9] === "PHYS" && info.engines[10] === "DRUM" && info.engines[11] === "-" && info.engines[0] === "-" && info.pcount === 176 && info.pe0 === 168 && info.engines[4] === "-",
+    "editor: INFO ((custom) P_COUNT 176, P_E0 168 ((2.5) STRUM DIR 166, 167) from its wide-ids tag; ANALOG TRIO WHEEL NOISE DRUM-X retired: -)");
   {
     /* (Skiff 1.3) wide ids: a track id from 128 on ((2.0) E0..E7 since P_E0 135, after the lane pans 127..134; (2.1) P_E0
        138, after the chord follow 135..137) goes as scope 2 and comes back whole (GET, SET, DESC), in TRACK_PARAM's track
        byte (bit 6) and in a MOTION record's step byte (bit 6); 127 (a lane's PAN) is still scope 0 */
-    /* ((custom) P_E0 166 after SYNTH's own, RTRG VEL, the lanes' MODEL, POLY MOD 143..164 and BLEND 165: E0 166, E1 167, E3 169, E7 173) */
-    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 166))).value;
-    const a = E.req.set(0, 166, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 166)));
-    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 173)));
-    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 167)));
+    /* ((custom) P_E0 166 after SYNTH's own, RTRG VEL, the lanes' MODEL, POLY MOD 143..164 and BLEND 165, (2.5) STRUM DIR 166 167: E0 168, E1 169, E3 171, E7 175) */
+    const v0 = E.parse[E.CMD.GET](await rq(E.req.get(0, 168))).value;
+    const a = E.req.set(0, 168, 10), s = E.parse[E.CMD.SET](await rq(a)), g = E.parse[E.CMD.GET](await rq(E.req.get(0, 168)));
+    const d = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 175)));
+    const tp = E.parse[E.CMD.TRACK_PARAM](await rq(E.req.trackParam(3, 169)));
     const e0 = E.req.get(0, 127);
-    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 169, value: 9 }, info.ntrk)));
-    ok(a[1][0] === 2 && a[1][1] === 38 && s.scope === 0 && s.id === 166 && s.value === 10 && g.id === 166 && g.value === 10 &&
-       d.scope === 0 && d.id === 173 && d.label === "MIX" && tp.track === 3 && tp.id === 167 && e0[1][0] === 0 && e0[1][1] === 127 &&
-       mo.events.some((e) => e.step === 5 && e.param === 169 && e.value === 9),
-       "editor: wide ids: SET / GET 166 and DESC 173 as scope 2, TRACK_PARAM 167 (bit 6), a motion record of 169; 127 scope 0");
+    const mo = E.parse[E.CMD.MOTION](await rq(E.req.motion(0, 3, { step: 5, param: 171, value: 9 }, info.ntrk)));
+    ok(a[1][0] === 2 && a[1][1] === 40 && s.scope === 0 && s.id === 168 && s.value === 10 && g.id === 168 && g.value === 10 &&
+       d.scope === 0 && d.id === 175 && d.label === "MIX" && tp.track === 3 && tp.id === 169 && e0[1][0] === 0 && e0[1][1] === 127 &&
+       mo.events.some((e) => e.step === 5 && e.param === 171 && e.value === 9),
+       "editor: wide ids: SET / GET 168 and DESC 175 as scope 2, TRACK_PARAM 169 (bit 6), a motion record of 171; 127 scope 0");
     await rq(E.req.motion(0, 2, {}, info.ntrk));
-    await rq(E.req.set(0, 166, v0));
+    await rq(E.req.set(0, 168, v0));
   }
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -135,6 +135,19 @@ async function editorMock() {
     ok(fk.p[135] === 2 && fk.p[136] === 1 && fk.preset === 2, "editor: a factory preset keeps the chord follow (the track's)");
     await rq(E.req.set(0, 135, 0));
     await rq(E.req.set(0, 136, 0));
+    /* (2.5) STRUM and DIR (core.h P_STRUM P_SDIR = 138, 139, just before P_E0 140): the track's, over DESC */
+    const sd = [];
+    for (let i = 138; i < 140; i++) sd.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
+    ok(sd.map((x) => x.label).join() === "STRUM,DIR" && sd[0].min === 0 && sd[0].max === 100 &&
+       sd[1].names.join() === "DOWN,UP,ALT" && sd.every((x) => x.def === 0),
+      "editor: (2.5) STRUM (0..100 ms) and DIR (DOWN UP ALT) 138, 139 over DESC");
+    await rq(E.req.set(0, 138, 40));
+    await rq(E.req.set(0, 139, 2));
+    await rq(E.req.preset(0, 3));
+    const sk = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);
+    ok(sk.p[138] === 40 && sk.p[139] === 2 && sk.preset === 3, "editor: a factory preset keeps STRUM and DIR (the track's)");
+    await rq(E.req.set(0, 138, 0));
+    await rq(E.req.set(0, 139, 0));
     /* the DRUM lane levels (core.h P_LN0..P_LN7 = 83..90, just before P_E0 91): percents, 100 % by default; the sound's,
        a factory preset sets them back */
     const lanes = [];
@@ -248,15 +261,20 @@ async function editorMock() {
        "editor: COLORS op 2 removes the set: CUSTOM gone, THEME the look's own");
     ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 6))).rc === 1, "editor: no set, no CUSTOM (UI_SET 6: rc 1)");
     await rq(E.req.uiSet(0, prefs.state.palette));
-    const hp = join(FW_ROOT, "build/gen/ui_palettes.h");   /* each theme's colours to start from == the firmware's */
-    if (existsSync(hp)) {
+    /* each theme's colours to start from == the firmware's: tools/gen_ui_palettes.py's own output, made here (a build/gen is only
+       as new as the last build in its tree; an old one failed this check on a clean checkout) */
+    const gen = join(TOOLS, "gen_ui_palettes.py");
+    if (existsSync(gen)) {
+      const dir = mkdtempSync(join(tmpdir(), "felucca-web-")), hp = join(dir, "ui_palettes.h");
+      execFileSync("python3", [gen, hp]);
       const h = readFileSync(hp, "utf8");
+      rmSync(dir, { recursive: true, force: true });
       const five = [...h.matchAll(/\{"([^"]+)", (0x[0-9a-f]{4}), (0x[0-9a-f]{4}), (0x[0-9a-f]{4}), (0x[0-9a-f]{4}), (0x[0-9a-f]{4})\}/g)]
         .map((x) => [x[1], ...x.slice(2).map(Number)]);
       const trk = [...h.matchAll(/\{((?:0x[0-9a-f]{4}, ){5}0x[0-9a-f]{4})\},\s+\/\* (\S+) \*\//g)].map((x) => [x[2], ...x[1].split(", ").map(Number)]);
       ok(five.length === E.PAL_BUILTIN.length && E.PAL_BUILTIN.every((b, i) => b.name === five[i][0] && b.name === trk[i][0] &&
          b.c.join() === [...five[i].slice(1), ...trk[i].slice(1)].join()), "editor: the themes' colours to start from == the firmware's");
-    } else console.log(`${"editor: the themes' colours (no build/gen/ui_palettes.h)".padEnd(64)} skip`);
+    } else console.log(`${"editor: the themes' colours (no tools/gen_ui_palettes.py)".padEnd(64)} skip`);
     ok(E.PAL_BUILTIN.every((b) => !E.colorWarnings(b.c).length) &&
        E.colorWarnings([0x0841, 0x18c3, 0x0861, ...E.PAL_BUILTIN[0].c.slice(3)]).some((x) => x.a === "TEXT" && x.b === "BG"),
        "editor: no theme of the device's gets a warning; TEXT on BG unreadable does");
@@ -269,11 +287,11 @@ async function editorMock() {
   }
   if (!E.readDeviceMenu) console.log(`${"editor: MENU settings (this editor has none)".padEnd(64)} skip`);
   else {   /* the MENU settings (1.0.4): INFO 4E 01 count, MENU_DESC (72), MENU_SET (73) */
-    ok(info.menuCount === 18 && info.menuCount === E.MENU.length,
-       "editor: INFO advertises the MENU settings (4E 01 18: Skiff's; STYLE and FX LATCH gone, (#27) PLAYHEAD, (2.0) RETURN)");
+    ok(info.menuCount === 19 && info.menuCount === E.MENU.length,
+       "editor: INFO advertises the MENU settings (4E 01 19: Skiff's; STYLE and FX LATCH gone, (#27) PLAYHEAD, (2.0) RETURN, (2.5) KEEP SENDS)");
     const items = await E.readDeviceMenu(rq, info);
     const byName = (n) => items.find((d) => d.name === n);
-    ok(items.length === 18 && items.map((d) => d.id).join() === E.MENU.map((x) => x.id).join() &&
+    ok(items.length === 19 && items.map((d) => d.id).join() === E.MENU.map((x) => x.id).join() &&
        items.map((d) => d.name).join() === E.MENU.map((x) => x.name).join() &&
        items.every((d) => d.kind === 0 && d.min === 0 && d.names.length === d.max - d.min + 1) &&
        items[0].name === "THEME" && eq(items[0].names, prefs.palettes) && items[0].value === m.state.palette &&
@@ -282,7 +300,7 @@ async function editorMock() {
        "editor: MENU_DESC lists every setting, its value names and value");
     ok(items.every((d, i) => d.tab === E.MENU[i].tab && d.tabName === E.MENU_TABS[d.tab]),
        "editor: MENU_DESC gives each setting's tab on the device, after its names");
-    ok(E.parse[E.CMD.MENU_DESC](await rq(E.req.menuDesc(18))).id === 127, "editor: MENU_DESC past the list answers id 127");
+    ok(E.parse[E.CMD.MENU_DESC](await rq(E.req.menuDesc(19))).id === 127, "editor: MENU_DESC past the list answers id 127");
     let r = E.parse[E.CMD.MENU_SET](await rq(E.req.menuSet(4, 3)));
     ok(r.rc === 0 && r.id === 4 && r.value === 3 && E.parse[E.CMD.MENU_DESC](await rq(E.req.menuDesc(3))).value === 3,
        "editor: MENU_SET round trip (LEDS INV)");
@@ -316,24 +334,24 @@ async function editorMock() {
   const set = E.parse[E.CMD.SET](await rq(E.req.set(0, 3, 500)));
   ok(set.value === 127, "editor: SET clamps to the range");
   {
-    /* GLO > SYSTEM ROUT (G_ROUTE 14): MIDI IN CH1-6 (0, the default; CH1-4 before six tracks) / SEL (1); the id and G_COUNT unchanged */
+    /* GLO > SYSTEM ROUT (G_ROUTE 14): MIDI IN CH1-6 (0, the default; CH1-4 before six tracks) / SEL (1); the id unchanged ((2.5) G_COUNT 28: the DELAY MODE) */
     const rd = E.parse[E.CMD.DESC](await rq(E.req.desc(1, 14)));
     const r1 = E.parse[E.CMD.SET](await rq(E.req.set(1, 14, 5)));
     const r0 = E.parse[E.CMD.SET](await rq(E.req.set(1, 14, 0)));
-    ok(rd.label === "ROUTE" && rd.def === 0 && eq(rd.names, ["CH1-6", "SEL"]) && r1.value === 1 && r0.value === 0 && info.gcount === 27,
+    ok(rd.label === "ROUTE" && rd.def === 0 && eq(rd.names, ["CH1-6", "SEL"]) && r1.value === 1 && r0.value === 0 && info.gcount === 28,
       "editor: MIDI IN routing (ROUT CH1-6 / SEL, global id 14)");
   }
   {
-    /* FX > REVERB TYPE (G_RTYPE 24, the old drum channel's id): ROOM (0, the default) / SPRING (1); G_COUNT unchanged */
+    /* FX > REVERB TYPE (G_RTYPE 24, the old drum channel's id): ROOM (0, the default) / SPRING (1); ((2.5) G_COUNT 28) */
     const rd = E.parse[E.CMD.DESC](await rq(E.req.desc(1, 24)));
     const r1 = E.parse[E.CMD.SET](await rq(E.req.set(1, 24, 10)));
     const r0 = E.parse[E.CMD.SET](await rq(E.req.set(1, 24, 0)));
-    const inert = [25, 26].map(async (id) => E.parse[E.CMD.DESC](await rq(E.req.desc(1, id))));
-    const [d25, d26] = await Promise.all(inert);
+    const inert = [25, 26, 27].map(async (id) => E.parse[E.CMD.DESC](await rq(E.req.desc(1, id))));
+    const [d25, d26, d27] = await Promise.all(inert);
     ok(rd.label === "TYPE" && rd.def === 0 && eq(rd.names, ["ROOM", "SPRING", "HALL"]) && r1.value === 2 && r0.value === 0 &&
        d25.label === "MODE" && eq(d25.names, ["CHORUS", "FLANGER", "PHASER"]) && d26.label === "FEEDBACK" && d26.max === 127 &&
-       info.gcount === 27,
-      "editor: REVERB TYPE (ROOM / SPRING / HALL, global id 24); (phase 9) CHORUS MODE, FEEDBACK (25, 26)");
+       d27.label === "DLY MODE" && eq(d27.names, ["MONO", "STEREO", "PING"]) && d27.def === 1 && info.gcount === 28,
+      "editor: REVERB TYPE (ROOM / SPRING / HALL, global id 24); (phase 9) CHORUS MODE, FEEDBACK (25, 26); (2.5) DLY MODE (27)");
   }
   const st = E.parse[E.CMD.STEP_SET](await rq(E.req.stepSet(5, { n: 2, notes: [60, 64], time: 0, flags: 1, vel: 100 })));
   ok(st.n === 2 && st.notes[1] === 64 && st.vel === 100, "editor: STEP_SET");
@@ -1154,6 +1172,46 @@ async function editorLists() {
   o.done();
 }
 
+/* The APC mini mk2 on the Song tab: its ports, what its controls ask for, its LEDs from the song's replies */
+{
+  const port = (name, state = "connected") => ({ name, state, id: name });
+  const access = (names) => ({ inputs: new Map(names.map((n) => [n, port(n)])), outputs: new Map(names.map((n) => [n, port(n)])) });
+  const mk2 = access(["APC mini mk2 Notes", "APC mini mk2 Control", "X0X FM-1"]);
+  ok(E.apcPorts(mk2)[0].name === "APC mini mk2 Control" && E.apcPorts(mk2)[1].name === "APC mini mk2 Control", "apc: its Control port, not Notes");
+  ok(!E.apcPorts(access(["X0X FM-1"])) && E.portPairs(mk2).length === 1 && E.portPairs(mk2)[0][0].name === "X0X FM-1",
+     "apc: none without it; never taken for the unit");
+  const win = { inputs: new Map([["i2", port("MIDIIN2 (APC mini mk2)")], ["i1", port("APC mini mk2")]]),
+                outputs: new Map([["o2", port("MIDIOUT2 (APC mini mk2)")], ["o1", port("APC mini mk2")]]) };
+  ok(E.apcPorts(win) && E.apcPorts(win)[0].name === "APC mini mk2" && E.apcPorts(win)[1].name === "APC mini mk2",
+     "apc: Windows' names, its second port (MIDIIN2) listed first: the first port, paired by its name");
+  const act = (st, n, v, page = 0) => JSON.stringify(E.apcAction([st, n, v], page));
+  ok(act(0x90, 56, 127) === '{"do":"entry","k":0,"e":0}' && act(0x90, 5, 127) === '{"do":"entry","k":5,"e":7}', "apc: top left T1 A; bottom of column 6 T6 H");
+  ok(act(0x90, 49, 127, 1) === '{"do":"entry","k":1,"e":9}', "apc: page I..P: T2's second row is J");
+  ok(act(0x90, 62, 127) === '{"do":"scene","s":0}' && act(0x90, 7, 127) === '{"do":"scene","s":15}', "apc: columns 7, 8: scenes 1 and 16");
+  ok(act(0x90, 105, 127) === '{"do":"mute","k":5}' && act(0x90, 106, 127) === "null", "apc: bottom button 6 T6's MUTE; the seventh nothing");
+  ok(act(0x90, 113, 127) === '{"do":"page","page":1}' && act(0x90, 119, 127) === '{"do":"play"}' && act(0x90, 118, 127) === "null", "apc: the side buttons: page, PLAY");
+  ok(act(0xB0, 50, 99) === '{"do":"level","k":2,"v":99}' && act(0xB0, 54, 99) === "null", "apc: fader 3 T3's LEVEL; fader 7 nothing");
+  ok(act(0x80, 56, 0) === "null" && act(0x90, 56, 0) === "null", "apc: let go: nothing");
+  const A = E.APC, none = { pat: 0 }, ent = (m) => Array.from({ length: 16 }, (_, e) => m[e] || none);
+  const list = { tracks: [{ cur: 0, next: 2, ent: ent({ 0: { pat: 1 }, 1: { pat: 2 }, 2: { pat: 3 }, 3: { pat: 65 }, 8: { pat: 4 } }) }] };
+  const perf = { last: 1, scenes: 3, tracks: [{ muted: true, staged: 0 }, { muted: false, staged: 2 }, { muted: false, staged: 0 }] };
+  const t1 = E.apcNear("#ff5a36");
+  ok(t1 === 4 && E.apcNear(" #22C3B4 ") === 90 && E.apcNear("#00ff00") === 21 && E.apcNear("#000000") === 0 && E.apcNear("oops") === A.WHITE,
+     "apc: an editor colour as the palette's nearest (Akai's table: 4 #FF4C4C, 21 #00FF00)");
+  let m = E.apcLeds(list, perf, 0, true, [t1]);
+  const led = (n) => m.get(n).join();
+  ok(led(56) === `${A.FULL},${A.GREEN}` && led(48) === `${A.KEPT},4` && led(40) === `${A.BLINK},${A.GREEN}` && led(32) === `${A.REST},4` && led(24) === `${A.FULL},0`,
+     "apc: on green, kept 50 % of its track's colour, next blinking, a REST 25 %, empty dark");
+  ok(led(57) === `${A.FULL},0`, "apc: a track the reply hasn't: dark");
+  ok(led(62) === `${A.KEPT},${A.WHITE}` && led(54) === `${A.FULL},${A.GREEN}` && led(46) === `${A.FULL},0`, "apc: a scene kept white at 50 %, the last green, none dark");
+  ok(m.get(A.MUTE)[1] === 1 && m.get(A.MUTE + 1)[1] === 2 && m.get(A.MUTE + 2)[1] === 0 && m.get(A.MUTE + 5)[1] === 0, "apc: muted lit, staged flashing");
+  ok(m.get(A.PAGE)[1] === 1 && !m.get(A.PAGE + 1)[1] && m.get(A.PLAY)[1] === 1, "apc: the page and PLAY lit");
+  m = E.apcLeds(list, perf, 1, false);
+  ok(led(56) === `${A.KEPT},${A.WHITE}` && m.get(A.PAGE + 1)[1] === 1 && !m.get(A.PLAY)[1], "apc: page I..P shows I..P");
+  m = E.apcLeds(null, null, 0, false);
+  ok(m.size === 64 + 6 + 2 + 1 && [...m.values()].every((x) => x[1] === 0), "apc: no device: every LED dark");
+}
+
 /* (2.0, INFO 58 01 01) LIST2 (SONG ONCE, the chains as kept), LIST's 5 0 CHAIN, 6 2 ONCE, 7 NEW, 8 COPY+ (a chain: all
    of it), POOL's 2 EMPTY and 3 CLEAR UNUSED; LIST's own reply as before (ONCE: on, a CHAIN: 1x) */
 async function editorSong2() {
@@ -1289,7 +1347,7 @@ async function editorLive() {
   const dump = E.parse[C.DUMP](await pend, info);
   const ch = ev.pushes.find((f) => f.cmd === C.CHANGED);
   const cv = ch && E.parse[C.CHANGED](ch.a);
-  ok(dump.p.length === 174 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
+  ok(dump.p.length === 176 && ch && ch.pending === C.DUMP && cv.scope === 0 && cv.id === 9 && cv.value === kn.value && !ev.unknown.length,
     "live: CHANGED while DUMP waits -> push handler, reply still matched");
   const rl = m.sim.reload();
   m.sim.step(3);
@@ -2116,6 +2174,10 @@ async function updater() {
   const eh = await new Updater(hidden.access, null, { loaderWaitMs: 1500 }).install(image, "FM-1_900").then(() => null, (x) => x);
   ok(eh && eh.code === "noloader" && /USB Audio Device/.test(eh.detail) && /MIDI ports seen/.test(eh.message),
     "fm1ota.js: (2.2, #83) no update loader in time -> 'noloader' with the MIDI ports seen meanwhile");
+  /* (2.5, #83) macOS showed an SMK-37 Elite's update loader as "FMini-1 Update": the installer probes that name too */
+  const fmini = new FakeFM1(image, { loaderName: "FMini-1 Update" });
+  const gf = await new Updater(fmini.access, null, { loaderWaitMs: 5000 }).install(image, "FM-1_900");
+  ok(gf === "FM-1_900" && fmini.bad === 0, "fm1ota.js: (2.5, #83) the loader as macOS names it ('FMini-1 Update') is found");
 
   /* (launch hardening) a drop during the write waits for the same model's loader and resumes, up to resumeMax */
   const flaky = new FakeFM1(image, { drops: [2, 5] });

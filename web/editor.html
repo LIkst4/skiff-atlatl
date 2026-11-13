@@ -378,6 +378,7 @@
           <option value="2">BEAT</option><option value="3">NOW</option></select></label>
         <button id="sgcancel" data-t="sgCancel"></button></p>
       <div id="sglists"></div>
+      <p class="dim" id="sgapc" data-t="sgApc" hidden></p>
       <p class="bar" id="sgentry"></p>
     </div>
     <div class="group" id="sg-scenes" hidden>
@@ -667,7 +668,8 @@ const MENU = [
   { id: 16, name: "SCALE LEDS", names: ["OFF", "ON"], def: 0, tab: 1 },
   { id: 17, name: "SCREEN OFF", names: ["NEVER", "5 MIN", "15 MIN", "30 MIN", "60 MIN"], def: 3, tab: 0 },
   { id: 19, name: "PLAYHEAD", names: ["THEME", "LINE"], def: 0, tab: 0 },   /* ((Skiff #27) HOME's figure at the playhead, or the line) */
-  { id: 20, name: "RETURN", names: ["SNAP", "1 BEAT", "1 BAR"], def: 2, tab: 1 }];   /* ((2.0) how MOMENTARY, FX's macros, throws come back) */
+  { id: 20, name: "RETURN", names: ["SNAP", "1 BEAT", "1 BAR"], def: 2, tab: 1 },   /* ((2.0) how MOMENTARY, FX's macros, throws come back) */
+  { id: 21, name: "KEEP SENDS", names: ["OFF", "ON"], def: 0, tab: 1 }];   /* ((2.5) ON: a sound load keeps CHORUS DELAY REVERB) */
 /* (Skiff W1) a step's trig condition (core.h TC_NAME; INFO 43 01 says how many) */
 const TC_NAMES = ["--", "FILL", "!FILL", "1:2", "2:2", "1:3", "2:3", "3:3", "1:4", "2:4", "3:4", "4:4", "PRE", "!PRE", "1ST", "!1ST",
   "NEI", "!NEI"];   /* ((custom) PRE !PRE 1ST !1ST, NEI !NEI appended) */
@@ -1153,6 +1155,82 @@ function portPairs(access) {
     if (o) pairs.push([i, o]);
   }
   return pairs.sort((a, b) => /felucca/i.test(b[0].name) - /felucca/i.test(a[0].name));
+}
+
+/* An Akai APC mini mk2 plays the Song tab: its pads and buttons do what the tab's own controls do, its LEDs show the
+   device's lists and scenes as they are read back. Columns 1..6: T1..T6, the top row the page's first entry; columns 7,
+   8: scenes 1..8, 9..16, top down; the bottom buttons 1..6: T1..T6's MUTE; the side buttons: the top two the page (A..H,
+   I..P), the bottom one PLAY; faders 1..6: T1..T6's LEVEL. It has a port for the pads ("Control") and one for its note
+   and drum modes ("Notes"). LEDs: a note-on, the status's channel a pad's brightness or blink, the velocity its colour;
+   a button's velocity 1 on, 2 flashing */
+const APC_PORT = /apc mini mk2/i;
+const APC = { MUTE: 100, PAGE: 112, PLAY: 119, FADER: 48, FULL: 0x96, KEPT: 0x92, REST: 0x91, BLINK: 0x9E, BTN: 0x90,
+  GREEN: 87, WHITE: 3 };   /* (statuses: 100 %, 50 %, 25 %, blinking 1/4; velocities: the palette's) */
+/* the velocities' colours (Akai's APC mini mk2 protocol v1.0). Its SysEx colours aren't used: even values reportedly
+   turn a pad off */
+const APC_PALETTE = "0000001e1e1e7f7f7fffffffff4c4cff0000590000190000ffbd6cff5400591d00271b00ffff4cffff0059590019190088ff4c54ff001d5900142b004cff4c00ff000059000019004cff5e00ff1900590d0019024cff8800ff5500591d001f124cffb700ff990059350019124cc3ff00a9ff0041520010194c88ff0055ff001d590008194c4cff0000ff000059000019874cff5400ff1900640f0030ff4cffff00ff590059190019ff4c87ff005459001d220013ff150099350079510043640003390000573500547f0000ff00454f2500cc7f7f7f202020ff0000bdff2dafed0664ff09108b0000ff8700a9ff002aff3f00ff7a00ffb21a7d402100ff4a0088e10672ff1500ff003bff2659ff7138ffcc5b8aff3151c6877fe9d31dffff005dff7f00b9b00090ff00835d07392b00144c100d503815152a16205a693c1ca8000ade513dd86a1cffe1269ee12f67b50f1e1e30dcff6b80ffbd9a99ff8e66ff404040757575e0ffffa000003500001ad000074200b9b0003f3100b35f004b1502";
+/* the velocity nearest a colour as an editor's token has it (not #rrggbb: white) */
+function apcNear(s) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(s).trim());
+  if (!m) return APC.WHITE;
+  const part = (x, i) => parseInt(x.slice(i, i + 2), 16);
+  let best = APC.WHITE, least = Infinity;
+  for (let v = 0; v < 128; v++) {
+    let d = 0;
+    for (let i = 0; i < 6; i += 2) d += (part(m[1], i) - part(APC_PALETTE, v * 6 + i)) ** 2;
+    if (d < least) { least = d; best = v; }
+  }
+  return best;
+}
+/* its Control port: the first input with an output of its name ((2.5) Windows names the second port, Notes', "MIDIIN2
+   (APC mini mk2)" and "MIDIOUT2 (APC mini mk2)": it never pairs, whichever Chrome lists first) */
+function apcPorts(access) {
+  const free = (p) => p.state !== "disconnected" && APC_PORT.test(p.name || "") && !/notes/i.test(p.name);
+  const outs = [...access.outputs.values()].filter(free);
+  for (const i of access.inputs.values()) {
+    const o = free(i) && outs.find((x) => x.name === i.name);
+    if (o) return [i, o];
+  }
+  return null;
+}
+/* what a message from it asks for (null: nothing) */
+function apcAction([st, d1, d2], page) {
+  const kind = st & 0xF0;
+  if (kind === 0xB0) return d1 >= APC.FADER && d1 < APC.FADER + 6 ? { do: "level", k: d1 - APC.FADER, v: d2 } : null;
+  if (kind !== 0x90 || !d2) return null;
+  if (d1 < 64) {
+    const c = d1 % 8, row = 7 - (d1 >> 3);
+    return c < 6 ? { do: "entry", k: c, e: row + 8 * page } : { do: "scene", s: row + 8 * (c - 6) };
+  }
+  if (d1 >= APC.MUTE && d1 < APC.MUTE + 6) return { do: "mute", k: d1 - APC.MUTE };
+  if (d1 === APC.PAGE || d1 === APC.PAGE + 1) return { do: "page", page: d1 - APC.PAGE };
+  return d1 === APC.PLAY ? { do: "play" } : null;
+}
+/* every LED as the song says: note -> [status, velocity]. Playing is green: an entry on, the next one blinking, the
+   scene last recalled or stored. A track's others in its colour at 50 % (a REST 25 %), a scene's white, an empty one
+   dark. list, perf: LIST's and PERFORM's replies, or none; tracks: T1..T6's colours as velocities (apcNear) */
+function apcLeds(list, perf, page, playing, tracks = []) {
+  const m = new Map(), off = [APC.FULL, 0];
+  for (let n = 0; n < 64; n++) {
+    const c = n % 8, row = 7 - (n >> 3), x = c < 6 && list && list.tracks[c], e = row + 8 * page, en = x && x.ent[e];
+    let led = off;
+    if (c >= 6) {
+      const s = row + 8 * (c - 6);
+      if (perf && perf.scenes >> s & 1) led = perf.last === s ? [APC.FULL, APC.GREEN] : [APC.KEPT, APC.WHITE];
+    } else if (en) {
+      if (x.next === e) led = [APC.BLINK, APC.GREEN];
+      else if (x.cur === e) led = [APC.FULL, APC.GREEN];
+      else if (en.pat) led = [en.pat === PAT_REST ? APC.REST : APC.KEPT, tracks[c] ?? APC.WHITE];
+    }
+    m.set(n, led);
+  }
+  for (let k = 0; k < 6; k++) {
+    const y = perf && perf.tracks[k];
+    m.set(APC.MUTE + k, [APC.BTN, !y ? 0 : y.staged ? 2 : +y.muted]);
+  }
+  for (let k = 0; k < 2; k++) m.set(APC.PAGE + k, [APC.BTN, list && page === k ? 1 : 0]);
+  m.set(APC.PLAY, [APC.BTN, playing ? 1 : 0]);
+  return m;
 }
 
 class Link {
@@ -1783,8 +1861,10 @@ const P_LMDL = Array.from({ length: 8 }, (_, i) => 153 + i), P_POLYMOD = [161, 1
                                                        * X-MOD DRIFT; ACCENT ACC DEC MUFFLE and GLIDE (P_GLIDE 7) */
 const P_FOLLOW = [135, 136, 137];   /* (2.1, P_COUNT 146, P_E0 138) core.h P_FOLLOW P_FMODE P_FNOTE: the chord follow, the
                                      track's */
+const P_STRUM = [166, 167];         /* (2.5; (custom) P_COUNT 176, P_E0 168: after the fork's, 138 139 in Skiff) core.h
+                                     P_STRUM P_SDIR: SCL > CHORD's STRUM (ms) and its DIR, the track's */
 const trackOwn = (i, pe0) => TRACK_OWN.has(i) || (pe0 >= 83 && P_CHORD.includes(i)) || (pe0 >= 92 && i === P_DIR) ||
-  (pe0 >= 95 && P_DUCK.includes(i)) || (pe0 >= 138 && P_FOLLOW.includes(i));
+  (pe0 >= 95 && P_DUCK.includes(i)) || (pe0 >= 138 && P_FOLLOW.includes(i)) || (pe0 >= 168 && P_STRUM.includes(i));
 /* play a patch without writing flash, as UP_LOAD would load it: the sound only. SET the engine (G_ENGSEL:
    engine defaults and its first preset), then every instrument parameter that differs, except the track's
    own (TRACK_OWN). The steps are never touched. The device keeps a copy of the sound from before (SAVE held
@@ -2238,6 +2318,8 @@ function makeMockDevice(opt = {}) {
     E("TYPE", ["ROOM", "SPRING", "HALL"], 0),       /* G_RTYPE (id 24, was G_DRCH): the reverb's model ((Skiff phase 9) HALL) */
     E("MODE", ["CHORUS", "FLANGER", "PHASER"], 0), D("FEEDBACK", F.PCT, 0, 127, 0),   /* 25, 26: (Skiff phase 9) the CHORUS bus
                                                        (G_CMODE, G_CFDBK; G_DRLVL, G_DRREV before: inert since 1.0) */
+    E("DLY MODE", ["MONO", "STEREO", "PING"], 1),   /* 27: (2.5) the DELAY's MODE (G_DMODE, a new id; SKF4 holds it by GSID;
+                                                     * the unit: GLO > DELAY's PRESETS; STEREO new, MONO the older) */
   ];
   const NONE = D("-", F.INT, 0, 0, 0);
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
@@ -2725,7 +2807,8 @@ function makeMockDevice(opt = {}) {
   TP.push(E("SYNC", ["OFF", "4BAR", "2BAR", "1/1", "1/2", "1/4", "1/8", "8T", "1/16", "16T", "1/32"], 0),   /* 117..119: (1.3) LFO 2 */
     E("TRIG", ["NOTE", "FREE"], 0), E("POLARITY", ["BI", "UNI"], 0));
   TP.push(D("SPREAD", F.PCT, 0, 127, 0));         /* 120: (1.3) SPREAD */
-  TP.push(E("TYPE", ["OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR", "DENS", "CONS", "TAPE"], 0),   /* 121..125: (1.3) the INSERT */
+  TP.push(E("TYPE", ["OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR", "DENS", "CONS", "TAPE", "FILTR"], 0),   /* 121..125: (1.3) the INSERT;
+                                                    (2.5) FILTR after the fork's three */
     D("A", F.PCT, 0, 127, 64), D("B", F.PCT, 0, 127, 96), D("C", F.PCT, 0, 127, 96), D("MIX", F.PCT, 0, 127, 127));
   TP.push(E("ENV SYNC", NONOFF, 0));              /* 126: (1.3) ENV SYNC ((2.0) on LFO 2: its whole name) */
   for (let k = 0; k < 8; k++) TP.push(D("PAN", F.BIPCT, -64, 63, 0));   /* 127..134: (2.0, #36) the DRUM lanes' PAN */
@@ -2744,7 +2827,9 @@ function makeMockDevice(opt = {}) {
   TP.push(D("ENV AMT", F.BIPCT, -64, 63, 0), D("OSC B", F.PCT, 0, 127, 0),      /* 161..164: (custom) SYNTH's POLY MOD */
     E("DEST", ["FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"], 0), E("B LOW", ["OFF", "ON"], 0));
   TP.push(D("BLEND", F.PCT, 0, 127, 0));                                  /* 165: (custom) the FILTER's BLEND */
-  const P_COUNT = 174, G_COUNT = 27, NSTEP = 64, P_E0 = 166, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("STRUM", F.INT, 0, 100, 0, null, "ms"), E("DIR", ["DOWN", "UP", "ALT"], 0));   /* 166, 167: (2.5) STRUM (0
+                                                    OFF), its DIR (138, 139 in Skiff 2.5: after the fork's here) */
+  const P_COUNT = 176, G_COUNT = 28, NSTEP = 64, P_E0 = 168, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */
@@ -3844,6 +3929,7 @@ const TEXT = {
     sgConfirmEmpty: "パターン {n} を空にしますか？ ステップ、NUDGE、オートメーションが消えます。パターンとそれを使うエントリーは残ります。元に戻せません。",
     sgConfirmUnused: "未使用のパターン {n} 個をクリアしますか？ どこからも使われていません。元に戻せません。",
     sgEmpty: "空です", sgAutoFull: "完了（オートメーションなし: AUTOMATION FULL）", sgStopClear: "停止してからクリアしてください",
+    sgApc: "APC mini mk2 接続中: 1〜6列は T1〜T6 のエントリー、7・8列はシーン、下のボタン1〜6は MUTE、右上の2つはページ（A–H / I–P）、右下は PLAY、フェーダー1〜6は LEVEL",
     sgFull: "パターンがいっぱいです: プールで未使用のものをクリアしてください", sgFailed: "本体で失敗しました", sgNothing: "クリアするものがありません", sgInUse: "使用中です",
     sgNoFw: "このファームウェアにはソングのコマンドがありません。Skiff を更新してください。",
     confirmSave: "スロット {n} に上書き保存しますか？", confirmLoad: "スロット {n} を読み込みますか？ すべてのトラックの音色とシーケンスが置き換わります（元に戻せません）。",
@@ -3987,6 +4073,7 @@ const TEXT = {
     sgConfirmEmpty: "Empty pattern {n}? Its steps, NUDGEs and automation go; the pattern and the entries naming it stay. It can't be undone.",
     sgConfirmUnused: "Clear the {n} unused patterns? Nothing uses them. It can't be undone.",
     sgEmpty: "Empty", sgAutoFull: "Done, without its automation (AUTOMATION FULL)", sgStopClear: "Stop to clear",
+    sgApc: "APC mini mk2 connected: columns 1–6 T1–T6's entries, columns 7–8 the scenes, bottom buttons 1–6 MUTE, the top two side buttons the page (A–H, I–P), the bottom one PLAY, faders 1–6 LEVEL",
     sgFull: "Patterns full: clear unused ones in the pool", sgFailed: "Failed on the device", sgNothing: "Nothing to clear", sgInUse: "In use",
     sgNoFw: "This firmware has no song commands: update Skiff.",
     confirmSave: "Overwrite slot {n}?", confirmLoad: "Load slot {n}? The sounds and sequences of every track are replaced (no undo).",
@@ -4134,7 +4221,8 @@ function renderTransport(x) {
   if (x) dev.transport = x;
   const s = dev.transport;
   if (!s) return;
-  const playing = s.pending ? s.pending !== 2 : s.playing || s.counting;
+  const playing = transportPlaying(s);
+  apcShow();
   $("tplay").setAttribute("aria-pressed", String(playing));
   $("tplay").title = t("playTitle");
   $("trec").setAttribute("aria-pressed", String(!!(s.rec >> s.sel & 1)));
@@ -4175,7 +4263,7 @@ async function readSong(d = dev, pool = true, poll = false) {
   }
   if (d.info.skiff & 16) s.perf = parse[CMD.PERFORM](await rqs(req.perform()));
   if (d.info.skiff & 4 && (pool || !s.pool)) s.pool = parse[CMD.POOL](await rqs(req.pool()));
-  if (d === dev) renderSong();
+  if (d === dev) { renderSong(); apcShow(); }
 }
 /* (2.0, INFO 58 01) the device has LIST2 (SONG ONCE, the chains), NEW, COPY+ and the pool's EMPTY, CLEAR UNUSED; a LIST
    request as LIST2 then */
@@ -4219,6 +4307,59 @@ function songOp(r, kind) {
     if (k) sayK(k);
   });
 }
+/* the APC mini mk2 (apcAction, apcLeds): found whenever the ports change; on it, the song is read every APC_POLL ms
+   whichever tab is open, so its LEDs follow the device (the keep-alive's read, more often) */
+const APC_POLL = 400;
+const apc = { input: null, output: null, page: 0, shown: new Map() };
+const transportPlaying = (s) => (s.pending ? s.pending !== 2 : s.playing || s.counting);
+function apcShow() {
+  if (!apc.output) return;
+  const s = dev && dev.song, tr = dev && dev.transport, css = getComputedStyle(document.documentElement);
+  const tracks = [1, 2, 3, 4, 5, 6].map((k) => apcNear(css.getPropertyValue(`--t${k}`)));   /* (they follow the THEME) */
+  try {
+    for (const [n, [st, v]] of apcLeds(s && s.list, s && s.perf, apc.page, tr && transportPlaying(tr), tracks)) {
+      if (apc.shown.get(n) === (st << 8 | v)) continue;
+      apc.output.send([st, n, v]);
+      apc.shown.set(n, st << 8 | v);
+    }
+  } catch (e) { console.debug("APC LEDs", e); }   /* (unplugged: onState says so next) */
+}
+function apcPress(data) {
+  const a = apcAction(data, apc.page), caps = dev && dev.info ? dev.info.skiff : 0;
+  if (!a) return;
+  if (a.do === "page") { apc.page = a.page; apcShow(); }
+  else if (a.do === "entry" && caps & 8) songOp(lreq(3, a.k, a.e), "list");
+  else if (a.do === "scene" && caps & 16) songOp(req.perform(2, a.s), "perf");
+  else if (a.do === "mute" && caps & 16) songOp(req.perform(3, a.k), "perf");
+  else if (a.do === "play" && caps & 1) transportOp(1);
+  else if (a.do === "level" && dev) dev.output.send([0xB0 | a.k, 7, a.v]);   /* (CC7 on T1..T6's default channels) */
+}
+function apcAttach() {
+  const p = access && apcPorts(access);
+  if (apc.input && (!p || p[0].id !== apc.input.id)) {
+    apc.input.onmidimessage = null;
+    apc.input = apc.output = null;
+  }
+  if (p && !apc.input) {
+    [apc.input, apc.output] = p;
+    apc.input.onmidimessage = (e) => apcPress(e.data);
+    if (apc.input.open) apc.input.open().catch(() => {});
+    apc.page = 0;
+    apc.shown.clear();
+    apcShow();
+  }
+  $("sgapc").hidden = !apc.input;
+}
+setInterval(() => {
+  const d = dev;
+  if (!apc.input || !d || !d.info || !(d.info.skiff & 28) || busy || !d.link.idle || keepAlive.song) return;
+  keepAlive.song = true;
+  readSong(d, false, true).catch(() => {}).finally(() => { keepAlive.song = false; });
+}, APC_POLL);
+window.addEventListener("pagehide", () => {
+  if (!apc.output) return;
+  try { for (const n of apcLeds(null, null, 0, false).keys()) apc.output.send([APC.BTN, n, 0]); } catch (e) { /* unplugged */ }
+});
 /* a list redrawn keeps the focus on the same control (data-key) */
 function keepFocus(box, draw) {
   const k = box.contains(document.activeElement) && document.activeElement.dataset.key;
@@ -4430,9 +4571,12 @@ const LAYOUT = (pe0) => [
     ...(pe0 >= 150 && engName() === "SYNTH" ? [["SYNTH 3", 0, P_SYNTH3], ["303", 0, P_303]] : []),   /* ((custom) SYNTH's own) */
     ...(pe0 >= 153 && engName() === "SYNTH" ? [["MODAL", 0, P_MODAL]] : []),
     ...(pe0 >= 165 && engName() === "SYNTH" ? [["POLY MOD", 0, P_POLYMOD]] : []),
-    ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["INSERT 2", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT) */
+    ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["MIX", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT; (2.5) its MIX
+                                                    on the device: INSERT's PRESETS, INSERT 2 before) */
     ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]]] },   /* G_RTYPE 24: ROOM / SPRING */
-  { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]], ...(pe0 >= 83 ? [["CHORD", 0, P_CHORD]] : []),   /* CHRD VOIC 81, 82 */
+  { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]],
+    ...(pe0 >= 83 ? [["CHORD", 0, pe0 >= 168 ? [...P_CHORD, ...P_STRUM] : P_CHORD]] : []),   /* CHRD VOIC 81, 82; (2.5)
+                                                    STRUM DIR ((custom) 166, 167) */
     ...(pe0 >= 138 ? [["FOLLOW", 0, P_FOLLOW]] : [])] },   /* ((2.1) FOLLOW MODE NOTE 135..137) */
   { t: "ARP", pages: [["ARP", 0, [17, 18, 19, 20]], ["ARP 2", 0, [21, 22, 23, 24]]] },
   { t: "SEQ PATTERN", tab: "seqgroups", pages: [["PATTERN", 0, [29, 30, 31, 32]], ...(pe0 >= 92 ? [["PLAY", 0, [P_DIR]]] : []),
@@ -4467,6 +4611,7 @@ async function connect() {
         catch (e) { sayK("denied"); return; }
       }
       access.onstatechange = onState;
+      apcAttach();
     }
     const pairs = portPairs(access);
     let input = null, output = null, link = null;
@@ -4527,11 +4672,13 @@ function disconnect(reasonKey = "disconnected") {
   renderPreferences(true);
   $("version").textContent = "";
   setLabel($("connect"), t("connect"));
+  apcShow();                                        /* (no device: its LEDs dark) */
   sayK(reasonKey);
 }
 
 function onState(e) {
   const p = e.port;
+  apcAttach();
   if (!p || !UNIT_PORT.test(p.name || "")) return;   /* ((2.0.1, #50) the names connect() takes) */
   if (dev && p.state === "disconnected" && (p.id === dev.input.id || p.id === dev.output.id)) {
     disconnect("lost");

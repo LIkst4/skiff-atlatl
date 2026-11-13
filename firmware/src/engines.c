@@ -39,7 +39,7 @@ typedef union {
     fm6_note_t fm6[FM6_POLY];
     synth_vc_t synth[NVOICE];   /* (custom) SYNTH's filters */
 #if FELUCCA_SLICE
-    int16_t slice[NVOICE][SLC_RB];   /* SLICE's reverse windows */
+    int16_t slice[SLC_NV][SLC_RB];   /* SLICE's reverse windows */
 #endif
 } eng_mem_t;
 static eng_mem_t eng_mem[NHEAVY] __attribute__((section(".pool")));
@@ -50,7 +50,7 @@ typedef union {
     fm6_note_t fm6[FM6_POLY];
     synth_vc_t synth[NVOICE];   /* (custom) */
 #if FELUCCA_SLICE
-    int16_t slice[NVOICE][SLC_RB];
+    int16_t slice[SLC_NV][SLC_RB];
 #endif
 } eng_lite_t;
 static eng_lite_t eng_lite[NTRK - NHEAVY] __attribute__((section(".pool")));
