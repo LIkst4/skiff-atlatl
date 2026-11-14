@@ -411,8 +411,10 @@ def main():
             raise SystemExit(f"--release {a.release}: use X.Y, X.Y.Z, X.Y.Z.W or X.Y-suffix, one digit each")
         PRODUCT = BOARD_PREFIX[BOARD] + m[1] + m[2]
         VERSION = "v" + a.release.lower()      # e.g. v1.0, v1.1-rc1
-        os.environ.setdefault("FELUCCA_CDC", "0")   # (Skiff 2.0) no serial console in a release (see the top)
         name = f"{stem}-{a.release}.fwsc"
+    # (Skiff 2.0) no serial console in a release (see the top); (custom) nor in skiff-atlatl's development builds, the
+    # ones its installer gives: the flash it held went to GLO > MULTI. FELUCCA_CDC=1 builds one with it
+    os.environ.setdefault("FELUCCA_CDC", "0")
     fm1pkg_make.SDK = a.sdk
     for rel, sha in SDK_SHA256.items():          # fail early without the SDK
         if hashlib.sha256(fm1pkg_make.sdk_file(rel)).hexdigest() != sha:
