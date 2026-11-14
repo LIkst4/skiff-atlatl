@@ -80,6 +80,7 @@ static const char *const N_NOTE[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", 
 static const char *const N_DASH[] = {"--"};
 static const char *const N_RTYPE[] = {"ROOM", "SPRING", "HALL"};   /* G_RTYPE: the reverb bus's model (fx.c) */
 static const char *const N_CMODE[] = {"CHORUS", "FLANGER", "PHASER"};   /* (Skiff phase 9) G_CMODE (fx.c cho_mode) */
+static const char *const N_MBUP[] = {"OFF", "ON"};                   /* (custom) GLO > MULTI's UPWARD */
 static const char *const N_DMODE[] = {"MONO", "STEREO", "PING"};        /* (2.5) G_DMODE: DM_MONO .. DM_PING (fx.c) */
 static const char *const N_GO[] = {"--", "GO"};
 static const char *const N_SLCR[] = {"OFF", "GATE", "STUT"};             /* SL_OFF .. SL_STUT (slicer.c) */
@@ -268,6 +269,17 @@ static const param_desc_t GP[G_COUNT] = {
     [G_DMODE] = PE("DLY MODE", N_DMODE, DM_STEREO), /* (GLO > DELAY's PRESETS: not a card; the editor's list: apart
                                                      * from the chorus's MODE, in its 8 letters, editor.c. STEREO
                                                      * new; a project before 2.5 loads MONO, as it played: project.c) */
+    /* (custom) GLO > MULTI and its bands (fx.c mb_block): MIX 0 is OFF (the master as before, bit for bit); the
+     * crossovers on the cutoff's scale (LOW 130 Hz .. 1 kHz, HIGH 1.6 .. 10 kHz); a band's AMOUNT its threshold
+     * (0 .. -36 dB) and ratio (1 .. 4) at once, its GAIN -12 .. +12 dB after */
+    [G_MBMIX] = PD("MIX", F_PCT, 0, 127, 0),
+    [G_MBXLO] = PD("LOW", F_CUTOFF, 30, 72, 44),
+    [G_MBXHI] = PD("HIGH", F_CUTOFF, 80, 118, 100),
+    [G_MBUP] = PE("UPWARD", N_MBUP, 0),
+#define MB_BAND(b, at, rl) [G_MBAMT##b] = PD("AMOUNT", F_PCT, 0, 127, 40), [G_MBATK##b] = PD("ATTACK", F_TIME, 4, 80, at), \
+                           [G_MBREL##b] = PD("RELEASE", F_TIME, 30, 110, rl), [G_MBGAIN##b] = {"GAIN", 0, -12, 12, 0, F_INT, U_DB}
+    MB_BAND(0, 40, 80), MB_BAND(1, 24, 70), MB_BAND(2, 12, 60),
+#undef MB_BAND
 };
 
 /* (Skiff 1.3, from Felucca 1.5) the INSERT's A B C as its TYPE means them (TP's ranges and defaults): the drives DRIVE
@@ -563,6 +575,11 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         } else if (!v && d->unit == U_MS) {          /* ((2.5) STRUM 0: OFF) */
             str_cpy(val, "OFF", 6);
             break;
+        } else if (v > 0 && d->unit == U_DB) {      /* ((custom) MULTI's GAIN: +3 dB) */
+            char t[8];
+            fmt_int(t, v);
+            val[0] = '+';
+            str_cpy(val + 1, t, 6);
         } else {
             fmt_int(val, v);
         }
@@ -598,7 +615,8 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_FOLLOW,                  /* (2.1) SCL > FOLLOW: the chord it follows, as CHORD's (ui_graph.c graph_follow) */
        GR_ARPSTEP,                 /* (custom) ARP > ARP STEP: the arp's step pattern, a sheet (ui_arp.c) */
        GR_FXDLY, GR_FXREV,         /* (2.5) FX > DELAY, REVERB: the track's send beside the bus's own (page_desc) */
-       GR_TFLT };                  /* (custom) FX > FILTER, FILTER 2, FLT MOD: the track FILTER's curve (ui_pgraph.c) */
+       GR_TFLT,
+       GR_MB };                    /* (custom) GLO > MULTI, MB LOW MID HIGH: the bands, live (ui_pgraph.c graph_mb) */                  /* (custom) FX > FILTER, FILTER 2, FLT MOD: the track FILTER's curve (ui_pgraph.c) */
 
 typedef struct {
     const char *title;
@@ -669,6 +687,11 @@ static const page_t PAGES[] = {
     {"REVERB", FAM_GLO, SC_GLOBAL, GR_REVERB, {G_RTYPE, G_RSIZE, G_RDAMP, 0xFF}},   /* TYPE: ROOM / SPRING / HALL */
     {"CHORUS", FAM_GLO, SC_GLOBAL, GR_CHORUS, {G_CRATE, G_CDEPTH, G_CMODE, G_CFDBK}},   /* ((phase 9) MODE, FEEDBACK) */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_GLOBAL, {G_BPM, G_SWING, 0xFF, 0xFF}},   /* ((U3, R8) CLK TUNE: the MENU's) */
+    {"MULTI", FAM_GLO, SC_GLOBAL, GR_MB, {G_MBMIX, G_MBXLO, G_MBXHI, G_MBUP}},   /* (custom) the master's 3 bands: fx.c;
+                                                                                  * after GLOBAL, its place kept) */
+    {"MB LOW", FAM_GLO, SC_GLOBAL, GR_MB, {G_MBAMT0, G_MBATK0, G_MBREL0, G_MBGAIN0}},
+    {"MB MID", FAM_GLO, SC_GLOBAL, GR_MB, {G_MBAMT1, G_MBATK1, G_MBREL1, G_MBGAIN1}},
+    {"MB HIGH", FAM_GLO, SC_GLOBAL, GR_MB, {G_MBAMT2, G_MBATK2, G_MBREL2, G_MBGAIN2}},
     {"PRESETS", FAM_SAVE, SC_GLOBAL, GR_BROWSE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* browser: PRESETS knob / KNOB 1 */
     {"USER", FAM_SAVE, SC_GLOBAL, GR_USER, {0xFF, 0xFF, 0xFF, 0xFF}},       /* user presets: SLOT LOAD ERASE SAVE */
     {"PATTERNS", FAM_SAVE, SC_GLOBAL, GR_BANK, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (Skiff phase 5) the pool: PATTERN LEN USED CLEAR */

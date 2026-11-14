@@ -270,6 +270,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "chord keys: diatonic and fixed chords, voicings, MONO root, releases, recording, ARP, MIDI IN, kits" "$OUT/chord_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/arp_rec_test" tests/arp_rec_test.c -lm
     run "(custom) the ARP recorded: on the steps however long held, started on the grid while playing" "$OUT/arp_rec_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/mb_test" tests/mb_test.c -lm
+    run "(custom) GLO > MULTI: the master's 3 bands (flat at unity, AMOUNT, UPWARD, ATTACK, GAIN, stored)" "$OUT/mb_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/freetake_test" tests/freetake_test.c -lm
     run "(2.5) FREE TAKES: played stopped, the tempo, BARS and first beat guessed, the picker, OCT- / OCT+, one undo" "$OUT/freetake_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/follow_test" tests/follow_test.c -lm

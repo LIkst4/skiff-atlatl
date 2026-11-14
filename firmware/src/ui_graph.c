@@ -2856,6 +2856,10 @@ static void draw_graph(void)
             cv_oy = 0;
             graph_tflt(t, c);
             break;
+        case GR_MB:                                  /* ((custom) GLO > MULTI) */
+            cv_oy = 0;
+            graph_mb(c);
+            break;
         case GR_DELAY:
         case GR_FXDLY:                               /* ((2.5) FX > DELAY: GLO's, the track's send in it) */
             cv_oy = 0;

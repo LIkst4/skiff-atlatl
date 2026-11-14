@@ -1634,6 +1634,99 @@ static __attribute__((noinline)) AUDIO_RAM void perf_master(int32_t *out, uint32
     }
 }
 
+/* (custom) GLO > MULTI: the master's 3-band compressor, before MASTER (and the limiter, master_out). Linkwitz-Riley
+ * crossovers of the 2nd order (two TPT one-poles each side, flt.c's kind) split the mix at G_MBXLO into LOW and the
+ * rest, the rest at G_MBXHI into MID and HIGH; MID with its sign turned and LOW through G_MBXHI's all-pass, the three
+ * add up to an all-pass of the mix (its level flat, its phase turned around the crossovers, as every LR crossover's).
+ * Each band's level (the louder side) follows its peaks at ATTACK, falls at RELEASE; once a block (32 samples) its
+ * gain comes from it, in log2 (Q8: 32768 is 15 << 8): over the threshold AMOUNT sets (0 .. -36 dB) it goes down by
+ * the ratio (1 .. 4, AMOUNT too); with UPWARD, under it, up as much (up to +12 dB at full AMOUNT; nothing under -60
+ * dB, the noise; less from -54), then GAIN (-12 .. +12 dB). The gains glide over the block. MIX (0 OFF: nothing runs,
+ * the master as before) blends them with the three at unity (a parallel compressor's, no comb from the phase) */
+static struct {
+    int32_t s[2][7];                    /* [side]: LOW's 2 poles, the high side's 2nd, MID's 2, HIGH's 2nd, the all-pass */
+    int32_t env[3];                     /* each band's level, Q15 */
+    int32_t g[3];                       /* each band's gain now, Q10 (1024: unity): ui_pgraph.c graph_mb shows it */
+    uint8_t on;
+} mb;
+static int32_t mb_log2(int32_t x)       /* Q8; x >= 1 (a quadratic over the octave: within 0.03) */
+{
+    int32_t e = 31 - __builtin_clz((uint32_t)x), f = e >= 8 ? (x >> (e - 8)) & 255 : (x << (8 - e)) & 255;
+    return (e << 8) + ((f * (363 - ((107 * f) >> 8))) >> 8);
+}
+static int32_t mb_exp2(int32_t q8)      /* 1024 * 2^(q8 / 256), Q10, q8 within -10 .. +3 octaves */
+{
+    int32_t ip = q8 >> 8, f = q8 & 255, m = 1024 + ((f * (710 + ((314 * f) >> 8))) >> 8);
+    return ip >= 0 ? m << ip : m >> -ip;
+}
+static int32_t mb_coef(uint32_t hz)     /* a TPT one-pole's G at hz: g / (1 + g), g = tan(pi hz / 44100), Q16 */
+{
+    int64_t x = (int64_t)hz * 4669 / 1000, x2 = (x * x) >> 16, g = x + ((x * x2) / 3 >> 16) + ((((x * x2) >> 16) * x2) * 2 / 15 >> 16);
+    return (int32_t)((g << 16) / (65536 + g));   /* (x: pi hz / 44100 in Q16; tan by its series, 1 % at 10 kHz) */
+}
+static inline int32_t mb_lp(int32_t x, int32_t *s, int32_t G)   /* the TPT one-pole: its low-pass (x minus it: high) */
+{
+    int32_t v = (int32_t)(((int64_t)(x - *s) * G) >> 16), y = v + *s;
+    *s = y + v;
+    return y;
+}
+static int32_t mb_time(int32_t v)       /* a level's way in TIME_MS_X10's time: 1 / (1 + samples), Q24 */
+{
+    return (int32_t)(16777216u / (1u + TIME_MS_X10[v & 127] * 441u / 100u));
+}
+static __attribute__((noinline)) void mb_block(int32_t *l, int32_t *r, int32_t *w, uint32_t n)
+{
+    int32_t c1 = mb_coef(CUTOFF_HZ[song.g[G_MBXLO] & 127]), c2 = mb_coef(CUTOFF_HZ[song.g[G_MBXHI] & 127]);
+    int32_t mix = song.g[G_MBMIX] + (song.g[G_MBMIX] >> 6), ca[3], cr[3], gs[3], gn[3];   /* (MIX 127: 128) */
+    uint32_t i, b;
+    if (!mb.on) {                       /* (from OFF: unity, the levels from silence) */
+        memset(&mb, 0, sizeof mb);
+        mb.g[0] = mb.g[1] = mb.g[2] = 1024;
+        mb.on = 1;
+    }
+    for (b = 0; b < 3u; b++) {          /* the band's gain for this block, from its level */
+        int32_t a = song.g[G_MBAMT0 + 4u * b], lv = mb_log2(mb.env[b] > 0 ? mb.env[b] : 1);
+        int32_t th = 3840 - a * 1531 / 127, k = 768 * a / (127 + 3 * a), d = song.g[G_MBGAIN0 + 4u * b] * 425 / 10;
+        if (lv > th)
+            d -= ((lv - th) * k) >> 8;
+        else if (song.g[G_MBUP] && lv > 1289) {   /* (UPWARD: -60 dB the floor, full from -54) */
+            int32_t up = ((th - lv) * k) >> 8, cap = 512 * a / 127;
+            up = up < cap ? up : cap;
+            d += lv < 1545 ? up * (lv - 1289) >> 8 : up;
+        }
+        gn[b] = mb_exp2(d);
+        gs[b] = (gn[b] - mb.g[b]) / (int32_t)n;
+        ca[b] = mb_time(song.g[G_MBATK0 + 4u * b]);
+        cr[b] = mb_time(song.g[G_MBREL0 + 4u * b]);
+    }
+    for (i = 0; i < n; i++) {
+        int32_t x[2] = {l[i] + w[i], r[i] + w[i]}, y[2], u[2], band[3][2], k;
+        for (k = 0; k < 2; k++) {       /* (the split, each side) */
+            int32_t *s = mb.s[k], a1 = mb_lp(x[k], &s[0], c1), lo = mb_lp(a1, &s[1], c1), h1 = x[k] - a1, hi, m1, h2;
+            hi = h1 - mb_lp(h1, &s[2], c1);                   /* (the rest: G_MBXLO's high-pass, twice) */
+            m1 = mb_lp(hi, &s[3], c2);
+            band[1][k] = -mb_lp(m1, &s[4], c2);               /* MID: its sign turned (LR's) */
+            h2 = hi - m1;
+            band[2][k] = h2 - mb_lp(h2, &s[5], c2);           /* HIGH */
+            band[0][k] = 2 * mb_lp(lo, &s[6], c2) - lo;       /* LOW, through G_MBXHI's all-pass */
+            y[k] = 0;
+            u[k] = band[0][k] + band[1][k] + band[2][k];      /* (the three at unity: MIX's dry) */
+        }
+        for (b = 0; b < 3u; b++) {      /* (each band's level, then its gain) */
+            int32_t a0 = band[b][0] < 0 ? -band[b][0] : band[b][0], a1 = band[b][1] < 0 ? -band[b][1] : band[b][1];
+            int32_t a = a0 > a1 ? a0 : a1, e = mb.env[b], g = mb.g[b] + gs[b] * (int32_t)(i + 1u);
+            mb.env[b] = e + (int32_t)(((int64_t)(a - e) * (a > e ? ca[b] : cr[b])) >> 24);
+            y[0] += (int32_t)(((int64_t)band[b][0] * g) >> 10);
+            y[1] += (int32_t)(((int64_t)band[b][1] * g) >> 10);
+        }
+        l[i] = u[0] + (((y[0] - u[0]) * mix) >> 7);   /* (the reverb's wet in it: w 0 below) */
+        r[i] = u[1] + (((y[1] - u[1]) * mix) >> 7);
+        w[i] = 0;
+    }
+    for (b = 0; b < 3u; b++)
+        mb.g[b] = gn[b];
+}
+
 static void mix_block(int32_t *out, uint32_t n)
 {
     uint32_t i;
@@ -1691,6 +1784,10 @@ static void mix_block(int32_t *out, uint32_t n)
     fx_buses(send_c, send_d, send_e, send_r, wet, n);
     if (hl.side)
         rev_side_mix(mix_l, mix_r, n);                  /* HALL, (2.5) a stereo delay and chorus: stereo */
+    if (song.g[G_MBMIX])
+        mb_block(mix_l, mix_r, wet, n);                 /* ((custom) GLO > MULTI: the mix and the reverb's, 3 bands) */
+    else
+        mb.on = 0;
     if (perf) {
         AUDIO_FAR(perf_master)(out, n);
         return;

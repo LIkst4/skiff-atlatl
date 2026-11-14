@@ -2320,6 +2320,11 @@ function makeMockDevice(opt = {}) {
                                                        (G_CMODE, G_CFDBK; G_DRLVL, G_DRREV before: inert since 1.0) */
     E("DLY MODE", ["MONO", "STEREO", "PING"], 1),   /* 27: (2.5) the DELAY's MODE (G_DMODE, a new id; SKF4 holds it by GSID;
                                                      * the unit: GLO > DELAY's PRESETS; STEREO new, MONO the older) */
+    /* 28..43: (custom) GLO > MULTI, the master's 3 bands (fx.c mb_block; SKF4's GSIDs 40..55): MIX (0 OFF), the
+     * crossovers, UPWARD; then each band's AMOUNT ATTACK RELEASE GAIN */
+    D("MIX", F.PCT, 0, 127, 0), D("LOW", F.CUTOFF, 30, 72, 44), D("HIGH", F.CUTOFF, 80, 118, 100), E("UPWARD", NONOFF, 0),
+    ...[[40, 80], [24, 70], [12, 60]].flatMap(([at, rl]) => [D("AMOUNT", F.PCT, 0, 127, 40), D("ATTACK", F.TIME, 4, 80, at),
+      D("RELEASE", F.TIME, 30, 110, rl), D("GAIN", F.INT, -12, 12, 0, null, "dB")]),
   ];
   const NONE = D("-", F.INT, 0, 0, 0);
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
@@ -2829,7 +2834,7 @@ function makeMockDevice(opt = {}) {
   TP.push(D("BLEND", F.PCT, 0, 127, 0));                                  /* 165: (custom) the FILTER's BLEND */
   TP.push(D("STRUM", F.INT, 0, 100, 0, null, "ms"), E("DIR", ["DOWN", "UP", "ALT"], 0));   /* 166, 167: (2.5) STRUM (0
                                                     OFF), its DIR (138, 139 in Skiff 2.5: after the fork's here) */
-  const P_COUNT = 176, G_COUNT = 28, NSTEP = 64, P_E0 = 168, G_ENGSEL = 20, P_SLCR = 45;
+  const P_COUNT = 176, G_COUNT = 44, NSTEP = 64, P_E0 = 168, G_ENGSEL = 20, P_SLCR = 45;   /* ((custom) MULTI: 44) */
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* six tracks (firmware v3; Skiff phase 6), a synth part each; engine / preset / p / step below are the selected track's */

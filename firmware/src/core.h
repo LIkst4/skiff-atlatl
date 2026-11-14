@@ -102,9 +102,9 @@ typedef struct {
     uint8_t fmt;
     uint8_t unit;               /* F_INT / F_ENUM optional unit: U_CT, U_ST, U_HZ, 0 none */
 } param_desc_t;
-enum { U_NONE, U_CT, U_ST, U_HZ, U_MS };     /* ((2.5) U_MS: STRUM's; 0 reads OFF) */
+enum { U_NONE, U_CT, U_ST, U_HZ, U_MS, U_DB };   /* ((2.5) U_MS: STRUM's; 0 reads OFF; (custom) U_DB, signed */
 #define PD_UNIT_OF(d) ((d)->unit == U_CT ? "ct" : (d)->unit == U_ST ? "st" : (d)->unit == U_HZ ? "Hz" : \
-                       (d)->unit == U_MS ? "ms" : (const char *)0)
+                       (d)->unit == U_MS ? "ms" : (d)->unit == U_DB ? "dB" : (const char *)0)
 
 enum {                          /* per-track parameters */
     P_LEVEL,
@@ -158,7 +158,7 @@ enum {                          /* per-track parameters */
                                                 * DEST (FREQ A, PW A, FILTER ..), B LOW (OSC B an LFO); ids 169..172 */
     P_FBLND,                                   /* (custom, as Vital's) the FILTER's BLEND: LP .. BP .. HP (flt.c); id 173 */
     P_STRUM, P_SDIR,                           /* (2.5, the user's 7B) SCL > CHORD's STRUM (ms) and DIR (DOWN UP ALT,
-                                                * voice.c strum_*); (custom: stored ids 174, 175, after the fork's; 2.5's own 146, 147) */
+                                                * voice.c strum_*); (custom: stored ids 146, 147 as Skiff's: sid_p_of) */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };
@@ -181,6 +181,12 @@ enum {                          /* global parameters */
                                  * (project.c proj_drums_to_part), then sets them 0 (proj_import) */
     G_DMODE,                    /* (2.5) the DELAY's MODE (DM_*, fx.c): MONO (every project before), STEREO (new ones), PING; the
                                  * chorus too in the stereo ones. GSID 27: SKF4 holds it, the fixed layouts don't */
+    /* (custom) GLO > MULTI: the master's 3-band compressor (fx.c mb_block): MIX (0 OFF), the crossovers, UPWARD; each
+     * band's AMOUNT, ATTACK, RELEASE, GAIN. GSIDs 40.. (core.h gsid_g: Skiff's next globals 28..39 free) */
+    G_MBMIX, G_MBXLO, G_MBXHI, G_MBUP,
+    G_MBAMT0, G_MBATK0, G_MBREL0, G_MBGAIN0,
+    G_MBAMT1, G_MBATK1, G_MBREL1, G_MBGAIN1,
+    G_MBAMT2, G_MBATK2, G_MBREL2, G_MBGAIN2,
     G_COUNT
 };
 enum { DM_MONO, DM_STEREO, DM_PING };   /* G_DMODE */
@@ -215,7 +221,9 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 #define SID_OWN 155u                           /* the engine's own, to SID_COUNT */
 #define SID_V1 174u                            /* skiff-atlatl 1.x's count */
 #define SID_V1D 176u                           /* .. and its development build on Skiff 2.5's */
-#define GSID_COUNT ((uint32_t)G_COUNT)
+#define GSID_SK 28u                            /* Skiff 2.5's GSIDs: G_BPM .. G_DMODE */
+#define GSID_FORK 40u                          /* (custom) the fork's globals from here (G_MBMIX ..): 28..39 for Skiff's next */
+#define GSID_COUNT (GSID_FORK + (uint32_t)G_COUNT - GSID_SK)
 #define SID_E0 127u                            /* the engine values' first SID (P_E0 before #36): frozen */
 _Static_assert(P_LPAN0 == SID_E0 && P_COUNT == P_E0 + 8u, "sid_p: the lane pans and those after them, then E0..E7");
 _Static_assert(P_FNOTE + 1u == P_FTYPE && P_SDIR + 1u == P_E0 && P_E0 == SID_V1D - 8u, "the fork's 1.x layout: P_* + 8");
@@ -242,7 +250,11 @@ static uint32_t sid_p_of(uint32_t sid, uint32_t n, int lanes)
         return lanes ? SID_LN[sid - SID_OWN] : SID_SY[sid - SID_OWN];
     return P_COUNT;
 }
-static uint32_t gsid_g(uint32_t sid) { return sid < GSID_COUNT ? sid : G_COUNT; }
+_Static_assert(G_MBMIX == GSID_SK, "the fork's globals after Skiff 2.5's");
+static uint32_t gsid_g(uint32_t sid)
+{
+    return sid < GSID_SK ? sid : sid >= GSID_FORK && sid < GSID_COUNT ? sid - GSID_FORK + GSID_SK : G_COUNT;
+}
 /* .. back: the SID parameter p is stored by (this layout; a lane model's that of DRUM's records), SID_COUNT for none */
 static uint32_t p_sid(uint32_t p)
 {
@@ -294,7 +306,7 @@ static uint32_t gsid_put(uint8_t *b, const int16_t *g)
     uint32_t s;
     b[0] = (uint8_t)GSID_COUNT;
     for (s = 0; s < GSID_COUNT; s++) {
-        uint16_t v = (uint16_t)g[gsid_g(s)];
+        uint16_t v = gsid_g(s) < G_COUNT ? (uint16_t)g[gsid_g(s)] : 0u;   /* ((custom) 28..39: none here, 0) */
         b[1u + 2u * s] = (uint8_t)v;
         b[2u + 2u * s] = (uint8_t)(v >> 8);
     }

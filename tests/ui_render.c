@@ -652,6 +652,7 @@ static void state(void)                          /* a playing song with steps on
     uint32_t i;
     ui_power_on();
     memset(arp_pat, 0, sizeof arp_pat);              /* ((custom) ARP STEP: no scene's pattern left for the next */
+    memset(&mb, 0, sizeof mb);                       /* ((custom) MULTI: no scene's gains left for the next */
     memset(arp_spos, 0, sizeof arp_spos);
     if (large_on) ui_prefs |= PREF_LARGE;
     song.playing = 1;
@@ -811,7 +812,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_SONG_CHAINS, S_SONG_CHAIN_COPY,                                                      /* (2.0, #44's box) */
        S_DRUM_KIT_USR, S_LANES_USR,                                                           /* (2.0, #35) */
        S_FOLLOW, S_FOLLOW_SCALE, S_FOLLOW_FIT, S_FOLLOW_OFF, S_FOLLOW_WAIT,                   /* (2.1) */
-       S_FILTER_OB12, S_FILTER_VOWEL, S_FILTER_2, S_SYNTH_A, S_SYNTH_B, S_ARP_STEP, S_FILTER_COMB, S_ARP_PAT,                                 /* (custom) */
+       S_FILTER_OB12, S_FILTER_VOWEL, S_FILTER_2, S_SYNTH_A, S_SYNTH_B, S_ARP_STEP, S_FILTER_COMB, S_ARP_PAT, S_MULTI, S_MULTI_OFF, S_MB_LOW, S_MB_HIGH,                                 /* (custom) */
        S_FREE_TAKE, S_FREE_TAKE_TURNED, S_DLY_MONO, S_DLY_PING, S_FX_DELAY, S_FX_REVERB, S_FX_SENDS, S_PATTERN_64, S_SONG_STRIP, S_PROJECT_NEW,
        S_PROJECT_CLEAR, S_CONFIRM_CLEAR_SONG, S_CONFIRM_CLEAR_TRKS,                             /* (2.5) */
        S_INS_FILTER, S_INS_FILTER_HP,                                                         /* (2.5, 6B) */
@@ -850,7 +851,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "notes_range", "notes_pick", "feel_range", "notes_overlap", "momentary", "pool_empty", "pool_unused", "confirm_empty",
     "song_once", "song_new", "song_copyplus", "song_chain", "song_chain3", "notes_chain", "lane_mix", "lane_mix_dx",
     "song_sound", "song_sounds", "song_chains", "song_chain_copy", "drum_kit_usr", "lanes_usr",
-    "follow", "follow_scale", "follow_fit", "follow_off", "follow_wait", "filter_ob12", "filter_vowel", "filter_2", "synth_a", "synth_b", "arp_step", "filter_comb", "arp_pat",
+    "follow", "follow_scale", "follow_fit", "follow_off", "follow_wait", "filter_ob12", "filter_vowel", "filter_2", "synth_a", "synth_b", "arp_step", "filter_comb", "arp_pat", "multi", "multi_off", "mb_low", "mb_high",
     "free_take", "free_take_turned", "dly_mono", "dly_ping", "fx_delay", "fx_reverb", "fx_sends", "pattern_64", "song_strip", "project_new",
     "project_clear", "confirm_clear_song", "confirm_clear_trks", "insert_filter", "insert_filter_hp", "chord_strum",
     "chord_strum_alt", "shift_song", "hint_free_take", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu"};
@@ -1038,6 +1039,11 @@ static void setup(int s)
         TSEL->p[P_IA] = s == S_INS_CRUSH ? 24 : 90; TSEL->p[P_IB] = s == S_INS_CRUSH ? 40 : 100; TSEL->p[P_IC] = 96;
         TSEL->p[P_IMIX] = 110;
         go_title("INSERT"); ui.hot_col = 1; ui.hot_t = 30; break;
+    case S_MULTI: case S_MB_LOW: case S_MB_HIGH:    /* (custom) GLO > MULTI: LOW down 6 dB, MID up 3 (UPWARD), HIGH -2 */
+        song.g[G_MBMIX] = 127; song.g[G_MBUP] = 1; song.g[G_MBAMT0] = 90; song.g[G_MBAMT2] = 30;
+        mb.on = 1; mb.g[0] = 512; mb.g[1] = 1448; mb.g[2] = 813;
+        go_title(s == S_MULTI ? "MULTI" : s == S_MB_LOW ? "MB LOW" : "MB HIGH"); ui.hot_col = 0; ui.hot_t = 30; break;
+    case S_MULTI_OFF: go_title("MULTI"); break;     /* (custom) MIX 0: OFF */
     case S_FILTER_COMB:                              /* (custom) the track FILTER's graph: COMB, - feedback */
         TSEL->p[P_FTYPE] = FT_COMB; TSEL->p[P_FCUT] = 40; TSEL->p[P_FRES] = 90; TSEL->p[P_FCHR] = 30;
         go_title("FILTER"); ui.hot_col = 1; ui.hot_t = 30; break;

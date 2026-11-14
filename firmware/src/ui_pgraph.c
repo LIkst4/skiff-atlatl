@@ -766,6 +766,62 @@ static void graph_tflt(const track_t *t, uint16_t c)
         pg_text_r(xc - 4, 114, b, T_TEXT);
 }
 
+/* (custom) GLO > MULTI, MB LOW MID HIGH: the three bands as columns, each its gain now (fx.c mb.g) from the unity line,
+ * down what it takes off, up what it adds (UPWARD, GAIN), 12 dB to 36 px; its AMOUNT's threshold a tick on its side;
+ * the crossovers between them; the band of the page bright, the others in the theme's mid. MIX at 0: OFF, dim */
+static void graph_mb(uint16_t c)
+{
+    static const char *const NAME[3] = {"LOW", "MID", "HIGH"};
+    uint32_t b, sel = cur_page()->id[0] == G_MBMIX ? 3u : (uint32_t)(cur_page()->id[0] - G_MBAMT0) / 4u;
+    int32_t on = song.g[G_MBMIX] > 0, base = 64;
+    char t[24];
+    const char *unit;
+    if (!ux.crypt)
+        cv_rect(8, 10, 224, 104, T_RAISE);
+    pg_hline(12, 228, base, T_LINE);
+    for (b = 0; b < 3u; b++) {
+        int32_t x = 20 + (int32_t)b * 72, g = on && mb.on ? mb_log2(mb.g[b] > 0 ? mb.g[b] : 1) - (10 << 8) : 0;
+        int32_t h = clamp(g * 36 / (12 * 425 / 10), -40, 40), th = 8 + song.g[G_MBAMT0 + 4u * b] * 36 / 127;
+        uint16_t col = !on ? T_DIM : b == sel || sel == 3u ? c : T_MID;
+        if (h > 0)
+            cv_rect(x, base - h, 56, h, col);
+        else if (h < 0)
+            cv_rect(x, base + 1, 56, -h, col);
+        else
+            cv_rect(x, base - 1, 56, 3, col);
+        cv_rect(x - 4, base + th, 3, 2, on ? T_TEXT : T_DIM);   /* (the threshold: deeper, more AMOUNT) */
+        pg_text(x + 28 - text_w(&AF_S, NAME[b]) / 2, 122, NAME[b], b == sel ? T_TEXT : T_DIM);
+        if (on) {                                    /* (its gain in dB, 0.1: under the column) */
+            int32_t d10 = g * 15413 / 65536, w;
+            fmt_fix(t, d10, 1);
+            if (d10 > 0) {
+                char u[16];
+                u[0] = '+';
+                str_cpy(u + 1, t, 14);
+                str_cpy(t, u, 16);
+            }
+            w = text_w(&AF_S, t);
+            pg_text(x + 28 - w / 2, 108, t, b == sel || sel == 3u ? T_TEXT : T_DIM);
+        }
+    }
+    for (b = 0; b < 2u; b++) {                       /* (the crossovers, between the columns) */
+        unit = 0;
+        param_format(&GP[b ? G_MBXHI : G_MBXLO], song.g[b ? G_MBXHI : G_MBXLO], t, &unit);
+        if (unit) {                                  /* ("264 Hz", "4.2 kHz") */
+            uint32_t k = 0;
+            while (t[k])
+                k++;
+            t[k] = ' ';
+            str_cpy(t + k + 1u, unit, 15u - k);
+        }
+        pg_text(84 + (int32_t)b * 72 - text_w(&AF_S, t) / 2, 20, t, sel == 3u ? T_TEXT : T_DIM);
+    }
+    if (!on)
+        pg_text(120 - text_w(&AF_S, "OFF") / 2, 40, "OFF", T_DIM);
+    else if (song.g[G_MBUP])
+        pg_text(12, 40, "UP", T_ACCENT);
+}
+
 /* ARP and ARP 2: the arp's notes over 16 of its steps, as arp_step plays them (the held notes, or C E G as an
  * example; ORDER, OCTAVE, MODE), a tile as long as GATE, the off steps late by SWING; the steps CHANCE would skip (a
  * fixed pick of about as many) outlined; RND and WALK's picks fixed too */
