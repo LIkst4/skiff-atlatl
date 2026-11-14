@@ -1661,8 +1661,9 @@ static int32_t mb_exp2(int32_t q8)      /* 1024 * 2^(q8 / 256), Q10, q8 within -
 }
 static int32_t mb_coef(uint32_t hz)     /* a TPT one-pole's G at hz: g / (1 + g), g = tan(pi hz / 44100), Q16 */
 {
-    int64_t x = (int64_t)hz * 4669 / 1000, x2 = (x * x) >> 16, g = x + ((x * x2) / 3 >> 16) + ((((x * x2) >> 16) * x2) * 2 / 15 >> 16);
-    return (int32_t)((g << 16) / (65536 + g));   /* (x: pi hz / 44100 in Q16; tan by its series, 1 % at 10 kHz) */
+    uint32_t x = hz * 4669u / 1000u, x2 = (x * x) >> 16, x3 = (x * x2) >> 16, g = x + x3 / 3u + ((x3 * x2) >> 16) * 2u / 15u;
+    return (int32_t)((g << 16) / (65536u + g));  /* (x: pi hz / 44100 in Q16, under 2^16 to 10 kHz; tan by its series,
+                                                  * 1 % at 10 kHz; 32 bits: no 64-bit division on the unit) */
 }
 static inline int32_t mb_lp(int32_t x, int32_t *s, int32_t G)   /* the TPT one-pole: its low-pass (x minus it: high) */
 {
