@@ -1054,11 +1054,11 @@ int main(void)
             bad += check("(custom) SKF4: ARP STEP round trip in the FM6 bytes' bit 7, the patches' 7 bits as they were", ok && fo);
         }
         g0 = PROJ_ENT4 + NTRK * (NENT * 4u + 1u) + PROJ_SCENES + 2u + 1u + DV_NLANE * 11u + NTRK * FM6_PACKED;
-        p0 = g0 + 1u + 2u * G_COUNT + 3u;                /* T1's parameters (its count first) */
+        p0 = g0 + 1u + 2u * GSID_COUNT + 3u;             /* T1's parameters (its count first; (custom) GSIDs 28..39 empty) */
         p1 = p0 + 1u + SID_COUNT + 3u;                   /* T2's */
         ok = ((const uint32_t *)st.raw)[0] == PROJ_MAGIC4 && ((const uint32_t *)st.raw)[1] == 2560u && st.raw[8] == 1u &&
              st.raw[PROJ_ENT4 + (k * NENT + 15u) * 4u] == 64u && st.raw[PROJ_ENT4 + (k * NENT + 15u) * 4u + 1u] == 16u &&
-             st.raw[g0] == G_COUNT && st.raw[p0] == SID_COUNT && st.raw[p1 - 3u] == a.t[1].engine &&
+             st.raw[g0] == GSID_COUNT && st.raw[p0] == SID_COUNT && st.raw[p1 - 3u] == a.t[1].engine &&
              st.raw[p1 + 1u + P_LEVEL] == (uint8_t)(a.t[1].p[P_LEVEL] + 64) &&
              p1 + 4u * (1u + SID_COUNT + 3u) + 1u + SID_COUNT <= 2544u && !memcmp(st.raw + 2544u, "SKF4 TEST", 9);
         bad += check("  2560 bytes: layout 1, the lists at 10 (4 bytes an entry), globals and tracks by count, name at "
@@ -1071,11 +1071,11 @@ int main(void)
         (void)proj_pack2(&st, &a, PROJ_SKF);
         (void)proj_import(&d, &st, (int)PROJ_STORE4);
         skf4_edit(&st2, &st, p0 + 1u + SID_COUNT, 5, p0, 5);                 /* (a newer firmware's: 5 more on T1, */
-        skf4_edit(&st2, &st2, g0 + 1u + 2u * G_COUNT, 4, g0, 2);             /* 2 more globals) */
+        skf4_edit(&st2, &st2, g0 + 1u + 2u * GSID_COUNT, 4, g0, 2);          /* 2 more globals) */
         ok = proj_import(&c, &st2, (int)PROJ_STORE4) && !memcmp(&c, &d, sizeof c);
         bad += check("  a newer record (more globals, more parameters): theirs passed over, the same project", ok);
         skf4_edit(&st2, &st, p1 + 1u + 100u, -(int)(SID_COUNT - 100u), p1, -(int)(SID_COUNT - 100u));
-        skf4_edit(&st2, &st2, g0 + 1u + 2u * 20u, -2 * (int)(G_COUNT - 20u), g0, -(int)(G_COUNT - 20u));
+        skf4_edit(&st2, &st2, g0 + 1u + 2u * 20u, -2 * (int)(GSID_COUNT - 20u), g0, -(int)(GSID_COUNT - 20u));
         ok = proj_import(&c, &st2, (int)PROJ_STORE4) && !memcmp(c.t[0].p, a.t[0].p, sizeof a.t[0].p) &&
              !memcmp(c.t[2].p, a.t[2].p, sizeof a.t[2].p) && c.t[2].engine == a.t[2].engine;
         for (i = 0; i < P_COUNT; i++)
@@ -1083,7 +1083,7 @@ int main(void)
         for (i = 0; i < G_COUNT; i++)
             ok &= c.g[i] == (i < 20u ? a.g[i] : i == G_DMODE ? DM_MONO : GP[i].def);
         bad += check("  an older record (20 globals, 100 parameters on T2): the rest at their defaults (the delay MONO)", ok);
-        skf4_edit(&st2, &st, g0 + 1u + 2u * G_DMODE, -2, g0, -1);          /* ((2.5) 2.2's record: 27 globals */
+        skf4_edit(&st2, &st, g0 + 1u + 2u * G_DMODE, -2 * (int)(GSID_COUNT - G_DMODE), g0, -(int)(GSID_COUNT - G_DMODE));   /* ((2.5) 2.2's record: 27 globals */
         ok = proj_import(&c, &st2, (int)PROJ_STORE4) && !memcmp(c.g, a.g, 2u * G_DMODE) && a.g[G_DMODE] != DM_MONO &&
              c.g[G_DMODE] == DM_MONO && st2.raw[g0] == 27u && GP[G_DMODE].def == DM_STEREO;
         bad += check("  (2.5) 2.2's record (27 globals): the delay MONO, as it played (a new project: STEREO)", ok);
@@ -1139,7 +1139,7 @@ int main(void)
             }
         }
         n = gsid_put(b, g);
-        ok &= n == 1u + 2u * G_COUNT && gsid_get(h, b, n) == n && !memcmp(h, g, sizeof g);
+        ok &= n == 1u + 2u * GSID_COUNT && gsid_get(h, b, n) == n && !memcmp(h, g, sizeof g);
         bad += check("(2.0) stored ids: a track's parameters and the globals by number, back as they were ((custom) "
                      "SYNTH's own or DRUM's lane models: the track's engine's)", ok);
         ok = SID_COUNT == 168u && p_sid_ok();
