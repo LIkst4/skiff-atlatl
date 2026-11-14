@@ -130,6 +130,10 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
   Skiff 2.5 and skiff-atlatl both ways; SYNTH's own parameters and DRUM's lane models share their stored ids (a
   track holds one engine), which leaves room in the user preset record for Skiff's next parameters. Projects and
   presets saved with v1.0 / v1.1 load as before.
+- **GLO › MULTI**: a 3-band compressor on the master (Linkwitz-Riley crossovers, LOW and HIGH movable). Each band has
+  its own AMOUNT (threshold and ratio), ATTACK, RELEASE and GAIN; UPWARD (on/off) also brings quiet bands up, OTT
+  style; MIX blends it in parallel (0 is off). Its graph shows each band's gain as it plays.
+- Builds leave out the USB serial console (a developer tool, `FELUCCA_CDC=1` keeps it): its flash went to MULTI.
 - **FX › FILTER** draws the filter: its curve from low-pass through band-pass to high-pass by BLEND, COMB's teeth,
   VOWEL's formants. The **ARP** page's graph shows the **ARP STEP** pattern (rests, STACC, each step's transpose, the
   step playing).
