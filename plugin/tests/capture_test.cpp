@@ -4,6 +4,7 @@
    processed with jitter. Checks: the round trip measured as the plugin measures it (a note's onset), the note's sound
    landing L samples after the block that sent it (L the latency reported: the DAW's compensation puts it on the
    beat), still after two minutes of drift; the resampled tone clean; missing samples reported, never invented. */
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <random>
@@ -13,6 +14,8 @@
 #include "linefit.h"
 
 using namespace fm1;
+
+static constexpr double kPi = 3.14159265358979323846;
 
 static int bad = 0;
 static void ck(const char *what, bool ok)
@@ -42,7 +45,7 @@ struct Sim {
     {
         double t = k / fsDev;
         if (ch == 2)
-            return 0.5f * (float)std::sin(2 * M_PI * 997.0 * k / 44100.0);
+            return 0.5f * (float)std::sin(2 * kPi * 997.0 * k / 44100.0);
         if (ch == 3)
             return burstAt >= 0 && t >= burstAt ? 0.3f : 0.0f;
         return 0;
@@ -149,7 +152,7 @@ int main()
     for (size_t w0 = 128; w0 + 256 <= n && wins < 64; w0 += 256, wins++) {
         double A[3][3] = {}, B[3] = {};
         for (size_t i = w0; i < w0 + 256; i++) {
-            double v[3] = {std::sin(2 * M_PI * f * i), std::cos(2 * M_PI * f * i), 1};
+            double v[3] = {std::sin(2 * kPi * f * i), std::cos(2 * kPi * f * i), 1};
             for (int r = 0; r < 3; r++) {
                 B[r] += v[r] * tone[i];
                 for (int c = 0; c < 3; c++)
@@ -172,7 +175,7 @@ int main()
         }
         double sig = 0, res = 0;
         for (size_t i = w0; i < w0 + 256; i++) {
-            double e = x[0] * std::sin(2 * M_PI * f * i) + x[1] * std::cos(2 * M_PI * f * i) + x[2];
+            double e = x[0] * std::sin(2 * kPi * f * i) + x[1] * std::cos(2 * kPi * f * i) + x[2];
             sig += e * e;
             res += (tone[i] - e) * (tone[i] - e);
         }
@@ -180,8 +183,8 @@ int main()
         double ph = std::atan2(x[1], x[0]);
         if (!wins)
             ph0 = ph;
-        double dph = std::remainder(ph - ph0, 2 * M_PI);
-        wander = std::max(wander, std::fabs(dph / (2 * M_PI * f) / 48000.0));
+        double dph = std::remainder(ph - ph0, 2 * kPi);
+        wander = std::max(wander, std::fabs(dph / (2 * kPi * f) / 48000.0));
         amp = std::hypot(x[0], x[1]);
     }
     std::printf("capture:   (997 Hz through it: the worst window %.1f dB clean, amplitude %.3f; its timing wandered %.1f us)\n",
