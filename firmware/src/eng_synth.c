@@ -95,10 +95,10 @@ typedef struct {
 /* (custom, 303 / Devil Fish) the accents' sweep: each accent charges it (ACCENT), it drains over ~0.3 s; the cutoff
  * goes up with it, so a run of accents climbs higher and higher, as the 303's sweep capacitor. Per track */
 static int32_t sy_sweep[NTRK];
-/* (custom, after OberVave's VINTAGE) DRIFT: each voice card a little out of tune (cents) and its filter a little
- * apart, and a slow random walk on the pitch */
-static const int8_t SY_CARD_CT[8] = {3, -5, 1, 6, -2, -6, 4, -1};   /* ((2.5) 16 voices: a card each 8, vi & 7) */
-static const int8_t SY_CARD_CUT[8] = {-6, 4, 8, -3, 2, -8, 5, -1};
+/* (custom, after OberVave's VINTAGE and the Prophet-5's voice cards) DRIFT: each of the 16 voices a card of its own
+ * (out of tune, its filter, its pulse width, its level and its envelope a little apart: sy_vintage), a little more
+ * each note, a slow walk of its pitch; its oscillators free-running (a chord's notes never start alike); 0 the voices
+ * alike and their phases from 0 (a precise, digital start). The card and the note's part scale with DRIFT */
 /* MODAL: the modes' ratios of three bodies, SHAPE morphing string -> bar -> bell (x 1024), their levels (Q15) */
 static const uint16_t SY_MODE_R[3][SY_NMODE] = {{1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192},       /* a string */
                                                 {1024, 2822, 5534, 9147, 13660, 19087, 25406, 32635},   /* a free bar */
@@ -129,9 +129,29 @@ static synth_vc_t *synth_vc(track_t *t, voice_t *v)
     return S && i < NVOICE ? &S[i] : 0;
 }
 
+/* this note's DRIFT (v->s[3]: cents, cutoff, pulse width, level, one byte each; v->ek its envelope's), from its card
+ * (the voice: fixed) and a little of its own (ns: from where the voice's oscillators and noise were, so the same
+ * playing renders the same: no clock of its own); dr DRIFT (1..127) */
+static void sy_vintage(track_t *t, voice_t *v, int32_t dr, int32_t *ns)
+{
+    uint32_t h = ((uint32_t)(v - t->v) % NVOICE + 1u) * 0x9E3779B9u;   /* (the card: the voice's own, every note) */
+    int32_t k[5], i;
+    static const int8_t RANGE[5] = {9, 16, 6, 24, 28};   /* (at DRIFT 127: +-cents, cutoff, PW, level /256, env /256) */
+    for (i = 0; i < 5; i++) {
+        int32_t card = (int32_t)(int8_t)(h >> (i * 5)) * RANGE[i] / 128, own = (int32_t)(int8_t)(noise32(ns) >> 24);
+        k[i] = (card * 3 + own * RANGE[i] / 128) * dr / (4 * 127);   /* (three parts the card, one the note) */
+    }
+    v->s[3] = (int32_t)((uint32_t)(uint8_t)k[0] | (uint32_t)(uint8_t)k[1] << 8 | (uint32_t)(uint8_t)k[2] << 16 |
+                        (uint32_t)(uint8_t)k[3] << 24);
+    v->ek = (int8_t)k[4];
+}
+#define SY_VT(v, b) ((int32_t)(int8_t)((uint32_t)(v)->s[3] >> (8 * (b))))   /* sy_vintage's byte b */
+
 static void synth_note_on(track_t *t, voice_t *v)
 {
     synth_vc_t *S = synth_vc(t, v);
+    int32_t dr = t->p[P_SYDRFT], quiet = !v->env_out;
+    int32_t ns = (int32_t)(v->ph[0] ^ (v->ph[2] * 0x2545F491u) ^ (uint32_t)v->s[0] ^ 0x1234567u);   /* (DRIFT's) */
     if (!v->env_out) {                                   /* a note from silence (voice.c voice_start: not a retrigger) */
         v->ph[0] = v->ph[2] = 0;                         /* starts the same every time: its phases, the filter, the */
         v->s[0] = 0x2468ACE;                             /* noise (a retrigger keeps them: no click) */
@@ -153,6 +173,17 @@ static void synth_note_on(track_t *t, voice_t *v)
     if (S && t->p[P_E3] == 1 + SY_ORGAN) {
         S->nlb = 32767;
         S->hb = SY_CLICK;
+    }
+    v->s[3] = 0;
+    if (dr > 0) {                                        /* DRIFT: the card, the oscillators free-running (from silence: */
+        sy_vintage(t, v, dr, &ns);                       /* anywhere in their cycles, as an analog's that never stopped) */
+        if (quiet) {
+            v->ph[0] = (uint32_t)noise32(&ns);
+            v->ph[1] = v->ph[0] + 0x2C000000u;           /* (B as far from A as ever: RING, SYNC as they were) */
+            v->ph[2] = (uint32_t)noise32(&ns);
+            if (S)
+                S->subph = (uint32_t)noise32(&ns);
+        }
     }
     if (S && !v->env_out) {                              /* (custom) SWARM, CHORD: their saws apart (not in step) */
         uint32_t k;
@@ -594,7 +625,8 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     if (drift) {                                         /* (custom, OberVave's VINTAGE) DRIFT: the card's tune and a walk */
         int32_t r = (int32_t)(noise32(&v->s[0]) >> 22) - 512;   /* (a step of the walk, +-512) */
         S->walk = clamp(S->walk + (r >> 5) - (S->walk >> 7), -1600, 1600);   /* (cents x 16, held near 0) */
-        dct = (SY_CARD_CT[vi & 7u] * 16 + S->walk / 16) * drift / (127 * 16) + SY_CARD_CT[vi & 7u] * drift / 127;
+        dct = SY_VT(v, 0) + (S->walk / 16) * drift / (127 * 16);   /* (the card's and the note's: sy_vintage) */
+        sha += SY_VT(v, 2) << 8;                         /* (its pulse width) */
     }
     if (pme && pfq)                                      /* (POLY MOD) ENV -> FREQ A: +-48 semitones at +-63 */
         dct += (e15 >> 5) * pme * 4800 / 64512;
@@ -604,6 +636,10 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         inca = cents_inc(m->pitch16, dct, m->fine);
     ga = mb == SY_BOFF ? 32767 : 32767 - mix;
     gb = mb == SY_BOFF ? 0 : mix;
+    if (drift) {                                         /* (DRIFT: the card's level) */
+        ga = ga * (256 + SY_VT(v, 3)) >> 8;
+        gb = gb * (256 + SY_VT(v, 3)) >> 8;
+    }
     incb = mb != SY_BOFF ? cents_inc(clamp(m->pitch16 + p[P_E5] * 16, 0, 2047), (gb || p[P_SYXMOD]) ? p[P_E6] * 50 / 127 : 0,
                                   (gb || p[P_SYXMOD]) ? m->fine : 0) : 0u;
     if (mb != SY_BOFF && p[P_SYBLOW]) {                  /* (custom, the Prophet's LOW FREQ) B an LFO: 0.5 Hz x 2^(B TUNE
@@ -662,7 +698,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     if (pfl)                                             /* (POLY MOD) -> FILTER: ENV +-~5 octaves, B +-~4 */
         cm += ((e15 * pme) >> 12) + ((bs * pob) >> 13);   /* ((custom) ENV: >> 12, was >> 6: 32 x too far) */
     if (drift)
-        cm += SY_CARD_CUT[vi & 7u] * drift / 64;              /* (DRIFT: the card's filter a little apart) */
+        cm += SY_VT(v, 1);                               /* (DRIFT: the card's filter a little apart) */
     if (p[P_SYACC]) {                                    /* (303) the accent's envelope and the track's sweep */
         uint32_t k = (uint32_t)(t - trk) % NTRK;
         int32_t tb = 2 + p[P_SYADEC] * p[P_SYADEC] / 16;   /* ACC DEC: ~1.5 ms .. ~0.7 s */

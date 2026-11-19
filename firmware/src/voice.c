@@ -330,6 +330,7 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->mrnd = t->m_rnd;
     t->m_vi = (uint8_t)(v - t->v);
     glide_set(t, v, glide);
+    v->ek = 0;                                          /* ((custom) SYNTH's note_on sets its own: DRIFT) */
     if (!sounding) {
         v->env = 0;
         v->env_out = 0;
@@ -745,23 +746,33 @@ static __attribute__((noinline)) AUDIO_RAM void esync_coef(track_t *t)   /* (not
                                                          * env_tick's release must not end them first: its old shortest */
 }
 
+/* (custom) a step k of this voice's envelope, its DRIFT's skew on it (SYNTH: voice_t.ek); a coefficient (Q16) under 1 */
+static inline uint32_t env_k(uint32_t k, const voice_t *v, int coef)
+{
+    if (v->ek) {
+        k += (uint32_t)(int32_t)(((int64_t)k * v->ek) >> 8);
+        if (coef && k > 65535u)
+            k = 65535u;
+    }
+    return k;
+}
 static int32_t env_tick(track_t *t, voice_t *v)
 {
     const int16_t *p = t->p;
     int32_t sus = (int32_t)p[P_SUS] << 17;              /* Q24 */
     switch (v->stage) {
     case 1:
-        v->env += (int32_t)t->esync_k[0];               /* ATK's step ((1.3) esync_coef: the table's, or ENV SYNC's) */
+        v->env += (int32_t)env_k(t->esync_k[0], v, 0);  /* ATK's step ((1.3) esync_coef: the table's, or ENV SYNC's) */
         if (v->env >= (1 << 24)) {
             v->env = 1 << 24;
             v->stage = 2;
         }
         break;
     case 2:
-        v->env += mulq16(sus - v->env, t->esync_k[1]);
+        v->env += mulq16(sus - v->env, env_k(t->esync_k[1], v, 1));
         break;
     case 3:
-        v->env -= mulq16(v->env, t->esync_k[2]);
+        v->env -= mulq16(v->env, env_k(t->esync_k[2], v, 1));
         if (v->env < (1 << 12)) {
             v->env = 0;
             v->stage = 0;

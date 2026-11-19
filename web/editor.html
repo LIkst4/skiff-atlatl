@@ -2823,7 +2823,7 @@ function makeMockDevice(opt = {}) {
     D("CUTOFF", F.PCT, 0, 127, 127), D("RESO", F.PCT, 0, 127, 0), D("CHAR", F.PCT, 0, 127, 0),    /* the track FILTER */
     D("DRIVE", F.PCT, 0, 127, 0));
   TP.push(D("SUB", F.PCT, 0, 127, 0), E("SUB OCT", ["-1 OCT", "-2 OCT"], 0), D("X-MOD", F.PCT, 0, 127, 0),   /* 143..149: */
-    D("DRIFT", F.PCT, 0, 127, 0), D("ACCENT", F.PCT, 0, 127, 0), D("ACC DEC", F.PCT, 0, 127, 40),          /* (custom) */
+    D("DRIFT", F.PCT, 0, 127, 40), D("ACCENT", F.PCT, 0, 127, 0), D("ACC DEC", F.PCT, 0, 127, 40),          /* (custom) */
     D("MUFFLE", F.PCT, 0, 127, 0));                                                                         /* SYNTH's own */
   TP.push(D("RTRG VEL", F.BIPCT, -64, 63, 0),                                     /* 150: (custom) RATCH's ramp */
     D("BRIGHT", F.PCT, 0, 127, 127), D("POSITION", F.PCT, 0, 127, 0));           /* 151, 152: SYNTH's MODAL */

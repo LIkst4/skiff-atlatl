@@ -374,6 +374,8 @@ typedef struct {
     uint8_t note, vel, gate, active;
     uint8_t stage;               /* env: 0 off, 1 attack, 2 decay/sustain, 3 release */
     uint8_t stage2;              /* (Skiff phase 9) ENV 2's (voice.c env2_tick): the same, its release at the gate's end */
+    int8_t ek;                   /* (custom) SYNTH's DRIFT: this note's envelope a little faster or slower (ATK DEC REL's
+                                  * steps x (1 + ek / 256): voice.c env_tick); 0 for every other engine */
     int32_t env;                 /* Q24 */
     int32_t env_out;             /* last control-rate amplitude, Q15 */
     int32_t pitch16, pitch_cur;  /* 1/16 semitone, with glide */

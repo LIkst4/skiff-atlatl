@@ -270,6 +270,52 @@ int main(int argc, char **argv)
             snprintf(w, sizeof w, "DRIFT 127: sounds, bounded, no DC (RMS %.0f, peak %d)", rms(&c), (int)c.pk);
             ck(w, rms(&c) > 300 && c.pk < 2 * 32767 && fabs(mean(&c)) < 300);
         }
+        {   /* (custom) DRIFT's voice cards: DRIFT 0 a note from silence starts alike every time (phases 0); DRIFT > 0 the
+             * oscillators free-run (no two starts alike) and each voice has its card: its pitch, cutoff, level and
+             * envelope apart, the card's part the same note after note (the note's own the smaller), within range */
+            int32_t a1[2 * CTL], a2[2 * CTL], sc[2 * CTL], ct[4][2], ek[4][2];
+            double d0 = 0, d1 = 0;
+            uint32_t k, r, q;
+            int ok = 1;
+            for (r = 0; r < 2u; r++) {                   /* (DRIFT 0, then 64: the note twice on a voice, from silence) */
+                fresh(0);
+                trk[0].p[P_SYDRFT] = r ? 64 : 0;
+                trk[0].p[P_FTYPE] = FT_OFF;
+                trk[0].p[P_VOICE] = V_MONO;              /* (the same voice both times) */
+                for (k = 0; k < 2u; k++) {
+                    int32_t *o = k ? a2 : a1;
+                    for (q = 0; q < 3u; q++)
+                        mix_block(sc, CTL);
+                    trk_note_on(&trk[0], 60, 100);
+                    mix_block(o, CTL);                   /* (the note's first block: compared) */
+                    trk_note_off(&trk[0], 60);
+                    for (q = 0; q < 4000u && voices_on(&trk[0]); q++)
+                        mix_block(sc, CTL);
+                }
+                for (q = 0; q < CTL; q++)                /* (the two sides' sum: SPREAD alternates them) */
+                    *(r ? &d1 : &d0) += fabs((double)(a1[2 * q] + a1[2 * q + 1]) - (a2[2 * q] + a2[2 * q + 1]));
+            }
+            ck("DRIFT 0: a note from silence starts alike every time (phases 0, no card: only the LFO, RAND apart)",
+               d0 * 20.0 < d1);
+            ck("DRIFT 64: two starts of a note not alike (the oscillators free-run)", d1 > 50000);
+            fresh(0);
+            trk[0].p[P_SYDRFT] = 127;
+            for (r = 0; r < 2u; r++)                     /* (four voices, twice: each note on the same card) */
+                for (k = 0; k < 4u; k++) {
+                    voice_t *v = &trk[0].v[k];
+                    int32_t ns = (int32_t)(1000u * r + 17u * k + 5u) * 0x2545F491;   /* (another note's own) */
+                    sy_vintage(&trk[0], v, 127, &ns);
+                    ct[k][r] = SY_VT(v, 0);
+                    ek[k][r] = v->ek;
+                    ok &= abs(SY_VT(v, 0)) <= 9 && abs(SY_VT(v, 1)) <= 16 && abs(SY_VT(v, 2)) <= 6 &&
+                          abs(SY_VT(v, 3)) <= 24 && abs(v->ek) <= 28;
+                }
+            for (k = 0; k < 4u; k++)                     /* (the card's three parts in four: within the note's part) */
+                ok &= abs(ct[k][0] - ct[k][1]) <= 5 && abs(ek[k][0] - ek[k][1]) <= 15;
+            ok &= !(ct[0][0] == ct[1][0] && ct[1][0] == ct[2][0] && ct[2][0] == ct[3][0]);
+            ck("DRIFT 127: each voice's card (pitch, cutoff, PW, level, envelope) within range, the same note after "
+               "note, the four voices not alike", ok);
+        }
         {   /* MODAL: rings after the strike, dies away; damped (MOD 127) much sooner */
             stat_t e0 = {0}, e1 = {0}, d0 = {0}, d1 = {0};
             fresh(0);
