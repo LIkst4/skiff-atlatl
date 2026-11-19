@@ -12,8 +12,10 @@
 #include <string>
 #include <vector>
 
+#include "capture.h"
 #include "gen/params.h"
 #include "link.h"
+#include "linefit.h"
 
 namespace fm1 {
 
@@ -24,6 +26,11 @@ struct Settings {
     bool notes = true, clock = false, monitor = true;
     int offsetMs = 0;                                   /* the MIDI's timing against the DAW's (-50..50) */
     std::string port;                                   /* "" the first FM-1 found */
+    int mode = 0;                                       /* 0 DIRECT, 1 CAPTURE */
+    int source = 0;                                     /* (CAPTURE) 0 the track's own channel, 1 the master (1-2) */
+    double rtMs = 12;                                   /* (CAPTURE) the round trip: a note out, its sound back (MEASURE) */
+    int latMs = 0;                                      /* (CAPTURE) the latency reported, 0 AUTO */
+    std::string input;                                  /* (CAPTURE) the audio input, "" the FM-1's */
 };
 
 class Plugin : public Client {
@@ -47,7 +54,11 @@ public:
 
     /* clap */
     bool init();
-    bool activate(double sr);
+    bool activate(double sr, uint32_t maxFrames);
+    void deactivate() { active = false; }
+    uint32_t latency() const { return latencySamples; }
+    bool realtimeOnly() const { return mode.load() == 1; }
+    void setOffline(bool off) { offline = off; }
     clap_process_status process(const clap_process_t *p);
     void paramsFlush(const clap_input_events_t *in, const clap_output_events_t *out);
     bool getParamInfo(uint32_t i, clap_param_info_t *info);
@@ -70,7 +81,21 @@ private:
     void midi(double when, uint8_t a, uint8_t b, uint8_t c, uint8_t n = 3);
     void clockBlock(const clap_process_t *p, double now);
 
-    std::atomic<int> track{0}, offsetMs{0};
+    std::atomic<int> track{0}, offsetMs{0}, mode{0}, source{0}, latMs{0}, rtUs{12000};
+    std::shared_ptr<Capture> capture;
+    bool captureWanted = false;                         /* (the main thread's: capture->want) */
+    bool active = false;
+    std::atomic<bool> offline{false};
+    uint32_t maxFrames = 1024, latencySamples = 0;
+    double plannedLatencyMs();
+    void captureOut(const clap_process_t *p, double wall);
+    CaptureReader reader;                               /* (the audio thread's place in the FM-1's samples) */
+    /* the DAW's clock: block start -> wall time (the audio thread) */
+    LineFit hostFit;
+    double hostIndex = 0, lastProcess = 0;
+    /* MEASURE: 1 asked, 2 the note out, 3 done, 4 nothing heard */
+    std::atomic<int> measure{0};
+    double measureSent = 0, measureAsked = 0;
     std::atomic<bool> sendNotes{true}, sendClock{false}, monitor{true};
     std::atomic<int16_t> value[kParamCount];
     std::atomic<bool> dirty[kParamCount];

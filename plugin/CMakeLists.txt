@@ -39,6 +39,7 @@ fm1_dep(clap free-audio/clap 1.2.10)
 fm1_dep(clap-wrapper free-audio/clap-wrapper v0.17.0)
 fm1_dep(choc Tracktion/choc 8af031c2ba4f5723f4b0a5ca14e0b4984af15b0e)
 fm1_dep(rtmidi thestk/rtmidi 6.1.0)
+fm1_dep(miniaudio mackron/miniaudio 0.11.26)
 
 add_subdirectory(${clap_SOURCE_DIR} clap EXCLUDE_FROM_ALL)
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES TRUE CACHE BOOL "")
@@ -67,21 +68,25 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/resources.cpp
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed.cmake
     DEPENDS ${EMBED_DEPS} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed.cmake VERBATIM)
 
-# the device link, testable on its own
-add_library(fm1-link STATIC src/link.cpp src/port_rtmidi.cpp ${rtmidi_SOURCE_DIR}/RtMidi.cpp)
-target_include_directories(fm1-link PUBLIC src ${rtmidi_SOURCE_DIR})
+# the device link and CAPTURE, testable on their own
+add_library(fm1-link STATIC src/link.cpp src/port_rtmidi.cpp src/capture.cpp ${rtmidi_SOURCE_DIR}/RtMidi.cpp
+            ${miniaudio_SOURCE_DIR}/miniaudio.c)
+target_include_directories(fm1-link PUBLIC src ${rtmidi_SOURCE_DIR} ${miniaudio_SOURCE_DIR})
+target_compile_definitions(fm1-link PUBLIC MA_NO_ENCODING MA_NO_DECODING MA_NO_GENERATION MA_NO_RESOURCE_MANAGER
+                           MA_NO_NODE_GRAPH MA_NO_ENGINE)
 find_package(Threads REQUIRED)
 target_link_libraries(fm1-link PUBLIC Threads::Threads)
 if(APPLE)
     target_compile_definitions(fm1-link PUBLIC __MACOSX_CORE__)
-    target_link_libraries(fm1-link PUBLIC "-framework CoreMIDI" "-framework CoreAudio" "-framework CoreFoundation")
+    target_link_libraries(fm1-link PUBLIC "-framework CoreMIDI" "-framework CoreAudio" "-framework CoreFoundation"
+                          "-framework AudioToolbox" "-framework AudioUnit")
 elseif(WIN32)
     target_compile_definitions(fm1-link PUBLIC __WINDOWS_MM__ NOMINMAX)
     target_link_libraries(fm1-link PUBLIC winmm)
 else()
     find_package(ALSA REQUIRED)
     target_compile_definitions(fm1-link PUBLIC __LINUX_ALSA__)
-    target_link_libraries(fm1-link PUBLIC ALSA::ALSA)
+    target_link_libraries(fm1-link PUBLIC ALSA::ALSA ${CMAKE_DL_LIBS} m)
 endif()
 
 # the plugin, as a static library the formats are made from
@@ -127,6 +132,9 @@ option(FM1_TESTS "the link's tests" ON)
 if(FM1_TESTS)
     add_executable(fm1-link-test tests/link_test.cpp)
     target_link_libraries(fm1-link-test PRIVATE fm1-link)
+    add_executable(fm1-capture-test tests/capture_test.cpp)
+    target_link_libraries(fm1-capture-test PRIVATE fm1-link)
     enable_testing()
     add_test(NAME link COMMAND fm1-link-test)
+    add_test(NAME capture COMMAND fm1-capture-test)
 endif()

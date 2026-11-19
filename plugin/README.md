@@ -20,7 +20,9 @@ The FM-1 on skiff-atlatl firmware, in your DAW. Each instance of the plugin is o
   - Set the FM-1's CLOCK to USB so its sequencer, arpeggiator and delays follow the DAW.
   - Loops and jumps are sent as Stop, Song Position, Continue.
 
-## DIRECT mode (this version)
+## Two modes (MODE on the bar)
+
+### DIRECT
 
 The FM-1's sound reaches the DAW through its USB audio input ("Felucca", 44.1 or 48 kHz), live, with no added latency.
 There are two ways to listen to it:
@@ -30,7 +32,35 @@ There are two ways to listen to it:
   its output, so the FM-1 plays on the instrument track itself. In Bitwig, set the plugin's input to the FM-1's audio
   input.
 
-A later version will add a CAPTURE mode: each track as its own audio stream, with the latency reported to the DAW.
+### CAPTURE
+
+The plugin opens the FM-1's 8-channel USB audio input itself. Each instance plays its own track's sound, lined up with
+the DAW's timeline, on its own instrument track: six tracks, six channels, each with its own effects, mixing and
+recording in the DAW.
+
+- **SOURCE TRACK** plays the track's own channel (3–8 for T1–T6). That signal comes after the track's level, pan,
+  DRIVE, INSERT, FILTER and DUCK, but before the shared delay, reverb and chorus and before the master. It is mono, on
+  both sides.
+- **SOURCE MAIN** plays the master (channels 1–2), with everything. Use it on one instance for the whole mix.
+- **Latency compensation.** The instance reports a fixed latency to the DAW, and the DAW plays it that much earlier.
+  As a result, the FM-1's sound lands on the beat: the note at bar 5 sounds at bar 5, in playback and when recorded.
+  - The latency is the round trip (a note out, its sound back) plus room for one audio block and the USB callbacks.
+  - The LATENCY field can fix it by hand; leave it empty for AUTO.
+- **MEASURE** times the round trip on your system. It plays C4 on the instance's track and finds the sound coming
+  back. Use a sound with a quick attack, and don't mute the track.
+  - Measure again after changing the DAW's buffer size or the audio driver.
+  - The DAW restarts the plugin so the new latency takes effect.
+- **Two clocks, no drift.** The FM-1's USB audio and your audio interface run on different clocks. The plugin follows
+  both and resamples the FM-1 to the DAW's rate continuously, so the sound never drifts away from the beat. In the
+  tests, two clocks 100 ppm apart stay within a few samples (0.1 ms) after two minutes, and a 997 Hz tone comes through clean
+  (76 dB) with a timing wander of about 2 µs.
+- **Bouncing / exporting** runs in real time, because the FM-1 has to play the part. The plugin tells the DAW so. In a
+  faster-than-real-time render it outputs silence.
+- Don't also listen to the FM-1's input in the DAW (DIRECT) while capturing, or you will hear it twice.
+- **macOS:** the DAW needs microphone access (System Settings › Privacy & Security › Microphone) to read any audio
+  input, the FM-1 included.
+- **Windows:** the plugin uses the FM-1 through WASAPI in shared mode. If the DAW's ASIO driver has the FM-1 open, the
+  plugin can't use it. Use your regular interface for the DAW's output; the FM-1 doesn't need to be the DAW's device.
 
 ## The bar
 
@@ -39,7 +69,12 @@ A later version will add a CAPTURE mode: each track as its own audio stream, wit
 | **TRACK** | The FM-1 track this instance plays and edits. |
 | **NOTES** | Sends the DAW's notes and MIDI for this track to the FM-1. |
 | **CLOCK** | Sends the clock and transport. Turn it on in one instance only. |
-| **MONITOR** | Passes the plugin's audio input to its output. |
+| **MONITOR** | (DIRECT) Passes the plugin's audio input to its output. |
+| **MODE** | DIRECT or CAPTURE (above). |
+| **SOURCE** | (CAPTURE) TRACK: the track's own channel. MAIN: the master. |
+| **INPUT** | (CAPTURE) The FM-1's audio input. AUTO picks the one named Felucca / FM-1. |
+| **LATENCY** | (CAPTURE) The latency reported, in ms. Empty is AUTO (the round trip plus room). |
+| **MEASURE** | (CAPTURE) Times the round trip. The readout shows it, the latency, and the input's channels and rate. |
 | **OFFSET** | Moves the notes and the clock earlier or later than the DAW, by up to ±50 ms. |
 | **PORT** | The FM-1's MIDI port. AUTO picks the first one named Felucca / FM-1. |
 | **Status** | Shows whether the FM-1 is connected, its port, its firmware version, and any warnings. |
@@ -81,13 +116,13 @@ Download the zip for your system from the **plugin** workflow's artifacts on Git
 ```sh
 cmake -S plugin -B build/plugin -DCMAKE_BUILD_TYPE=Release
 cmake --build build/plugin --config Release
-ctest --test-dir build/plugin -C Release     # the link's tests (a fake FM-1)
+ctest --test-dir build/plugin -C Release     # the link (a fake FM-1) and CAPTURE (simulated clocks)
 ```
 
 - **Dependencies** (fetched from GitHub when you configure): [CLAP](https://github.com/free-audio/clap) and
   [clap-wrapper](https://github.com/free-audio/clap-wrapper) (MIT; the VST3 SDK, MIT since 3.8, and Apple's AudioUnit
   SDK, Apache-2.0, come through it), [CHOC](https://github.com/Tracktion/choc) (ISC; its WebView) and [RtMidi](https://github.com/thestk/rtmidi)
-  (MIT-like).
+  (MIT-like), [miniaudio](https://github.com/mackron/miniaudio) (public domain or MIT-0; CAPTURE's audio input).
 - **Linux** also needs `libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev`.
 - **After a parameter is added to the firmware,** regenerate `plugin/src/gen/params.h` with
   `plugin/tools/gen_params.py` (see its header). The host tests check that it matches the firmware.

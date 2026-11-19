@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* A minimal CLAP host for a look at the plugin's window (Linux, a floating window): loads the .clap, opens its GUI,
    runs its timer for a while, closes it. With a display (Xvfb in CI), a screenshot can be taken meanwhile.
-     gui_smoke PLUGIN.clap SECONDS */
+     gui_smoke PLUGIN.clap SECONDS [STATE]      (STATE: lines of the plugin's state, e.g. "mode 1" for CAPTURE) */
 #include <clap/clap.h>
 #include <dlfcn.h>
 
@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+#include <algorithm>
 #include <thread>
 
 static bool timerOn = false;
@@ -51,6 +53,20 @@ int main(int argc, char **argv)
     const clap_plugin_t *p = f->create_plugin(f, &kHost, f->get_plugin_descriptor(f, 0)->id);
     if (!p || !p->init(p))
         return 1;
+    if (argc > 3) {                                     /* (a state to start from) */
+        static std::string st;
+        st = std::string("fm1-plugin 1\n") + argv[3] + "\n";
+        static size_t at = 0;
+        clap_istream_t is{nullptr, [](const clap_istream_t *, void *b, uint64_t n) -> int64_t {
+                              size_t k = std::min<size_t>(n, st.size() - at);
+                              std::memcpy(b, st.data() + at, k);
+                              at += k;
+                              return (int64_t)k;
+                          }};
+        auto *state = static_cast<const clap_plugin_state_t *>(p->get_extension(p, CLAP_EXT_STATE));
+        if (!state || !state->load(p, &is))
+            std::fprintf(stderr, "state not taken\n");
+    }
     auto *gui = static_cast<const clap_plugin_gui_t *>(p->get_extension(p, CLAP_EXT_GUI));
     auto *tm = static_cast<const clap_plugin_timer_support_t *>(p->get_extension(p, CLAP_EXT_TIMER_SUPPORT));
     if (!gui || !gui->create(p, CLAP_WINDOW_API_X11, true) || !gui->set_size(p, 1280, 840) || !gui->show(p)) {

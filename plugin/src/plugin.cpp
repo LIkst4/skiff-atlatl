@@ -64,6 +64,8 @@ Plugin::~Plugin()
 {
     if (link)
         link->removeClient(this);
+    if (capture && captureWanted)
+        capture->want(false);
 }
 
 bool Plugin::init()
@@ -73,13 +75,37 @@ bool Plugin::init()
     hostGui = static_cast<const clap_host_gui_t *>(host->get_extension(host, CLAP_EXT_GUI));
     link = Link::get();
     link->addClient(this);
+    capture = Capture::get();
     return true;
 }
 
-bool Plugin::activate(double sr)
+/* CAPTURE's latency: the round trip, then room for a block and the FM-1's audio callbacks' jitter */
+double Plugin::plannedLatencyMs()
+{
+    if (mode.load() != 1)
+        return 0;
+    if (latMs.load() > 0)
+        return latMs.load();
+    double per = capture ? capture->status().periodMs : 0;
+    return rtUs.load() / 1000.0 + std::max(2 * per, 8.0) + 2;
+}
+
+bool Plugin::activate(double sr, uint32_t maxF)
 {
     sampleRate = sr;
+    maxFrames = maxF ? maxF : 1024;
     playing = false;
+    hostFit.reset(1.0 / sr);
+    reader.reset();
+    hostIndex = 0;
+    lastProcess = 0;
+    uint32_t was = latencySamples;
+    double ms = plannedLatencyMs();
+    latencySamples = ms > 0 ? (uint32_t)std::ceil(ms * sr / 1000.0) + maxFrames : 0;
+    active = true;
+    auto *hl = static_cast<const clap_host_latency_t *>(host->get_extension(host, CLAP_EXT_LATENCY));
+    if (hl && was != latencySamples)
+        hl->changed(host);
     return true;
 }
 
@@ -267,8 +293,19 @@ void Plugin::clockBlock(const clap_process_t *p, double now)
 clap_process_status Plugin::process(const clap_process_t *p)
 {
     double now = nowSec();
-    inEvents(p->in_events, now, sampleRate);
-    clockBlock(p, now);
+    if (lastProcess > 0 && now - lastProcess > 0.5)     /* (a stall: the DAW's clock starts over) */
+        hostFit.reset(1.0 / sampleRate);
+    lastProcess = now;
+    hostFit.add(hostIndex, now);
+    double wall = hostFit.ready() ? hostFit.time(hostIndex) : now;   /* (this block's start, smooth) */
+    hostIndex += p->frames_count;
+    inEvents(p->in_events, wall, sampleRate);
+    clockBlock(p, wall);
+    if (mode.load() == 1) {
+        captureOut(p, wall);
+        outParams(p->out_events);
+        return CLAP_PROCESS_CONTINUE;
+    }
     for (uint32_t o = 0; o < p->audio_outputs_count; o++) {
         auto &ob = p->audio_outputs[o];
         for (uint32_t c = 0; c < ob.channel_count; c++) {
@@ -286,6 +323,56 @@ clap_process_status Plugin::process(const clap_process_t *p)
     }
     outParams(p->out_events);
     return CLAP_PROCESS_CONTINUE;
+}
+
+/* CAPTURE: this block's samples are the FM-1's that arrived R after the DAW's notes of L samples ago (capture.h) */
+void Plugin::captureOut(const clap_process_t *p, double wall)
+{
+    uint32_t n = p->frames_count;
+    float *l = nullptr, *r = nullptr;
+    if (p->audio_outputs_count && p->audio_outputs[0].data32) {
+        l = p->audio_outputs[0].data32[0];
+        r = p->audio_outputs[0].channel_count > 1 ? p->audio_outputs[0].data32[1] : nullptr;
+    }
+    double off = offsetMs.load() / 1000.0, rt = rtUs.load() / 1e6, dt = hostFit.secondsPerSample();
+    double t0 = wall + off + rt - latencySamples / sampleRate;
+    if (l) {
+        if (offline || !capture) {                      /* (a bounce faster than real time: nothing to capture) */
+            std::memset(l, 0, sizeof(float) * n);
+            if (r)
+                std::memset(r, 0, sizeof(float) * n);
+        } else if (source.load() == 1 && r) {
+            int chs[2] = {0, 1};
+            float *outs[2] = {l, r};
+            reader.read(*capture, chs, outs, 2, t0, dt, sampleRate, n);
+        } else {
+            int chs[1] = {source.load() == 1 ? 0 : 2 + track.load()};
+            float *outs[1] = {l};
+            reader.read(*capture, chs, outs, 1, t0, dt, sampleRate, n);
+            if (r)
+                std::memcpy(r, l, sizeof(float) * n);
+        }
+    }
+    /* MEASURE: a note out now, its sound found in the track's channel: the round trip */
+    int ms = measure.load();
+    int ch = source.load() == 1 ? -1 : 2 + track.load();
+    uint8_t c = (uint8_t)(track.load() & 15);
+    if (ms == 1 && capture && capture->latestTime() > 0) {
+        measureSent = wall + off;
+        measureAsked = wall;
+        midi(measureSent, 0x90 | c, 60, 110);
+        midi(measureSent + 0.15, 0x80 | c, 60, 0);
+        measure = 2;
+    } else if (ms == 2) {
+        double got = capture->latestTime() > measureSent + 0.45 ? capture->onset(ch, measureSent - 0.002, measureSent + 0.4)
+                                                                  : 0;
+        if (got > 0) {
+            rtUs = (int)std::lround((got - measureSent) * 1e6);
+            measure = 3;
+            host->request_restart(host);                /* (the latency follows: at the next activate) */
+        } else if (got < 0 || wall - measureAsked > 2.0)
+            measure = 4;
+    }
 }
 
 void Plugin::paramsFlush(const clap_input_events_t *in, const clap_output_events_t *out)
@@ -365,7 +452,8 @@ bool Plugin::saveState(const clap_ostream_t *s)
     Settings st = settings();
     o << "fm1-plugin " << kStateVersion << "\n"
       << "track " << st.track << "\nnotes " << st.notes << "\nclock " << st.clock << "\nmonitor " << st.monitor
-      << "\noffset " << st.offsetMs << "\nport " << st.port << "\nengine " << engine.load() << "\n";
+      << "\noffset " << st.offsetMs << "\nport " << st.port << "\nengine " << engine.load() << "\nmode " << st.mode
+      << "\nsource " << st.source << "\nrt " << st.rtMs << "\nlat " << st.latMs << "\ninput " << st.input << "\n";
     for (uint32_t i = 0; i < kParamCount; i++)
         o << "p " << kParams[i].id << " " << value[i].load() << "\n";
     std::string b = o.str();
@@ -449,6 +537,11 @@ Settings Plugin::settings()
     s.monitor = monitor;
     s.offsetMs = offsetMs;
     s.port = link ? link->portName() : std::string();
+    s.mode = mode;
+    s.source = source;
+    s.rtMs = rtUs.load() / 1000.0;
+    s.latMs = latMs;
+    s.input = capture ? capture->deviceName() : std::string();
     return s;
 }
 
@@ -469,6 +562,27 @@ void Plugin::setSetting(const std::string &k, const std::string &v)
         offsetMs = std::clamp(n, -50, 50);
     else if (k == "port" && link)
         link->setPortName(v);
+    else if (k == "mode" || k == "source" || k == "rt" || k == "lat") {
+        int before = (int)std::lround(plannedLatencyMs() * 1000);
+        if (k == "mode")
+            mode = n == 1 ? 1 : 0;
+        else if (k == "source")
+            source = n == 1 ? 1 : 0;
+        else if (k == "rt")
+            rtUs = (int)std::lround(std::clamp(std::atof(v.c_str()), 0.0, 500.0) * 1000);
+        else
+            latMs = std::clamp(n, 0, 1000);
+        bool want = mode.load() == 1;
+        if (capture && want != captureWanted) {
+            captureWanted = want;
+            capture->want(want);
+        }
+        if (active && before != (int)std::lround(plannedLatencyMs() * 1000))
+            host->request_restart(host);                /* (the latency changes at the next activate) */
+    } else if (k == "input" && capture)
+        capture->setDeviceName(v);
+    else if (k == "measure" && mode.load() == 1)
+        measure = 1;
 }
 
 std::string Plugin::statusJson()
@@ -491,7 +605,21 @@ std::string Plugin::statusJson()
     auto ports = link ? link->portList() : std::vector<std::string>{};
     for (size_t i = 0; i < ports.size(); i++)
         o << (i ? "," : "") << q(ports[i]);
-    o << "]}";
+    o << "],\"mode\":" << st.mode << ",\"source\":" << st.source << ",\"rt\":" << st.rtMs << ",\"lat\":" << st.latMs
+      << ",\"latActual\":" << (sampleRate > 0 ? latencySamples * 1000.0 / sampleRate : 0)
+      << ",\"latNext\":" << (plannedLatencyMs() > 0 ? (std::ceil(plannedLatencyMs() * sampleRate / 1000.0) + maxFrames) * 1000.0 / sampleRate : 0)
+      << ",\"measure\":" << measure.load() << ",\"input\":" << q(st.input);
+    if (capture && st.mode == 1) {
+        CaptureStatus c = capture->status();
+        o << ",\"cap\":{\"running\":" << (c.running ? "true" : "false") << ",\"device\":" << q(c.device)
+          << ",\"error\":" << q(c.error) << ",\"channels\":" << c.channels << ",\"rate\":" << c.rate
+          << ",\"period\":" << c.periodMs << ",\"underruns\":" << c.underruns << "},\"inputs\":[";
+        auto ins = capture->deviceList();
+        for (size_t i = 0; i < ins.size(); i++)
+            o << (i ? "," : "") << q(ins[i]);
+        o << "]";
+    }
+    o << "}";
     return o.str();
 }
 
@@ -559,8 +687,17 @@ bool stSave(const clap_plugin_t *p, const clap_ostream_t *s) { return self(p)->s
 bool stLoad(const clap_plugin_t *p, const clap_istream_t *s) { return self(p)->loadState(s); }
 const clap_plugin_state_t kState = {stSave, stLoad};
 
-uint32_t latGet(const clap_plugin_t *) { return 0; }
+uint32_t latGet(const clap_plugin_t *p) { return self(p)->latency(); }
 const clap_plugin_latency_t kLatency = {latGet};
+
+/* CAPTURE needs the FM-1 playing in real time: a bounce goes at the DAW's real time too */
+bool rdRealtime(const clap_plugin_t *p) { return self(p)->realtimeOnly(); }
+bool rdSet(const clap_plugin_t *p, clap_plugin_render_mode m)
+{
+    self(p)->setOffline(m == CLAP_RENDER_OFFLINE);
+    return true;
+}
+const clap_plugin_render_t kRender = {rdRealtime, rdSet};
 
 void tmTick(const clap_plugin_t *p, clap_id id) { self(p)->onTimer(id); }
 const clap_plugin_timer_support_t kTimer = {tmTick};
@@ -583,8 +720,8 @@ const clap_plugin_remote_controls_t kRemote = {rcCount, rcGet};
 
 bool plInit(const clap_plugin_t *p) { return self(p)->init(); }
 void plDestroy(const clap_plugin_t *p) { delete self(p); }
-bool plActivate(const clap_plugin_t *p, double sr, uint32_t, uint32_t) { return self(p)->activate(sr); }
-void plDeactivate(const clap_plugin_t *) {}
+bool plActivate(const clap_plugin_t *p, double sr, uint32_t, uint32_t maxF) { return self(p)->activate(sr, maxF); }
+void plDeactivate(const clap_plugin_t *p) { self(p)->deactivate(); }
 bool plStart(const clap_plugin_t *) { return true; }
 void plStop(const clap_plugin_t *) {}
 void plReset(const clap_plugin_t *) {}
@@ -601,6 +738,8 @@ const void *plExt(const clap_plugin_t *, const char *id)
         return &kState;
     if (!std::strcmp(id, CLAP_EXT_LATENCY))
         return &kLatency;
+    if (!std::strcmp(id, CLAP_EXT_RENDER))
+        return &kRender;
     if (!std::strcmp(id, CLAP_EXT_TIMER_SUPPORT))
         return &kTimer;
     if (!std::strcmp(id, CLAP_EXT_REMOTE_CONTROLS) || !std::strcmp(id, CLAP_EXT_REMOTE_CONTROLS_COMPAT))

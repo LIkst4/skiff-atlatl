@@ -45,17 +45,20 @@
 
   /* the bar */
   const css = `
-#fm1bar{position:fixed;top:0;left:0;right:0;height:32px;z-index:2147483000;display:flex;align-items:center;gap:14px;
- padding:0 12px;background:#15171c;color:#d8dbe2;font:12px/1 system-ui,sans-serif;border-bottom:1px solid #2a2e37}
+#fm1bar{position:fixed;top:0;left:0;right:0;z-index:2147483000;display:flex;flex-direction:column;gap:4px;
+ padding:5px 12px;box-sizing:border-box;background:#15171c;color:#d8dbe2;font:12px/1 system-ui,sans-serif;border-bottom:1px solid #2a2e37}
 #fm1bar b{letter-spacing:.06em;color:#fff}#fm1bar label{display:flex;align-items:center;gap:5px;white-space:nowrap}
 #fm1bar{color-scheme:dark}#fm1bar select,#fm1bar input[type=number]{-webkit-appearance:none;appearance:none;
- background:#22252d;color:#e8eaf0;border:1px solid #363b46;border-radius:4px;font:inherit;padding:3px 6px;height:22px}
+ background:#22252d;color:#e8eaf0;border:1px solid #363b46;border-radius:4px;font:inherit;padding:2px 6px;height:22px;box-sizing:border-box}
 #fm1bar select{padding-right:18px;background-image:linear-gradient(45deg,transparent 50%,#9aa0ad 50%),
  linear-gradient(135deg,#9aa0ad 50%,transparent 50%);background-position:calc(100% - 10px) 9px,calc(100% - 6px) 9px;
  background-size:4px 4px;background-repeat:no-repeat}#fm1bar option{background:#22252d;color:#e8eaf0}#fm1bar input[type=number]{width:48px}#fm1bar .st{margin-left:auto;display:flex;
  align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fm1bar .dot{width:8px;height:8px;
  border-radius:50%;background:#c0392b}#fm1bar .dot.on{background:#2ecc71}#fm1bar .warn{color:#f5b041}
-body{padding-top:32px!important}`;
+#fm1bar .r{display:flex;align-items:center;gap:14px;min-height:22px}#fm1bar .cap{display:none}
+#fm1bar.capture .cap{display:flex}#fm1bar input[data-k=lat]{width:60px}#fm1bar button{background:#2c3140;color:#e8eaf0;
+ border:1px solid #434a5a;border-radius:4px;font:inherit;padding:3px 10px;cursor:pointer}#fm1bar .ro{color:#9aa0ad}
+#fm1bar.capture .direct{display:none}`;
   let clicked = false;
   const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
   function build() {
@@ -63,16 +66,30 @@ body{padding-top:32px!important}`;
     const st = document.createElement("style");
     st.textContent = css;
     document.head.appendChild(st);
-    const bar = el(`<div id="fm1bar"><b>FM-1</b>
+    const bar = el(`<div id="fm1bar"><div class="r"><b>FM-1</b>
       <label title="The FM-1 track this instance plays and edits (MIDI channel = the track)">TRACK
         <select data-k="track">${[1, 2, 3, 4, 5, 6].map((n) => `<option value="${n - 1}">T${n}</option>`).join("")}</select></label>
       <label title="The DAW's notes for this track go to the FM-1"><input type="checkbox" data-k="notes">NOTES</label>
       <label title="Send the DAW's MIDI clock and transport (one instance only; the FM-1's CLK on USB)"><input type="checkbox" data-k="clock">CLOCK</label>
-      <label title="Pass this plugin's audio input (the FM-1's USB audio) to its output"><input type="checkbox" data-k="monitor">MONITOR</label>
+      <label class="direct" title="Pass this plugin's audio input (the FM-1's USB audio) to its output"><input type="checkbox" data-k="monitor">MONITOR</label>
       <label title="Shift the notes and clock against the DAW (ms)">OFFSET<input type="number" min="-50" max="50" step="1" data-k="offset"></label>
       <label title="The FM-1's MIDI port">PORT<select data-k="port"></select></label>
-      <span class="st"><span class="dot"></span><span class="txt">…</span></span></div>`);
+      <label title="DIRECT: the FM-1's sound on the DAW's own input, no latency. CAPTURE: the plugin takes the FM-1's 8 USB channels itself and reports its latency, so the DAW lines the sound up with the notes">MODE
+        <select data-k="mode"><option value="0">DIRECT</option><option value="1">CAPTURE</option></select></label>
+      <span class="st"><span class="dot"></span><span class="txt">…</span></span></div>
+      <div class="r cap"><label title="TRACK: this track's own channel (3-8: before the shared delay, reverb, chorus). MAIN: the master (1-2), everything">SOURCE
+        <select data-k="source"><option value="0">TRACK</option><option value="1">MAIN</option></select></label>
+      <label title="The FM-1's USB audio input (8 channels)">INPUT<select data-k="input"></select></label>
+      <label title="The latency reported to the DAW (ms); 0: AUTO, from the round trip">LATENCY<input type="number" min="0" max="1000" step="1" data-k="lat" placeholder="AUTO"></label>
+      <button data-act="measure" title="Plays a note on this track and times its sound coming back: the round trip. Use a sound with a quick attack">MEASURE</button>
+      <span class="ro"></span></div></div>`);
     document.body.prepend(bar);
+    const pad = () => { document.body.style.setProperty("padding-top", bar.offsetHeight + "px", "important"); };
+    new ResizeObserver(pad).observe(bar);
+    pad();
+    bar.addEventListener("click", (e) => {
+      if (e.target.dataset.act === "measure") window.fm1Set("measure", "1");
+    });
     bar.addEventListener("change", (e) => {
       const k = e.target.dataset.k;
       if (!k) return;
@@ -88,13 +105,28 @@ body{padding-top:32px!important}`;
     for (const k of ["notes", "clock", "monitor"]) if (q(k) !== focus) q(k).checked = !!s[k];
     if (q("track") !== focus) q("track").value = String(s.track);
     if (q("offset") !== focus) q("offset").value = String(s.offset);
-    const ps = q("port");
-    if (ps !== focus) {
-      const want = ["", ...s.ports];
-      if (s.wantPort && !want.includes(s.wantPort)) want.push(s.wantPort);
-      if (ps.options.length !== want.length || [...ps.options].some((o, i) => o.value !== want[i]))
-        ps.replaceChildren(...want.map((n) => el(`<option>${n || "AUTO"}</option>`)).map((o, i) => (o.value = want[i], o)));
-      ps.value = s.wantPort;
+    const fill = (sel, list, cur) => {
+      if (sel === focus) return;
+      const want = ["", ...list];
+      if (cur && !want.includes(cur)) want.push(cur);
+      if (sel.options.length !== want.length || [...sel.options].some((o, i) => o.value !== want[i]))
+        sel.replaceChildren(...want.map((n) => { const o = document.createElement("option"); o.value = n; o.textContent = n || "AUTO"; return o; }));
+      sel.value = cur;
+    };
+    fill(q("port"), s.ports, s.wantPort);
+    for (const k of ["mode", "source"]) if (q(k) !== focus) q(k).value = String(s[k]);
+    bar.classList.toggle("capture", s.mode === 1);
+    if (s.mode === 1) {
+      fill(q("input"), s.inputs || [], s.input);
+      if (q("lat") !== focus) q("lat").value = s.lat ? String(s.lat) : "";
+      const c = s.cap || {};
+      const m = ["", " · measuring…", " · measuring…", " · measured", " · nothing heard: a louder sound, a quicker attack?"][s.measure] || "";
+      let r = `RT ${s.rt.toFixed(1)} ms · `;
+      r += `LATENCY ${(s.latActual || s.latNext).toFixed(1)} ms`;
+      if (s.latActual > 0 && Math.abs(s.latNext - s.latActual) > 0.5) r += ` (${s.latNext.toFixed(1)} after the DAW restarts the plugin)`;
+      r += c.running ? ` · ${c.channels} ch ${c.rate / 1000} kHz` : ` · ${c.error || "no input"}`;
+      if (c.running && c.error) r += ` (${c.error})`;
+      bar.querySelector(".ro").textContent = r + m;
     }
     bar.querySelector(".dot").classList.toggle("on", s.connected && s.replying);
     let t = s.connected ? `${s.port}${s.version ? " · " + s.version : ""}` : (s.error || "looking for the FM-1…");
