@@ -175,6 +175,9 @@ static void synth_note_on(track_t *t, voice_t *v)
         S->hb = SY_CLICK;
     }
     v->s[3] = 0;
+    v->s[4] = 32767;                                     /* (custom, the Virus's) PUNCH: its kick, every note */
+    if (quiet)
+        v->s[5] = v->s[6] = v->s[7] = 0;                 /* (F2's, BOOST's states: from rest; a retrigger keeps them) */
     if (dr > 0) {                                        /* DRIFT: the card, the oscillators free-running (from silence: */
         sy_vintage(t, v, dr, &ns);                       /* anywhere in their cycles, as an analog's that never stopped) */
         if (quiet) {
@@ -605,6 +608,48 @@ static __attribute__((noinline)) void sy_ring(uint32_t *ph, uint32_t incb, const
     *ph = p;
 }
 
+/* (custom, the Virus TI's ANALOG BOOST) BOOST: the low end up, a one-pole low-pass at ~140 Hz added back (bst 127:
+ * ~+8 dB at the bottom, nothing above ~1 kHz); its state st (v->s[7], x 16) */
+static __attribute__((noinline)) void sy_boost(int32_t *st, int32_t *y, uint32_t n, int32_t bst)
+{
+    int32_t lp = *st, b = bst * 48;
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t x = clamp(y[i], -80000, 80000), d = (x << 4) - lp;
+        lp += (d >> 6) + (d >> 8) - (d >> 11);           /* (~0.019: ~145 Hz) */
+        y[i] = x + (((lp >> 4) * b) >> 12);
+    }
+    *st = lp;
+}
+
+/* (custom, the Virus's) FILTER 2: a clean 2-pole state-variable filter (flt.c fl_svf) at cutoff index ci, its
+ * states in st (v->s[5], v->s[6]); mode 0 LP, 1 BP, 2 HP; res the FILTER's RESO, a little gentler */
+static __attribute__((noinline)) void sy_f2(int32_t *st, int32_t *b, uint32_t n, int32_t ci, int32_t res, uint32_t mode)
+{
+    flt_t f;
+    f.s[0] = st[0];
+    f.s[1] = st[1];
+    f.bl = 0;
+    fl_svf(&f, b, n, fl_g(clamp(ci, 0, 1024)), 4096 - clamp(res, 0, 127) * 26, 4096, mode, 0, 0, 4096);
+    st[0] = f.s[0];
+    st[1] = f.s[1];
+}
+
+/* (custom, the Virus's) PUNCH: the attack a little louder (up to +6 dB at 127), gone in ~10 ms; k v->s[4] (note_on:
+ * 32767), down a sixteenth a block, ramped across it */
+static __attribute__((noinline)) void sy_punch(int32_t *k, int32_t *y, uint32_t n, int32_t pn)
+{
+    int32_t k1 = *k - (*k >> 4) - 1, a = pn * 32, g, d;
+    uint32_t i;
+    if (k1 < 0)
+        k1 = 0;
+    g = 4096 + ((*k * a) >> 15);
+    d = ((4096 + ((k1 * a) >> 15)) - g) / (int32_t)(n ? n : 1u);
+    for (i = 0; i < n; i++, g += d)
+        y[i] = fl_q12(clamp(y[i], -240000, 240000), g);
+    *k = k1;
+}
+
 static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
@@ -614,7 +659,7 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     int32_t sha = (p[P_E1] << 8) + m->shape - (64 << 8);    /* the SHP routings around SHAPE A */
     uint32_t inca = m->inc, incb, sub = v->ph[2], pa0 = v->ph[0], vi = (uint32_t)(v - t->v) % NVOICE;
     int32_t drift = p[P_SYDRFT], cm, pme = p[P_SYPME], pob = p[P_SYPMB], e15 = 0, dct = 0, bs = 0, brd = 0;
-    uint32_t pmd = (uint32_t)clamp(p[P_SYPMD], 0, 4), pfq = pmd == 0u || pmd >= 3u, ppw = pmd == 1u || pmd == 4u,
+    uint32_t f2, pmd = (uint32_t)clamp(p[P_SYPMD], 0, 4), pfq = pmd == 0u || pmd >= 3u, ppw = pmd == 1u || pmd == 4u,
              pfl = pmd >= 2u;
     if (!S || n > CTL)
         return;
@@ -708,7 +753,25 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
             sy_sweep[k] -= sy_sweep[k] / 400;
     }
     S->f.bl = (uint8_t)clamp(p[P_FBLND], 0, 127);        /* (custom) BLEND */
+    f2 = (uint32_t)clamp(p[P_SYF2], 0, 6);
+    if (f2 >= 4u)                                        /* (custom, the Virus's) F2 PAR: it hears what the FILTER hears */
+        for (i = 0; i < n; i++)
+            ya[i] = y[i];
     flt_run(&S->f, 0, y, n, (uint32_t)clamp(p[P_FTYPE], 0, FT_N - 1), p[P_FCUT], p[P_FRES], p[P_FCHR], p[P_FDRV], cm);
+    if (f2) {                                            /* SER: FILTER, then F2; PAR: (FILTER + F2) / 2 */
+        int32_t ci2 = clamp(p[P_FCUT], 0, 127) * 8 + cm + p[P_SYF2O] * 6;
+        if (f2 < 4u) {
+            sy_f2(&v->s[5], y, n, ci2, p[P_FRES], f2 == 1u ? 0u : f2 == 2u ? 2u : 1u);
+        } else {
+            sy_f2(&v->s[5], ya, n, ci2, p[P_FRES], f2 == 4u ? 0u : f2 == 5u ? 2u : 1u);
+            for (i = 0; i < n; i++)
+                y[i] = (y[i] + ya[i]) >> 1;
+        }
+    }
+    if (p[P_SYBST])
+        sy_boost(&v->s[7], y, n, p[P_SYBST]);
+    if (p[P_SYPNCH] && v->s[4])
+        sy_punch(&v->s[4], y, n, p[P_SYPNCH]);
     if (p[P_SYMUF]) {                                    /* (Devil Fish) MUFFLE: the VCA's soft clip, louder in */
         int32_t kn = 16000 - p[P_SYMUF] * 100;
         for (i = 0; i < n; i++)
@@ -909,4 +972,5 @@ static const engine_t ENG_SYNTH = {
     .render = synth_render,
     .desc = synth_desc,
     .knob = {P_E1, P_FCUT, P_FRES, P_E7},
+    .keep = 0xE0u,               /* (custom) F2's, BOOST's states (v->s[5..7]): a retrigger keeps them, no click */
 };

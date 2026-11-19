@@ -655,7 +655,7 @@ static int page_visible(uint32_t i)
     if (sh)
         return sh->eng == 0xFFu || trk_sheet_eng(TSEL) == sh->eng;   /* ((custom) DRUM-X's SOUND: a DX kit's; ARP STEP:
                                                                      * every track's) */
-    if (PAGES[i].fam == FAM_EDIT && ((id >= P_SYSUB && id <= P_SYMUF) || id == P_SYMBRT || id == P_SYPME))   /* ((custom) SYNTH's own */
+    if (PAGES[i].fam == FAM_EDIT && ((id >= P_SYSUB && id <= P_SYMUF) || id == P_SYMBRT || id == P_SYPME || id == P_SYF2))   /* ((custom) SYNTH's own */
         return TSEL->eng_req % NENGINES == ENGI_SYNTH;
     if (PAGES[i].fam == FAM_FX && id == P_ED_FLT)       /* ((custom) FLT MOD: DRUM's FILTER envelope and LFO) */
         return drum_engine(TSEL->eng_req % NENGINES);

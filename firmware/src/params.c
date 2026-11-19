@@ -42,6 +42,7 @@ static const char *const N_LSYNC[] = {"OFF", "4BAR", "2BAR", "1/1", "1/2", "1/4"
 static const char *const N_LTRIG[] = {"NOTE", "FREE"};
 static const char *const N_LPOL[] = {"BI", "UNI"};
 static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
+static const char *const N_SYF2[] = {"OFF", "SER LP", "SER HP", "SER BP", "PAR LP", "PAR HP", "PAR BP"};   /* (custom) F2 */
 static const char *const N_SYPMD[] = {"FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"};   /* (custom) SYNTH's POLY MOD DEST */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
                                      "VOWEL", "ANLG"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
@@ -227,6 +228,11 @@ static const param_desc_t TP[P_COUNT] = {
     [P_SYPMB] = PD("OSC B", F_PCT, 0, 127, 0),       /* .. OSC B on DEST */
     [P_SYPMD] = PE("DEST", N_SYPMD, 0),
     [P_SYBLOW] = PE("B LOW", N_ONOFF, 0),            /* OSC B at 0.5 .. 8 Hz (B TUNE), not keyed: an LFO */
+    [P_SYF2] = PE("F2", N_SYF2, 0),                  /* (custom, the Virus's) FILTER 2: OFF, as before */
+    [P_SYF2O] = PD("F2 OFS", F_INT, -64, 63, 0),     /* .. its cutoff from the FILTER's: +-~3 octaves */
+    [P_SYBST] = PD("BOOST", F_PCT, 0, 127, 0),       /* .. the low end up (to ~+8 dB below ~140 Hz): 0 off, as before;
+                                                      * (no saturation of its own: DRIVE, MUFFLE, the INSERT have it) */
+    [P_SYPNCH] = PD("PUNCH", F_PCT, 0, 127, 0),      /* .. the attack's kick: 0 off, as before */
 #define LMDL(k) [P_LMDL0 + k] = PE("MODEL", N_LMDL, 0)   /* (custom) a DRUM lane's MODEL: KIT, the kit's own (as before) */
     LMDL(0), LMDL(1), LMDL(2), LMDL(3), LMDL(4), LMDL(5), LMDL(6), LMDL(7),
 #undef LMDL
@@ -664,6 +670,8 @@ static const page_t PAGES[] = {
                                                                          * POSITION (after Rings') */
     {"POLY MOD", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYPME, P_SYPMB, P_SYPMD, P_SYBLOW}},   /* (custom) SYNTH only: the
                                                                          * Prophet-5's POLY MOD, OSC B's LOW */
+    {"FILTER 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_SYF2, P_SYF2O, P_SYBST, P_SYPNCH}},   /* (custom) SYNTH only: the
+                                                                         * Virus's second filter, saturation, punch */
     {"LANES", FAM_EDIT, SC_TRACK, GR_LANES, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM only: LANE, its LEVEL TUNE DECAY
                                                                          * (page_desc) */
     {"SOUND", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},     /* (Skiff phase 7, 8) DRUM-X only: a sound of the

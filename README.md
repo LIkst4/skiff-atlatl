@@ -134,6 +134,14 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
   its own AMOUNT (threshold and ratio), ATTACK, RELEASE and GAIN; UPWARD (on/off) also brings quiet bands up, OTT
   style; MIX blends it in parallel (0 is off). Its graph shows each band's gain as it plays.
 - Builds leave out the USB serial console (a developer tool, `FELUCCA_CDC=1` keeps it): its flash went to MULTI.
+- **SYNTH, more character**: DRIFT (default 40) now gives each voice its own "card", as a polysynth's voice
+  boards: a little off in pitch, cutoff, pulse width, level and envelope speed, always the same for that voice, plus
+  a smaller part that changes every note. Notes from silence start anywhere in the oscillators' cycles (free-running,
+  as analog VCOs). DRIFT 0 is the old, exact sound.
+- **SYNTH › FILTER 2**, a Virus-style page: **F2** adds a second filter after the first (SER LP / HP / BP) or beside it
+  (PAR LP / HP / BP), **F2 OFS** sets its cutoff from the first's (about ±3 octaves; both follow the cutoff and its
+  modulation); **BOOST** lifts the low end as the Virus TI's ANALOG BOOST; **PUNCH** kicks the first milliseconds of
+  each note. All off by default: presets sound as before.
 - **FX › FILTER** draws the filter: its curve from low-pass through band-pass to high-pass by BLEND, COMB's teeth,
   VOWEL's formants. The **ARP** page's graph shows the **ARP STEP** pattern (rests, STACC, each step's transpose, the
   step playing).

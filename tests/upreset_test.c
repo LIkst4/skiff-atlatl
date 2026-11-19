@@ -292,19 +292,21 @@ int main(void)
     }
 #endif
 
-    /* map by count: a record from a build with 2 parameters fewer */
+    /* map by count: a record from a build with 2 parameters fewer ((custom) P_COUNT 180 is past a record's room,
+     * UP_SIDS: by count only to that; today's are by stored id, version 6) */
+    const uint32_t NB = P_COUNT < UP_SIDS ? P_COUNT : UP_SIDS;
     for (i = 0; i < P_COUNT; i++)
         def[i] = (int16_t)(1000 + i);
     r.ver = UP_VER;                                         /* ((2.1) UP_PUT's records are version 6) */
-    r.np = P_COUNT - 2u;
-    for (i = 0; i < P_COUNT; i++)
+    r.np = (uint8_t)(NB - 2u);
+    for (i = 0; i < NB; i++)
         up_set_value(&r, i, (int16_t)(i % 100u));
     up_params(&r, v, def);
     ok = 1;
     for (i = 0; i < P_E0; i++)
-        ok &= v[i] == (i < P_E0 - 2u ? (int16_t)(i % 100u) : def[i]);
+        ok &= v[i] == (i < NB - 10u ? (int16_t)(i % 100u) : def[i]);
     for (i = 0; i < 8u; i++)
-        ok &= v[P_E0 + i] == (int16_t)((P_E0 - 2u + i) % 100u);
+        ok &= v[P_E0 + i] == (int16_t)((NB - 10u + i) % 100u);
     bad += check("np < P_COUNT: mapped by count", ok);
 #if FELUCCA_LEGACY                                          /* ((2.0) versions 1..3: the converter's) */
     /* a record saved before the SLICER (P_COUNT 53, P_E0 45): the four SLICER parameters (just
@@ -316,8 +318,8 @@ int main(void)
     up_params(&r, v, def);
     ok = P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_CHRD &&
          P_VOIC + 1 == P_LN0 && P_LN7 + 1 == P_DIR && P_DKREL + 1 == P_DTYPE && P_LDECAY7 + 1 == P_LSYNC &&
-         P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_FBLND && P_FBLND + 1 == P_STRUM && P_SDIR + 1 == P_E0 &&
-         P_E0 == 168 && P_COUNT == 176;                      /* ((custom) the track FILTER, SYNTH's own; (2.5) STRUM DIR) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
+         P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_FBLND && P_FBLND + 1 == P_STRUM && P_SDIR + 1 == P_SYF2 &&
+         P_SYPNCH + 1 == P_E0 && P_E0 == 172 && P_COUNT == 180;   /* ((custom) FILTER 2) */                      /* ((custom) the track FILTER, SYNTH's own; (2.5) STRUM DIR) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
                                                               * lanes; 1.3: LFO SYNC TRIG POL, SPREAD, INSERT, ENV SYNC;
                                                               * (2.0, #36) the lane pans; (2.1) the chord follow; (2.5)
                                                               * STRUM, DIR) */
@@ -372,14 +374,16 @@ int main(void)
         bad += check("v4 / v5 records of 91, 89 and 69 parameters: E0..E7 at P_E0, lane levels and chord keys defaults", ok);
     }
     r.ver = UP_VER;
-    r.np = P_COUNT;
-    for (i = 0; i < P_COUNT; i++)
-        up_set_value(&r, i, (int16_t)i);
+    r.np = (uint8_t)NB;
+    for (i = 0; i < NB; i++)
+        up_set_value(&r, i, (int16_t)(i % 120u));
     up_params(&r, v, def);
     ok = 1;
-    for (i = 0; i < P_COUNT; i++)
-        ok &= v[i] == (int16_t)i;
-    bad += check("np == P_COUNT: as stored", ok);
+    for (i = 0; i < P_E0; i++)
+        ok &= v[i] == (i < NB - 8u ? (int16_t)(i % 120u) : def[i]);
+    for (i = 0; i < 8u; i++)
+        ok &= v[P_E0 + i] == (int16_t)((NB - 8u + i) % 120u);
+    bad += check("np == P_COUNT (or a record's room, UP_SIDS): as stored", ok);
     {   /* (2.0, Tier B 7) version 6: the sound by stored id over the parameters' and the pattern's bytes, no pattern; a
          * newer record's ids passed over, an older one's missing ones at their defaults */
         static int16_t s[P_COUNT];

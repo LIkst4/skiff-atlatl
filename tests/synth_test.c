@@ -316,6 +316,85 @@ int main(int argc, char **argv)
             ck("DRIFT 127: each voice's card (pitch, cutoff, PW, level, envelope) within range, the same note after "
                "note, the four voices not alike", ok);
         }
+        {   /* (custom, the Virus's) FILTER 2 page: F2 SER LP below the FILTER darker (its zero crossings fewer); every
+             * route with BOOST and RESO at the top bounded, no DC; BOOST 127 louder at the bottom;
+             * PUNCH 127 the first ~5 ms louder, later the same */
+            stat_t st;
+            int32_t o[2 * CTL], prev = 0;
+            uint32_t r, ok = 1, q, k;
+            double e[2][2], hf[2];
+            for (r = 0; r < 2u; r++) {                       /* (hf: the first difference's energy over the signal's) */
+                double d2 = 0, x2 = 0;
+                fresh(0);
+                trk[0].p[P_SYDRFT] = 0;
+                trk[0].p[P_FTYPE] = FT_OFF;
+                trk[0].p[P_SYF2] = (int16_t)r;
+                trk[0].p[P_SYF2O] = -40;
+                trk_note_on(&trk[0], 48, 100);
+                run(FS / 16 / CTL, 0, 0);
+                for (q = 0; q < FS / 4 / CTL; q++) {
+                    mix_block(o, CTL);
+                    for (k = 0; k < CTL; k++) {
+                        int32_t x = o[2 * k] + o[2 * k + 1];
+                        d2 += (double)(x - prev) * (x - prev), x2 += (double)x * x, prev = x;
+                    }
+                }
+                hf[r] = d2 / (x2 + 1);
+            }
+            ck("F2 SER LP, OFS -40 (FILTER OFF): darker than without", hf[1] < hf[0] * 0.5);
+            for (r = 1; r <= 6u; r++) {
+                memset(&st, 0, sizeof st);
+                fresh(0);
+                trk[0].p[P_FTYPE] = FT_LPMG;
+                trk[0].p[P_FRES] = 127;
+                trk[0].p[P_SYF2] = (int16_t)r;
+                trk[0].p[P_SYBST] = 127;
+                trk[0].p[P_SYPNCH] = 127;
+                trk_note_on(&trk[0], 36, 127);
+                trk_note_on(&trk[0], 60, 127);
+                trk_note_on(&trk[0], 84, 127);
+                run(FS / 2 / CTL, &st, 0);
+                ok &= st.pk < 32768 && fabs(st.sum / st.n) < 300;
+            }
+            ck("F2 every route, BOOST 127, RESO 127, PUNCH 127: bounded, no DC", ok);
+            for (r = 0; r < 2u; r++) {                       /* (BOOST: louder, its share of the top lower) */
+                double d2 = 0, x2 = 0;
+                fresh(0);
+                trk[0].p[P_SYDRFT] = 0;
+                trk[0].p[P_SYBST] = r ? 127 : 0;
+                trk_note_on(&trk[0], 36, 100);
+                run(FS / 16 / CTL, 0, 0);
+                for (q = 0; q < FS / 4 / CTL; q++) {
+                    mix_block(o, CTL);
+                    for (k = 0; k < CTL; k++) {
+                        int32_t x = o[2 * k] + o[2 * k + 1];
+                        d2 += (double)(x - prev) * (x - prev), x2 += (double)x * x, prev = x;
+                    }
+                }
+                e[r][0] = sqrt(x2), hf[r] = d2 / (x2 + 1);
+            }
+            ck("BOOST 127 (a low C): louder (> +2 dB), the top's share lower", e[1][0] > e[0][0] * 1.26 && hf[1] < hf[0] * 0.8);
+            for (r = 0; r < 2u; r++) {
+                fresh(0);
+                trk[0].p[P_SYDRFT] = 0;
+                trk[0].p[P_SYPNCH] = r ? 127 : 0;
+                trk[0].p[P_ATK] = 0;
+                trk_note_on(&trk[0], 48, 100);
+                memset(&st, 0, sizeof st);
+                for (q = 0; q < 8u; q++) {                   /* (~5 ms) */
+                    mix_block(o, CTL);
+                    for (ok = 0; ok < 2u * CTL; ok++)
+                        st.sq += (double)o[ok] * o[ok], st.n++;
+                }
+                e[r][0] = rms(&st);
+                memset(&st, 0, sizeof st);
+                run(FS / 8 / CTL, 0, 0);
+                run(4, &st, 0);
+                e[r][1] = rms(&st);
+            }
+            ck("PUNCH 127: the first ~5 ms louder (> +2 dB), ~130 ms on the same (within 0.3 dB)",
+               e[1][0] > e[0][0] * 1.26 && fabs(e[1][1] / e[0][1] - 1) < 0.035);
+        }
         {   /* MODAL: rings after the strike, dies away; damped (MOD 127) much sooner */
             stat_t e0 = {0}, e1 = {0}, d0 = {0}, d1 = {0};
             fresh(0);
