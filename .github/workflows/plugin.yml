@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# (custom) The FM-1 plugin (plugin/): CLAP, VST3, AUv2 (macOS) and a standalone app, on Windows, macOS (universal) and
+# Linux; the link's tests, clap-validator on the CLAP, pluginval on the VST3, auval on the AU, a look at the window
+# (Linux, Xvfb). The plugins are this run's artifacts.
+name: plugin
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "plugin/**"
+      - "web/editor.html"
+      - "web/fm1backup.js"
+      - "web/conv/conv.js"
+      - ".github/workflows/plugin.yml"
+permissions:
+  contents: read
+concurrency:
+  group: plugin-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: linux
+          - os: macos-14
+            name: macos
+          - os: windows-2022
+            name: windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Linux: GTK, WebKitGTK, ALSA, Xvfb"
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgtk-3-dev libwebkit2gtk-4.1-dev libasound2-dev xvfb imagemagick ninja-build
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake -S plugin -B build/plugin -G "Visual Studio 17 2022" -A x64
+          else
+            gen=Ninja; [ "$RUNNER_OS" = "macOS" ] && gen="Unix Makefiles"
+            cmake -S plugin -B build/plugin -G "$gen" -DCMAKE_BUILD_TYPE=Release
+          fi
+      - name: Build
+        run: cmake --build build/plugin --config Release --parallel 4
+      - name: "The link's tests"
+        run: ctest --test-dir build/plugin -C Release --output-on-failure
+      - name: "macOS: sign (ad hoc)"
+        if: runner.os == 'macOS'
+        run: |
+          cd build/plugin/out
+          for b in *.clap *.vst3 *.component *.app; do [ -e "$b" ] && codesign --force --deep --sign - "$b"; done
+          ls -la
+      - name: clap-validator
+        shell: bash
+        run: |
+          cargo install --locked --git https://github.com/free-audio/clap-validator clap-validator
+          clap=$(ls -d build/plugin/out/*.clap | head -1)
+          clap-validator validate --hide-output "$clap"
+      - name: pluginval (VST3)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) z=pluginval_Linux.zip; exe=./pluginval ;;
+            macOS) z=pluginval_macOS.zip; exe=./pluginval.app/Contents/MacOS/pluginval ;;
+            Windows) z=pluginval_Windows.zip; exe=./pluginval.exe ;;
+          esac
+          curl -sSfL -o pv.zip "https://github.com/Tracktion/pluginval/releases/latest/download/$z"
+          unzip -q pv.zip
+          vst3=$(ls -d build/plugin/out/*.vst3 | head -1)
+          run=""; [ "$RUNNER_OS" = "Linux" ] && run="xvfb-run -a"
+          $run $exe --strictness-level 5 --skip-gui-tests --validate-in-process --validate "$vst3"
+      - name: auval (AU)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          cp -R build/plugin/out/*.component ~/Library/Audio/Plug-Ins/Components/
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -v aumu Fm1s Atlt
+      - name: "Linux: the window (Xvfb)"
+        if: runner.os == 'Linux'
+        run: |
+          g++ -std=c++20 -O1 -Ibuild/plugin/_deps/clap-src/include -o gui_smoke plugin/tests/gui_smoke.cpp -ldl
+          Xvfb :99 -screen 0 1400x900x24 & sleep 1
+          DISPLAY=:99 ./gui_smoke "$(ls build/plugin/out/*.clap | head -1)" 10 & sleep 8
+          DISPLAY=:99 import -window root -crop 1280x840+0+0 build/plugin/out/window-linux.png
+          wait %2
+      - name: Package
+        shell: bash
+        run: |
+          cd build/plugin/out
+          cp ../../../plugin/README.md README-plugin.md
+          7z a -tzip "../fm1-plugin-${{ matrix.name }}.zip" . >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fm1-plugin-${{ matrix.name }}
+          path: build/plugin/fm1-plugin-${{ matrix.name }}.zip

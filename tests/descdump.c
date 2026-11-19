@@ -266,6 +266,19 @@ int main(void)
             printf("]]");
         }
     }
+    printf("],\n\"PAGES\":[");                         /* (custom) the track's pages: [title, family, its four ids]
+                                                         * (the plugin's parameter groups: plugin/tools/gen_params.py) */
+    for (k = 0, e = 0; k < NPAGES; k++) {
+        uint32_t j;
+        if (PAGES[k].scope != SC_TRACK)
+            continue;
+        printf("%s[", e++ ? "," : "");
+        js_str(PAGES[k].title);
+        printf(",%u,[", (unsigned)PAGES[k].fam);
+        for (j = 0; j < 4u; j++)
+            printf("%s%d", j ? "," : "", PAGES[k].id[j] == 0xFFu ? -1 : (int)PAGES[k].id[j]);
+        printf("]]");
+    }
     printf("]}\n");
     return 0;
 }

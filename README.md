@@ -142,6 +142,9 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
   (PAR LP / HP / BP), **F2 OFS** sets its cutoff from the first's (about ±3 octaves; both follow the cutoff and its
   modulation); **BOOST** lifts the low end as the Virus TI's ANALOG BOOST; **PUNCH** kicks the first milliseconds of
   each note. All off by default: presets sound as before.
+- **The FM-1 as a plugin** (CLAP, VST3, AU, standalone; Windows, macOS, Linux): the editor in the plugin window, each
+  track's parameters as DAW automation (both ways), notes, MIDI clock and transport to the FM-1, its sound back on the
+  DAW's audio input. See [plugin/README.md](plugin/README.md).
 - **FX › FILTER** draws the filter: its curve from low-pass through band-pass to high-pass by BLEND, COMB's teeth,
   VOWEL's formants. The **ARP** page's graph shows the **ARP STEP** pattern (rests, STACC, each step's transpose, the
   step playing).

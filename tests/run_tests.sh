@@ -431,6 +431,12 @@ EOF
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/descdump" tests/descdump.c -lm
     echo "== parameter and engine tables as JSON (for the editor mock test)"
     "$OUT/descdump" > "$OUT/desc.json" || fail=1
+    # ((custom) the FM-1 plugin's parameters are the firmware's: plugin/src/gen/params.h made from these tables again,
+    # the same; after a parameter is added: plugin/tools/gen_params.py, as below, into plugin/src/gen/params.h)
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/plugin_sids" plugin/tools/plugin_sids.c
+    run "plugin: its parameter table (plugin/src/gen/params.h) is the firmware's" sh -c "\"$OUT/plugin_sids\" > \"$OUT/plugin_sids.txt\" &&
+        python3 plugin/tools/gen_params.py \"$OUT/desc.json\" \"$OUT/plugin_sids.txt\" \"$OUT/plugin_params.h\" &&
+        cmp plugin/src/gen/params.h \"$OUT/plugin_params.h\""
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/phys_test" tests/phys_test.c -lm
     mkdir -p build/phys_demo
     run "PHYS: stability C-1..G9 over the parameter corners, worst-case cost against PHASE WIRE, demos" "$OUT/phys_test" build/phys_demo
