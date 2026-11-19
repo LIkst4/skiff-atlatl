@@ -25,7 +25,7 @@ jobs:
         include:
           - os: ubuntu-24.04
             name: linux
-          - os: macos-14
+          - os: macos-15
             name: macos
           - os: windows-2022
             name: windows
@@ -51,17 +51,28 @@ jobs:
         run: cmake --build build/plugin --config Release --parallel 4
       - name: "The link's tests"
         run: ctest --test-dir build/plugin -C Release --output-on-failure
+      - name: "Collect the plugins (each generator puts them elsewhere)"
+        shell: bash
+        run: |
+          d=build/plugin/dist; mkdir -p $d
+          o=build/plugin/out
+          first() { find "$o" -name "$1" $2 -prune -print | head -1; }
+          for x in "$(first '*.clap')" "$(first '*.vst3' '-type d')" "$(first '*.component')" "$(first '*.app')" \
+                   "$(first 'FM-1 skiff-atlatl.exe')" "$(first 'FM-1 skiff-atlatl' '-type f')"; do
+            [ -n "$x" ] && cp -R "$x" $d/
+          done
+          ls -la $d
       - name: "macOS: sign (ad hoc)"
         if: runner.os == 'macOS'
         run: |
-          cd build/plugin/out
+          cd build/plugin/dist
           for b in *.clap *.vst3 *.component *.app; do [ -e "$b" ] && codesign --force --deep --sign - "$b"; done
           ls -la
       - name: clap-validator
         shell: bash
         run: |
           cargo install --locked --git https://github.com/free-audio/clap-validator clap-validator
-          clap=$(ls -d build/plugin/out/*.clap | head -1)
+          clap=$(ls -d build/plugin/dist/*.clap | head -1)
           clap-validator validate --hide-output "$clap"
       - name: pluginval (VST3)
         shell: bash
@@ -73,14 +84,14 @@ jobs:
           esac
           curl -sSfL -o pv.zip "https://github.com/Tracktion/pluginval/releases/latest/download/$z"
           unzip -q pv.zip
-          vst3=$(ls -d build/plugin/out/*.vst3 | head -1)
+          vst3=$(ls -d build/plugin/dist/*.vst3 | head -1)
           run=""; [ "$RUNNER_OS" = "Linux" ] && run="xvfb-run -a"
           $run $exe --strictness-level 5 --skip-gui-tests --validate-in-process --validate "$vst3"
       - name: auval (AU)
         if: runner.os == 'macOS'
         run: |
           mkdir -p ~/Library/Audio/Plug-Ins/Components
-          cp -R build/plugin/out/*.component ~/Library/Audio/Plug-Ins/Components/
+          cp -R build/plugin/dist/*.component ~/Library/Audio/Plug-Ins/Components/
           killall -9 AudioComponentRegistrar 2>/dev/null || true
           auval -v aumu Fm1s Atlt
       - name: "Linux: the window (Xvfb)"
@@ -88,13 +99,13 @@ jobs:
         run: |
           g++ -std=c++20 -O1 -Ibuild/plugin/_deps/clap-src/include -o gui_smoke plugin/tests/gui_smoke.cpp -ldl
           Xvfb :99 -screen 0 1400x900x24 & sleep 1
-          DISPLAY=:99 ./gui_smoke "$(ls build/plugin/out/*.clap | head -1)" 10 & sleep 8
-          DISPLAY=:99 import -window root -crop 1280x840+0+0 build/plugin/out/window-linux.png
+          DISPLAY=:99 ./gui_smoke "$(ls build/plugin/dist/*.clap | head -1)" 10 & sleep 8
+          DISPLAY=:99 import -window root -crop 1280x840+0+0 build/plugin/dist/window-linux.png
           wait %2
       - name: Package
         shell: bash
         run: |
-          cd build/plugin/out
+          cd build/plugin/dist
           cp ../../../plugin/README.md README-plugin.md
           7z a -tzip "../fm1-plugin-${{ matrix.name }}.zip" . >/dev/null
       - uses: actions/upload-artifact@v4
