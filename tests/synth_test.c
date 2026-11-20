@@ -504,6 +504,70 @@ int main(int argc, char **argv)
            !tflt[0][0].type && a.pk > 0);
     }
 
+    {   /* (custom) UNISON as a supersaw: one filter a side, DETUNE's spread, its level, its cost */
+        stat_t a, b;
+        static const flt_t Z;
+        uint32_t untouched = 1, j, lit = 1;
+        int32_t f[UNI_NV], prev = INT32_MIN, sym = 1, mono = 1, none0 = 1;
+        uint64_t t0, nu = 0, np = 0;
+        static const uint8_t CH[8] = {36, 43, 48, 52, 55, 60, 64, 67};
+        fresh(0);
+        trk[0].p[P_VOICE] = V_UNISON;
+        trk[0].p[P_E3] = 1 + SY_VA;
+        trk[0].p[P_E7] = 64;
+        trk_note_on(&trk[0], 48, 100);
+        memset(&a, 0, sizeof a);
+        run(FS / 4 / CTL, &a, 0);
+        for (j = 0; j < UNI_NV; j++) {
+            synth_vc_t *S = synth_vc(&trk[0], &trk[0].v[j]);
+            int z = !memcmp(&S->f, &Z, sizeof Z);
+            if (j < 2u)
+                lit &= !z;
+            else
+                untouched &= z;
+        }
+        ck("UNISON: the 8 voices through 2 filters (a side's, its first voice's), the others' never run",
+           voices_on(&trk[0]) == UNI_NV && lit && untouched);
+        fresh(0);
+        trk[0].p[P_E3] = 1 + SY_VA;
+        trk[0].p[P_E7] = 64;
+        trk_note_on(&trk[0], 48, 100);
+        memset(&b, 0, sizeof b);
+        run(FS / 4 / CTL, &b, 0);
+        printf("synth: UNISON A+B VA: RMS %.0f, one POLY note %.0f\n", rms(&a), rms(&b));
+        ck("UNISON: about one note's level (x0.7 .. x2.5)", rms(&a) > 0.7 * rms(&b) && rms(&a) < 2.5 * rms(&b));
+        for (j = 0; j < UNI_NV; j++) {
+            f[j] = uni_fine(j, UNI_NV, 127);
+            mono &= f[j] > prev;
+            prev = f[j];
+            none0 &= f[j] != 0 && uni_fine(j, UNI_NV, 1) != 0;
+        }
+        for (j = 0; j < UNI_NV; j++)
+            sym &= f[j] == -f[UNI_NV - 1u - j];
+        printf("synth: UNISON DETUNE 127: %d %d %d %d (1/4096s, the upper half), at 40: %d\n", f[4], f[5], f[6], f[7],
+               uni_fine(7, UNI_NV, 40));
+        ck("UNISON: the spread symmetric, rising, no voice in tune, the middle close (|u|^1.5), the edges as wide as before",
+           mono && none0 && sym && f[7] == 7 * 127 * 56 / 889 && f[5] * 2 < f[7] && f[6] < f[7] * 3 / 4);
+        for (j = 0; j < 2u; j++) {          /* the cost: one note UNISON (8 voices), 8 notes POLY, A + B VA */
+            uint32_t q;
+            fresh(0);
+            trk[0].p[P_E3] = 1 + SY_VA;
+            trk[0].p[P_E7] = 64;
+            trk[0].p[P_VOICE] = j ? V_POLY : V_UNISON;
+            for (q = 0; q < (j ? 8u : 1u); q++)
+                trk_note_on(&trk[0], CH[q], 100);
+            run(40, 0, 0);                  /* (warm) */
+            for (q = 0; q < 400u; q++) {
+                int32_t o[2 * CTL];
+                t0 = now_ns();
+                mix_block(o, CTL);
+                *(j ? &np : &nu) += now_ns() - t0;
+            }
+        }
+        printf("synth: UNISON A+B VA %.0f ns a block, 8 POLY notes %.0f\n", (double)nu / 400, (double)np / 400);
+        ck("UNISON: cheaper than 8 POLY notes (2 filters, not 8)", nu < np * 4 / 5);
+    }
+
     /* 5 */
     for (k = 0; k < SY_N; k++) {
         uint64_t t0, ns = 0;

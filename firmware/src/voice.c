@@ -366,15 +366,28 @@ static uint32_t uni_nvoice(const track_t *t)            /* ((2.5) UNISON stays a
     uint32_t n = trk_nvoice(t);
     return n < UNI_NV ? n : UNI_NV;
 }
+/* (custom) UNISON voice i of nv's fine tune, as a supersaw's: the stack's place u (-1 .. 1) as |u|^1.5 (the middle
+ * voices close together, the outer ones the width: a chorus around the note, not a cluster of equal steps), DETUNE
+ * as d (d + 192) / 319 (its low half a little finer, the old width at 127: ~24 cents the outer ones); none in tune
+ * with another (two voices on one pitch at a fixed phase: a comb, hollow) */
+static int32_t uni_fine(uint32_t i, uint32_t nv, int32_t dt)
+{
+    int32_t k = 2 * (int32_t)i - (int32_t)(nv - 1u), a = (k < 0 ? -k : k) * 64 / (int32_t)(nv - 1u), r = 0, f;
+    while ((r + 1) * (r + 1) <= a)
+        r++;                                             /* (sqrt: at a note, a few steps) */
+    dt = clamp(dt, 0, 127);
+    f = (a * r + (a * (a - r * r)) / (2 * r + 1)) * (dt * (dt + 192) / 319) * 7 * 56 / (8 * 64 * 889);   /* (a^1.5 / 8) */
+    if (f < 1 && dt)
+        f = 1;
+    return k < 0 ? -f : f;
+}
+
 static void mono_play(track_t *t, uint32_t note, uint32_t vel, int retrig, int glide)
 {
     uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? uni_nvoice(t) : 1u, i;
     for (i = 0; i < nv; i++) {
         voice_t *v = &t->v[i];
-        int32_t k = 2 * (int32_t)i - (int32_t)(nv - 1u);   /* -7 .. 7 */
-        if (nv > 1u && nv < UNI_NV)
-            k = k * (UNI_NV - 1) / (int32_t)(nv - 1u);      /* fewer voices: the outer ones as wide */
-        v->fine = nv > 1u ? k * t->p[P_DETUNE] * 56 / 889 : 0;   /* up to ~±40 cents */
+        v->fine = nv > 1u ? uni_fine(i, nv, t->p[P_DETUNE]) : 0;
         if (retrig || !v->active || !v->gate) {
             if ((!v->active || v->stage == 4u) && !voice_room(t, i > 0))
                 continue;                                   /* no room for this extra UNISON voice */
