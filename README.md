@@ -126,6 +126,14 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - The arpeggiator recorded into the sequencer stays on the steps however long it is held (each arp step was rounded up
   to the audio block, so a held arp drifted later and later: its notes landed late, then a step late), and an arp
   started while the sequencer plays starts on its grid.
+- **Recording the arp**, fixed further:
+  - An arp already running when PLAY starts (a key held before REC, the count-in, HOLD) starts again from its first
+    note on step 0. Before, it kept its own timing, half a step off, and recorded a step early.
+  - Held past the end of the pattern, it writes its steps again instead of stacking chords (POLY).
+  - Faster than the track's DIV (ARP 1/32 on 1/16 steps), it records one arp note per step, in order. Before, only
+    the root's note was left.
+  - **Stopped, with the track armed, in SEQ's step entry:** hold a key and what the arp plays is written one step at a
+    time from the cursor (a rest for an ARP STEP OFF), for as long as you hold it.
 - Projects and user presets store **STRUM** and **DIR** where Skiff 2.5 does, so sounds and projects move between
   Skiff 2.5 and skiff-atlatl both ways; SYNTH's own parameters and DRUM's lane models share their stored ids (a
   track holds one engine), which leaves room in the user preset record for Skiff's next parameters. Projects and

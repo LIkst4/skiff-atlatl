@@ -4,6 +4,11 @@
  * and an arp started while the sequencer plays starts on its grid (a key late in a step: that step, on from the next
  * one on the grid; past its middle: the next step, on the grid). Every recorded step a NOTE, no TIEs, no FEEL nudge but
  * the first, late, note's. Stopped, the arp starts with the key as before.
+ * (custom, 2026-11-20) Held from before PLAY (REC from stop, a count-in, HOLD): the arp starts again from its first note
+ * on step 0, on the grid (it went on half a step off: recorded a step early, against what was heard); a hold running
+ * over the pattern writes its steps again, not chords of every pass (POLY); faster than DIV (ARP 1/32 on 1/16 steps):
+ * one note a step, in order (it recorded the root's alone); stopped and armed, SEQ's step entry writes what the arp
+ * plays, a step each from the cursor, for as long as it is held.
  * Run by tests/run_tests.sh (needs build/gen from one firmware build). */
 #define UI_TEST_NO_MAIN 1
 #include "ui_test.c"
@@ -64,7 +69,7 @@ int main(void)
     bad += check("16 bars of a held arp: on the steps still (its step's place = the sequencer's)",
                  t->arp_pos == t->seq_pos);
     bad += check("  every step a NOTE of it, no TIE, FEEL's nudge only on the first (late) one", steps_ok(0, -1));
-    bad += check("  the first's nudge: late, under half a step", t->step[0].nudge > 0 && t->step[0].nudge < 32);
+    bad += check("  step 0 written again by the passes after (on the grid): no nudge left", t->step[0].nudge == 0);
     key_up(K_C4);
     blocks(4);
     bad += check("  key up: nothing held, nothing sounding from the arp", !t->nheld && !t->arp_note);
@@ -88,6 +93,144 @@ int main(void)
     blocks(1);
     bad += check("stopped: the arp starts with the key", t->arp_note == 60u);
     key_up(K_C4);
+
+    /* (custom, 2026-11-20) a key held from before PLAY: the arp off the grid, REC from stop */
+    {
+        uint32_t i, ok = 1;
+        setup();
+        transport_req = 2;                         /* (stopped) */
+        blocks(2);
+        t->p[P_AOCT] = 2;
+        key_down(K_C4);
+        blocks(per / CTL * 3u + per / CTL / 2u);  /* (the arp half a step into its own free time) */
+        transport_req = 1;                         /* PLAY, armed */
+        blocks(1);
+        ok = t->arp_note == 60u && t->seq_idx == 0u;
+        bad += check("held from before PLAY: the arp starts again with PLAY, from its first note, on step 0", ok);
+        blocks(16u * per / CTL);
+        for (i = 0; i < 16u; i++)
+            ok &= t->step[i].time == ST_NOTE && t->step[i].n == 1u && t->step[i].note[0] == (i & 1u ? 72u : 60u) &&
+                  t->step[i].nudge == 0;
+        bad += check("  recorded as heard: 60 72 60 72 .. from step 0, none a step early", ok);
+        bad += check("  the arp's GATE (64) the sequencer's: its notes as long", t->p[P_SGATE] == 64);
+        key_up(K_C4);
+        blocks(4);
+    }
+    /* a hold over two passes, POLY, a 3-note cycle on 16 steps: each step the last pass's note, no chords */
+    {
+        uint32_t i, ok = 1;
+        setup();
+        t->p[P_VOICE] = V_POLY;
+        t->p[P_AOCT] = 3;
+        key_down(K_C4);
+        blocks(2u * 16u * per / CTL - 4u);
+        for (i = 0; i < 16u; i++)
+            ok &= t->step[i].time == ST_NOTE && t->step[i].n == 1u && t->step[i].note[0] == 60u + 12u * ((16u + i) % 3u);
+        bad += check("POLY, held over the pattern twice: each step the second pass's note alone, no chords", ok);
+        key_up(K_C4);
+        blocks(4);
+    }
+    /* faster than the steps: ARP 1/32 on 1/16 steps; and ARP 1/16 on 1/8 steps */
+    {
+        uint32_t i, r, ok;
+        for (r = 0; r < 2u; r++) {
+            setup();
+            t->p[P_AOCT] = 2;
+            t->p[P_ARATE] = r ? 2 : 3;
+            t->p[P_SDIV] = r ? 1 : 2;
+            key_down(K_C4);
+            blocks(8u * per / CTL);                /* (16 arp notes at 1/32, 4 at 1/16 .. enough for 8 steps) */
+            ok = 1;
+            for (i = 0; i < 8u; i++)
+                ok &= t->step[i].time == ST_NOTE && t->step[i].n == 1u && t->step[i].note[0] == (i & 1u ? 72u : 60u);
+            bad += check(r ? "ARP 1/16 on 1/8 steps: one arp note a step, in order (60 72 60 72 ..)"
+                           : "ARP 1/32 on 1/16 steps: one arp note a step, in order, not the root's alone", ok);
+            bad += check("  a step each: the arp's GATE the sequencer's", t->p[P_SGATE] == 64);
+            key_up(K_C4);
+            blocks(4);
+        }
+    }
+    /* stopped, armed, SEQ's step entry: what the arp plays, a step each from the cursor */
+    {
+        uint32_t i, ok = 1, n0;
+        setup();
+        transport_req = 2;
+        blocks(2);
+        song.rec = 1u << song.sel;
+        t->p[P_AOCT] = 2;
+        go_page(GR_ROLL);
+        cursor_set(2);
+        frame();
+        key_down(K_C4);
+        for (i = 0; i < 40u; i++) {                /* (frames with the audio's blocks between: ~5 arp steps) */
+            frame();
+            blocks(22);
+        }
+        key_up(K_C4);                              /* (what it played up to now still comes: the frame after) */
+        frame();
+        blocks(22);
+        frame();
+        n0 = ui.cursor;
+        ok = n0 >= 6u && n0 <= 10u && !t->step[0].n && !t->step[1].n && t->step[n0].time == ST_REST;
+        for (i = 2; i < n0; i++)
+            ok &= t->step[i].time == ST_NOTE && t->step[i].n == 1u && t->step[i].note[0] == (i & 1u ? 72u : 60u);
+        bad += check("stopped, armed, step entry: each arp note a step from the cursor (60 72 ..), the cursor past them",
+                     ok);
+        blocks(400);
+        frame();
+        bad += check("  let go: nothing more written", ui.cursor == n0);
+        bad += check("  the arp's GATE the sequencer's", t->p[P_SGATE] == 64);
+    }
+    /* ARP 1/8 on 1/16 steps, playing: a note a step long, then a rest (its GATE 64 of 1/8: the whole 1/16) */
+    {
+        setup();
+        t->p[P_ARATE] = 1;
+        key_down(K_C4);
+        blocks(4u * per / CTL);
+        bad += check("ARP 1/8 on 1/16 steps, playing: a note then a rest, the GATE a whole step (127)",
+                     t->step[0].time == ST_NOTE && t->step[1].time == ST_REST && t->step[2].time == ST_NOTE &&
+                     t->p[P_SGATE] == 127);
+        key_up(K_C4);
+        blocks(4);
+    }
+    /* REC with the ARP on, stopped, away from SEQ: armed, no PLAY; the arp writes the steps from the cursor */
+    {
+        uint32_t i, ok;
+        setup();
+        transport_req = 2;
+        blocks(2);
+        song.rec = 0;
+        t->p[P_AOCT] = 2;
+        go_page(GR_ARP);
+        cursor_set(0);
+        frame();
+        press(B_REC);
+        blocks(2);
+        ok = (song.rec & 1u) && !song.playing && !transport_req && !seq_counting() && msg_is("ARP WRITES STEPS");
+        bad += check("REC with the ARP on, stopped, on the ARP page: armed, PLAY not started, ARP WRITES STEPS", ok);
+        key_down(K_C4);
+        for (i = 0; i < 40u; i++) {
+            frame();
+            blocks(22);
+        }
+        key_up(K_C4);
+        frame();
+        blocks(22);
+        frame();
+        ok = ui.cursor >= 4u && !song.playing;
+        for (i = 0; i < ui.cursor; i++)
+            ok &= t->step[i].time == ST_NOTE && t->step[i].note[0] == (i & 1u ? 72u : 60u);
+        bad += check("  a key held: what the arp plays, a step each from step 1, still stopped", ok);
+        t->p[P_AMODE] = 0;
+        song.rec = 0;
+        frame();
+        press(B_REC);
+        blocks(2);
+        bad += check("  the ARP off: REC from stop starts PLAY, as before", transport_req == 1u || song.playing ||
+                                                                           seq_counting());
+        transport_req = 2;
+        blocks(2);
+    }
 
     printf(bad ? "arp_rec_test: %d FAILED\n" : "arp_rec_test: all passed\n", bad);
     return bad != 0;

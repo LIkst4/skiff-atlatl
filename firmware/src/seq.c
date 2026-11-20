@@ -305,6 +305,19 @@ static uint32_t arp_period(uint32_t r)
 /* (custom) the samples the sequencer has played since PLAY (events_block; a Song Position's place too): an arp started
  * while it plays starts on its grid (arp_step), so what it records falls on the steps */
 static uint32_t arp_clk;
+/* (custom) the ARP recorded, beside what rec_note does: arp_wr, the steps this hold has written (a step it comes back
+ * to on a later pass of the loop is written again, not stacked into a chord); arp_rcur, faster than the track's DIV,
+ * the step its next note goes to (one note a step, in order: arp_record); stopped, armed: arp_rq, its steps (a note,
+ * 0 a rest) for SEQ's step entry to write one a step from the cursor (ui_input.c arp_entry) */
+static uint8_t arp_wr[NTRK][NSTEP / 8u] __attribute__((section(".pool")));
+static int8_t arp_rcur[NTRK] __attribute__((section(".pool")));
+static uint8_t arp_rq[NTRK][16] __attribute__((section(".pool")));
+static volatile uint8_t arp_rqn[NTRK];
+static void arp_rec_reset(uint32_t k)              /* a new hold, or PLAY */
+{
+    memset(arp_wr[k], 0, sizeof arp_wr[k]);
+    arp_rcur[k] = -1;
+}
 static void arp_add(track_t *t, uint32_t note)
 {
     uint32_t i, k = in_key - 1u;
@@ -327,8 +340,10 @@ static void arp_add(track_t *t, uint32_t note)
     if (t->nheld == 1u) {
         t->arp_pos = 0xFFFFFFF;                     /* fire on this block */
         t->arp_idx = 0xFFFFFFFFu;
-        if (trk_index(t) < NTRK)
+        if (trk_index(t) < NTRK) {
             arp_spos[trk_index(t)] = 0;             /* ((custom) ARP STEP from its first) */
+            arp_rec_reset(trk_index(t));
+        }
     }
 }
 
@@ -352,6 +367,8 @@ static void arp_remove(track_t *t, uint32_t note)
 
 static void rec_note(track_t *t, uint32_t note, uint32_t vel);
 static void rec_release(track_t *t, uint32_t note);
+static void arp_record(track_t *t, uint32_t note, uint32_t period);
+static void arp_q(const track_t *t, uint32_t note);
 static uint32_t step_samples(const track_t *t, uint32_t period, uint32_t idx);
 static int rec_on(const track_t *t) { return ((song.rec >> trk_index(t)) & 1u) && song.playing; }
 
@@ -681,19 +698,23 @@ static __attribute__((noinline)) void arp_fire(track_t *t, uint32_t period)
     }
     if (t->arp_note)
         arp_off(t);
-    if (st != AS_OFF && (uint32_t)(rng() & 127u) <= (uint32_t)t->p[P_APROB]) {
+    if (st == AS_OFF || (uint32_t)(rng() & 127u) > (uint32_t)t->p[P_APROB]) {
+        arp_q(t, 0);                                /* ((custom) stopped: a rest for step entry) */
+    } else {
         t->arp_off = period * (uint32_t)t->p[P_AGATE] / 128u;
         if (st == AS_STACC)                         /* (STACC: a quarter of the GATE) */
             t->arp_off = t->arp_off / 4u + 1u;
         if (t->p[P_AMODE] == AM_CHORD) {            /* CHORD: the first 4 notes, an octave up each step */
             arp_chord(t, list, cnt, tr);
+            arp_q(t, t->arp_note);
             return;
         }
         t->arp_note = (uint8_t)clamp((int32_t)list[j] + tr, 0, 127);
         if (rec_on(t))
-            rec_note(t, t->arp_note, 100);           /* recording: what the arp plays */
+            arp_record(t, t->arp_note, period);     /* recording: what the arp plays */
         else
             take_note(t, t->arp_note, 100);         /* (Skiff: TAKES, the same) */
+        arp_q(t, t->arp_note);
         trk_note_on(t, t->arp_note, 100);
     }
 }
@@ -834,15 +855,20 @@ static void rec_put(track_t *t, step_t *s, uint32_t note, uint32_t vel)
         s->vel = (uint8_t)vel;
 }
 
+/* the step a note played now is recorded into: the one playing, or past its middle the next, (Skiff) the next in its
+ * direction (RAND: unknown, so the playing one); *next: the latter */
+static uint32_t rec_idx(const track_t *t, uint32_t *next)
+{
+    uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
+    *next = t->seq_pos > step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx) / 2u &&
+            t->p[P_DIR] != DIR_RAND;
+    return *next ? seq_peek(t, len) : t->seq_idx % len;
+}
+
 static void rec_note(track_t *t, uint32_t note, uint32_t vel)
 {
-    uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, idx = t->seq_idx % len, k, ti = trk_index(t);
-    uint32_t period = div_samples((uint32_t)t->p[P_SDIV]);
-    /* past its middle: the next step, (Skiff) the next in its direction (RAND: unknown, so the playing one) */
-    uint32_t next = t->seq_pos > step_samples(t, period, t->seq_idx) / 2u && t->p[P_DIR] != DIR_RAND;
+    uint32_t next, idx = rec_idx(t, &next), k, ti = trk_index(t);
     step_t *s;
-    if (next)
-        idx = seq_peek(t, len);
     s = &t->step[idx];
     if (s->time == ST_TIE && rec_poly(t))           /* ((2.0) what it holds goes on beside it) */
         rec_untie(t, s, idx);
@@ -876,6 +902,60 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         rec_n[ti][k] = 0;
         t->rh_note[t->rh_n++] = (uint8_t)note;      /* a chord: held until its last key is up */
     }
+}
+
+/* (custom) the arp's note recorded (playing, armed). As fast as the track's DIV or slower: into its step as a key's
+ * (rec_note), a step this hold wrote on an earlier pass of the loop written again (a held arp running over the pattern
+ * length: its notes, not a chord of every pass's). Faster than DIV (ARP 1/32 on 1/16 steps: two notes a step, the
+ * second pushed onto the next step by the first of that one, every note recorded the root's): one note a step, in
+ * order, from the step its first note fell in; the pattern plays them at DIV */
+static __attribute__((noinline)) void arp_record(track_t *t, uint32_t note, uint32_t period)
+{
+    uint32_t k = trk_index(t), len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, next, idx = rec_idx(t, &next);
+    step_t *s;
+    if (k >= NTRK) {
+        rec_note(t, note, 100);
+        return;
+    }
+    {   /* the arp's GATE the sequencer's: its notes as long as it played them (a step each: its GATE; slower than DIV
+         * (ARP 1/8 on 1/16 steps): as many steps' worth, at most a step) */
+        uint32_t sp = div_samples((uint32_t)t->p[P_SDIV]), g = (uint32_t)t->p[P_AGATE];
+        if (period > sp)
+            g = g * period / sp;
+        t->p[P_SGATE] = (int16_t)(g > 127u ? 127u : g < 1u ? 1u : g);
+        if ((motion_base_valid >> k) & 1u)
+            motion_base[k][P_SGATE] = t->p[P_SGATE];   /* (the sound's own: no automation step, kept at STOP) */
+    }
+    if (period < div_samples((uint32_t)t->p[P_SDIV])) {
+        if (arp_rcur[k] >= 0)
+            idx = (uint32_t)arp_rcur[k] % len;
+        arp_rcur[k] = (int8_t)((idx + 1u) % len);
+        s = &t->step[idx];
+        s->n = s->hit = s->acc = s->flags = 0;      /* (its own: a NOTE of it, untied) */
+        s->time = ST_NOTE;
+        rec_put(t, s, note, 100);
+        t->seq_active = 1;
+        return;
+    }
+    s = &t->step[idx];
+    if ((arp_wr[k][idx >> 3] >> (idx & 7u)) & 1u) {
+        s->n = s->hit = s->acc = s->flags = 0;      /* (written by this hold already: again) */
+        s->time = ST_REST;
+    }
+    arp_wr[k][idx >> 3] |= (uint8_t)(1u << (idx & 7u));
+    rec_note(t, note, 100);
+}
+
+/* (custom) stopped with the track armed: the arp's step (a note, 0 a rest) for SEQ's step entry (ui_input.c arp_entry)
+ * to write at the cursor; each entry whole before its count moves */
+static void arp_q(const track_t *t, uint32_t note)
+{
+    uint32_t k = trk_index(t);
+    if (song.playing || k >= NTRK || !((song.rec >> k) & 1u))
+        return;
+    arp_rq[k][arp_rqn[k] & 15u] = (uint8_t)note;
+    RING_PUBLISH();
+    arp_rqn[k]++;
 }
 
 /* (2.0, #25) the sequencer enters step idx with held notes started on different steps: each goes on into it as its own
@@ -1325,6 +1405,14 @@ static void seq_start(void)
         t->rh_n = 0;
         t->rat_left = 0;
         sq[i].alt = 0;                             /* ((2.5) STRUM ALT: DOWN first, every time from PLAY) */
+        if (t->p[P_AMODE] && t->nheld) {           /* (custom) an arp running from before PLAY (a key held, HOLD,
+                                                    * the count-in): again from its first note on step 0, on the grid
+                                                    * (left where it was, it played and recorded half a step off) */
+            t->arp_pos = 0xFFFFFFF;
+            t->arp_idx = 0xFFFFFFFFu;
+            arp_spos[i] = 0;
+            arp_rec_reset(i);
+        }
         if (t->p[P_LSYNC] && (t->p[P_LTRIG] || ENGINES[t->engine]->oneshot))   /* (#16) LFO 2 FREE + SYNC: in time */
             t->lfo_ph = (uint32_t)t->p[P_LPHASE] << 25;   /* with the bars from PLAY ((2.2, #94) a kit's too: its LFO
                                                            * runs free, no note restarts it) */

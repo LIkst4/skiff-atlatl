@@ -530,6 +530,7 @@ static int roll_on(void)
  * (1.4.1) Several tracks can be armed (MIDI IN records each on its channel); REC on an armed track disarms them all,
  * as its LED (lit while any is armed) says: one track armed, another selected, REC no longer looked stuck */
 static void rec_pass_undo(int armed);
+static int arp_writes(const track_t *t) { return t->p[P_AMODE] && !ENGINES[t->engine]->oneshot && !song.grid; }
 static int rec_tap(void)                                /* 1: the arming changed */
 {
     uint8_t bit = (uint8_t)(1u << song.sel);
@@ -539,6 +540,11 @@ static int rec_tap(void)                                /* 1: the arming changed
     if ((song.rec & bit) && !song.playing && !seq_counting() && roll_on()) {
         ui_message("KEYS WRITE STEPS");               /* step recording: stopped, at the cursor */
         return 1;
+    }
+    if ((song.rec & bit) && !song.playing && !seq_counting() && arp_writes(TSEL)) {
+        ui_message("ARP WRITES STEPS");               /* ((custom) the ARP on, any page: armed, stopped, what it plays */
+        return 1;                                     /* is written a step each from the cursor (arp_entry); PLAY then
+                                                       * records live */
     }
     if ((song.rec & bit) && !song.playing && !seq_counting()) {
         chain_top();                                  /* ((2.0, #44) a chain from its first part) */
@@ -1889,6 +1895,42 @@ static void seq_entry(uint32_t pressed)
         cursor_set(ui.cursor + (int32_t)step_span(t, ui.cursor));   /* ((2.0, #31) past its ties) */
 }
 
+/* (custom) REC with the ARP on, stopped (any page: rec_tap arms it without PLAY; SEQ's NOTES too): what the arp plays
+ * while a key is held (or HOLD keeps it going) is written, a step each, from the cursor on: its notes, a rest for a step
+ * it leaves out (ARP STEP OFF, PROB), the cursor past each (wrapping inside LEN), the arp's GATE the sequencer's (a
+ * step each: the notes as long as the arp's). Its steps come from the audio ISR (seq.c arp_q); those from before it was
+ * here are let go */
+static void arp_entry(void)
+{
+    static uint8_t rd[NTRK];
+    static uint32_t seen_ms;
+    track_t *t = TSEL;
+    uint32_t k = song.sel, len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, n;
+    if (k >= NTRK)
+        return;
+    if (!seen_ms || fm1_ms - seen_ms > 100u)           /* (not here a moment ago, or never: what was queued */
+        rd[k] = arp_rqn[k];                             /* meanwhile goes) */
+    seen_ms = fm1_ms | 1u;
+    while (rd[k] != arp_rqn[k]) {
+        step_t *st = &t->step[ui.cursor % len];
+        n = arp_rq[k][rd[k]++ & 15u];
+        if (t->p[P_SGATE] != t->p[P_AGATE]) {           /* (a step each: the arp's GATE is the steps') */
+            t->p[P_SGATE] = t->p[P_AGATE];
+            motion_capture(t, P_SGATE, t->p[P_SGATE]);
+        }
+        st->n = st->hit = st->acc = st->flags = 0;
+        st->time = n ? ST_NOTE : ST_REST;
+        if (n) {
+            st->note[0] = (uint8_t)n;
+            st->n = 1;
+        }
+        last_note = (uint8_t)(n ? n : last_note);
+        follow_hold();
+        cursor_set((int32_t)((ui.cursor + 1u) % len));
+        ui.force = 1;
+    }
+}
+
 /* (Skiff 2.0) SHIFT + PRESETS on NOTES or FEEL: the selection stretched from where it was to where the cursor goes
  * (inside the pattern, no wrap); 1: taken (a SHIFT combo) */
 static int sel_shift(int32_t s)
@@ -2593,9 +2635,13 @@ static void ui_input(void)
                 ui_message("[REC] WRITE STEPS");        /* (Skiff U1) .. so say how they write, now and then */
                 wr_hint_ms = fm1_ms | 1u;
             }
+        } else if (arp_writes(TSEL)) {
+            ui.entry_open = 0;                          /* ((custom) the ARP on: what it plays, a step each: below) */
         } else
             seq_entry(notes);                           /* armed and stopped: step recording at the cursor */
     }
+    if (!song.playing && !seq_counting() && ((song.rec >> song.sel) & 1u) && arp_writes(TSEL))
+        arp_entry();                                    /* ((custom) armed, stopped, the ARP on, any page) */
 
     /* #102: the knobs a layer took above are not read again here. The TIMER5 scan (10 kHz) counts detents while this
      * pass runs, so one landing after the layer's read went to the page as well: KNOB 1..4 edited the layer's control
