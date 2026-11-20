@@ -19,6 +19,19 @@ REPO = "https://github.com/LIkst4/skiff-atlatl"
 NAME = "skiff-atlatl.fwsc"
 
 
+# (custom) ATLATL's logo in the page's own colours (as web/editor.html wears it)
+BRAND_CSS = """  :root { --lo-off: color-mix(in srgb, var(--fg) 9%, var(--bg)); --lo-hook: var(--fg); --lo-word: var(--fg);
+          --lo-sub: color-mix(in srgb, #39ff14 70%, var(--fg)); --lo-s0: color-mix(in srgb, #39ff14 70%, var(--fg));
+          --lo-s1: color-mix(in srgb, #ff6a00 75%, var(--fg)); --lo-s2: color-mix(in srgb, #00f5d4 70%, var(--fg));
+          --lo-s3: color-mix(in srgb, #ffe600 65%, var(--fg)); --lo-s4: color-mix(in srgb, #b026ff 80%, var(--fg)); }
+  h1.brand { display: flex; align-items: center; gap: 12px; }
+  h1.brand svg { height: 48px; width: auto; display: block; }
+  h1.brand .ed { font-size: 16px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+                 align-self: flex-end; margin-bottom: 2px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) h1.brand .lo-glow { filter: drop-shadow(0 0 5px #00f5d499); } }
+"""
+
+
 def main(pkg, version, out):
     out = Path(out)
     raw = Path(pkg).read_bytes()
@@ -28,15 +41,18 @@ def main(pkg, version, out):
     if b"FELUCCA-LOADER-1" not in raw:
         raise SystemExit(f"{pkg}: no Felucca loader in it (an official package patched? the site ships ./build.sh's)")
     page = (HERE / "index_pkg.html").read_text(encoding="utf-8")
+    logo = (HERE.parent / "docs" / "logo" / "atlatl-logo-themed.svg").read_text(encoding="utf-8").strip()   # (make_logo.py)
     lib = "\n".join(strip_module((HERE / f).read_text(encoding="utf-8"))
                     for f in ("fm1pkg.js", "fm1ota.js", "fm1backup.js", "conv/conv.js"))
     meta = json.dumps({"version": version, "product": product, "pkg": "../firmware/" + NAME,
                        "packages": [{"product": product, "pkg": "../firmware/" + NAME}]})
     swaps = [
         ("/*LIB*/", lib), ("/*META*/", meta),
-        ("<title>Skiff</title>", "<title>skiff-atlatl installer</title><link rel=\"icon\" type=\"image/png\" href=\"../favicon.png\">"),
-        ("<h1>Skiff</h1>", "<h1>skiff-atlatl</h1>\n  <p class=\"small\">A fork of Skiff for the FM-1 (" + H.escape(version)
-         + "). This page installs skiff-atlatl, not the original Skiff.</p>"),
+        ("<title>Skiff</title>", "<title>ATLATL installer</title><link rel=\"icon\" type=\"image/png\" href=\"../favicon.png\">"),
+        ("</style>", BRAND_CSS + "</style>"),
+        ("<h1>Skiff</h1>", "<h1 class=\"brand\">" + logo + "<span class=\"ed\">installer</span></h1>\n"
+         "  <p class=\"small\">ATLATL (skiff-atlatl), a fork of Skiff for the FM-1 (" + H.escape(version)
+         + "). This page installs ATLATL, not the original Skiff.</p>"),
         ("../../firmware/", "../firmware/"),
         ('<p><a href="../../learn/" style="color:inherit" data-t="learn"></a></p>',
          f'<p><a href="{REPO}/blob/atlatl-dev/docs/PERFORMANCE.md" style="color:inherit">Performance guide</a> · '

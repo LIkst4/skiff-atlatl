@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# The FM-1 plugin (skiff-atlatl): CLAP, and through clap-wrapper VST3, AUv2 (macOS) and a standalone app.
+# ATLATL FM-1, the FM-1 plugin (skiff-atlatl): CLAP, and through clap-wrapper VST3, AUv2 (macOS) and a standalone app.
 #   cmake -S plugin -B build/plugin -DCMAKE_BUILD_TYPE=Release && cmake --build build/plugin --config Release
 # The dependencies come from GitHub (FetchContent; the VST3 and AU SDKs through clap-wrapper), or from local copies:
 # -DFM1_DEPS=/path with clap, clap-wrapper, choc, rtmidi in it.
@@ -113,7 +113,7 @@ endif()
 make_clapfirst_plugins(
     TARGET_NAME fm1
     IMPL_TARGET fm1-impl
-    OUTPUT_NAME "FM-1 skiff-atlatl"
+    OUTPUT_NAME "ATLATL FM-1"
     ENTRY_SOURCE src/entry.cpp
     BUNDLE_IDENTIFIER "io.github.likst4.skiff-atlatl.fm1"
     BUNDLE_VERSION ${PROJECT_VERSION}
@@ -121,11 +121,13 @@ make_clapfirst_plugins(
     WINDOWS_FOLDER_VST3 TRUE
     PLUGIN_FORMATS ${FORMATS}
     ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out
-    AUV2_MANUFACTURER_NAME "skiff-atlatl"
+    AUV2_MANUFACTURER_NAME "ATLATL"
     AUV2_MANUFACTURER_CODE "Atlt"
     AUV2_SUBTYPE_CODE "Fm1s"
     AUV2_INSTRUMENT_TYPE "aumu"
-    STANDALONE_CONFIGURATIONS standalone "FM-1 skiff-atlatl" "io.github.likst4.skiff-atlatl.fm1"
+    STANDALONE_CONFIGURATIONS standalone "ATLATL FM-1" "io.github.likst4.skiff-atlatl.fm1"
+    STANDALONE_MACOS_ICON ${CMAKE_CURRENT_SOURCE_DIR}/res/atlatl.icns    # (tools/make_logo.py)
+    STANDALONE_WINDOWS_ICON ${CMAKE_CURRENT_SOURCE_DIR}/res/atlatl.ico
 )
 
 option(FM1_TESTS "the link's tests" ON)

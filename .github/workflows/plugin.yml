@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# (custom) The FM-1 plugin (plugin/): CLAP, VST3, AUv2 (macOS) and a standalone app, on Windows, macOS (universal) and
+# (custom) ATLATL FM-1, the FM-1 plugin (plugin/): CLAP, VST3, AUv2 (macOS) and a standalone app, on Windows, macOS (universal) and
 # Linux; the link's tests, clap-validator on the CLAP, pluginval on the VST3, auval on the AU, a look at the window
 # (Linux, Xvfb). The plugins are this run's artifacts.
 name: plugin
@@ -61,7 +61,7 @@ jobs:
             [ -n "$x" ] && cp -R "$x" $d/
           done
           if [ "$RUNNER_OS" != "macOS" ]; then             # (the standalone: macOS's is the .app)
-            x=$(find "$o" -type f \( -name 'FM-1 skiff-atlatl' -o -name 'FM-1 skiff-atlatl.exe' \) -not -path '*/Contents/*' | head -1)
+            x=$(find "$o" -type f \( -name 'ATLATL FM-1' -o -name 'ATLATL FM-1.exe' \) -not -path '*/Contents/*' | head -1)
             [ -n "$x" ] && cp "$x" $d/
           fi
           ls -la $d

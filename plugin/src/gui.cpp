@@ -120,7 +120,7 @@ Gui::Gui(Plugin &p, bool fl) : plugin(p), floating(fl)
 #if defined(__linux__)
     if (floating) {
         GtkWidget *w = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_title(GTK_WINDOW(w), "FM-1 (skiff-atlatl)");
+        gtk_window_set_title(GTK_WINDOW(w), "ATLATL FM-1");
         gtk_window_set_default_size(GTK_WINDOW(w), (int)width, (int)height);
         gtk_container_add(GTK_CONTAINER(w), GTK_WIDGET(web->getViewHandle()));
         window = w;

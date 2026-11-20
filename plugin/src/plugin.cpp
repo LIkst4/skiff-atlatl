@@ -636,9 +636,10 @@ namespace {
 const char *kFeatures[] = {CLAP_PLUGIN_FEATURE_INSTRUMENT, CLAP_PLUGIN_FEATURE_SYNTHESIZER,
                            CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t kDesc = {
-    CLAP_VERSION_INIT, kId, "FM-1 (skiff-atlatl)", "skiff-atlatl", "https://github.com/LIkst4/skiff-atlatl",
+    CLAP_VERSION_INIT, kId, "ATLATL FM-1", "ATLATL", "https://github.com/LIkst4/skiff-atlatl",
     "https://github.com/LIkst4/skiff-atlatl", "https://github.com/LIkst4/skiff-atlatl", FM1_PLUGIN_VERSION,
-    "The FM-1 on skiff-atlatl firmware, in the DAW: its editor, its parameters as automation, notes, clock",
+    "ATLATL (skiff-atlatl) for the M-VAVE FM-1, in the DAW: its editor, its parameters as automation, notes, clock, "
+    "its 8 USB channels with latency compensation",
     kFeatures};
 
 /* audio ports: the FM-1's sound back (MONITOR) in, stereo out */

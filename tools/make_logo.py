@@ -3,7 +3,12 @@
 """(custom) skiff-atlatl's logo: the stepped hook (an atlatl's hook and shaft, a stepped fret) in LED squares, and
 "skiff ATLATL" in Silkscreen (SIL OFL 1.1, by Jason Kottke; its letters drawn here as paths, so the SVGs need no font).
     tools/make_logo.py Silkscreen-Regular.ttf
-writes docs/logo/atlatl-*.svg, docs/logo/atlatl-*.png and docs/card.png (the hub's card, 240 x 240)."""
+writes docs/logo/atlatl-*.svg, docs/logo/atlatl-*.png and docs/card.png (the hub's card, 240 x 240); and the brand where
+it is used: the web editor's header logo (themed: its colours the editor's own, so every THEME wears it) and favicon in
+web/editor.html, the plugin bar's mark in plugin/src/shim.js (each between its brand markers), the standalone app's
+icons plugin/res/atlatl.icns and plugin/res/atlatl.ico."""
+import base64
+import re
 import sys
 from pathlib import Path
 
@@ -32,6 +37,14 @@ NEON = {"bg": "#07070d", "off": "#17172a", "hook": "#ffffff", "glow": "#00f5d4",
         "steps": ["#39ff14", "#ff6a00", "#00f5d4", "#ffe600", "#b026ff"]}      # neon green, orange, turquoise, yellow, purple
 LIGHT = {"bg": "#f4f1ea", "off": "#e2ddd1", "hook": "#141414", "glow": None, "sub": "#1f9e0a", "word": "#141414",
          "steps": ["#1f9e0a", "#d95300", "#00a08a", "#c9a200", "#7a1fd1"]}      # the same, deep enough for a light ground
+# the web editor's: CSS custom properties (web/editor.html sets them from its theme's own colours); the glow a class
+THEMED = {"bg": None, "off": "var(--lo-off)", "hook": "var(--lo-hook)", "glow": None, "sub": "var(--lo-sub)",
+          "word": "var(--lo-word)", "steps": [f"var(--lo-s{i})" for i in range(5)], "cls": "lo-glow"}
+
+
+def paint(col):
+    """a fill: a colour as an attribute; a custom property as a style (an attribute takes no var())"""
+    return f'style="fill:{col}"' if col.startswith("var(") else f'fill="{col}"'
 
 
 def cells(t):
@@ -57,10 +70,10 @@ def text_path(font, s, size, x, y, spacing):
 
 def svg_mark(t, ox, oy, s=1.0, glow_id="glow"):
     off = "".join(f'<rect x="{ox + c * P * s:.2f}" y="{oy + r * P * s:.2f}" width="{R * s:.2f}" height="{R * s:.2f}" '
-                  f'rx="{3 * s:.2f}" fill="{col}"/>' for c, r, lit, col in cells(t) if not lit)
+                  f'rx="{3 * s:.2f}" {paint(col)}/>' for c, r, lit, col in cells(t) if not lit)
     lit = "".join(f'<rect x="{ox + c * P * s:.2f}" y="{oy + r * P * s:.2f}" width="{R * s:.2f}" height="{R * s:.2f}" '
-                  f'rx="{3 * s:.2f}" fill="{col}"/>' for c, r, lit, col in cells(t) if lit)
-    g = f' filter="url(#{glow_id})"' if t["glow"] else ""
+                  f'rx="{3 * s:.2f}" {paint(col)}/>' for c, r, lit, col in cells(t) if lit)
+    g = f' filter="url(#{glow_id})"' if t["glow"] else f' class="{t["cls"]}"' if t.get("cls") else ""
     return f'{off}<g{g}>{lit}</g>'
 
 
@@ -81,11 +94,26 @@ def svg_logo(font, t, bg):
     gy = pad + m / 2 - (26 + 8 + 86) / 2               # the two lines' block centred on the mark
     body = (glow_def(t, 4) + (f'<rect width="{w:.0f}" height="{h:.0f}" fill="{t["bg"]}"/>' if bg else "")
             + svg_mark(t, pad, pad)
-            + f'<g transform="translate({tx:.1f},{gy + 22:.1f})"><path d="{sub}" fill="{t["sub"]}"/></g>'
+            + f'<g transform="translate({tx:.1f},{gy + 22:.1f})"><path d="{sub}" {paint(t["sub"])}/></g>'
             + f'<g transform="translate({tx:.1f},{gy + 26 + 8 + 84:.1f})"'
-            + (' filter="url(#glow)"' if t["glow"] else "") + f'><path d="{word}" fill="{t["word"]}"/></g>')
+            + (' filter="url(#glow)"' if t["glow"] else f' class="{t["cls"]}"' if t.get("cls") else "")
+            + f'><path d="{word}" {paint(t["word"])}/></g>')
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} {h:.0f}" width="{w:.0f}" height="{h:.0f}" '
             f'role="img" aria-label="skiff-atlatl">{body}</svg>\n')
+
+
+def svg_mark_only(t):
+    """the mark alone, its squares edge to edge (the plugin bar's)"""
+    m = 11 * P - (P - R)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {m} {m}" role="img" aria-label="ATLATL">'
+            f'{glow_def(t, 3)}{svg_mark(t, 0, 0)}</svg>')
+
+
+def inline(path, start, end, content):
+    """content into path between the markers start and end (kept)"""
+    s = path.read_text()
+    i, j = s.index(start) + len(start), s.index(end)
+    path.write_text(s[:i] + content + s[j:])
 
 
 def svg_icon(t, size=512, radius=112):
@@ -173,6 +201,24 @@ def main(ttf):
     png_card(ttf, NEON).convert("RGB").save(ROOT / "docs" / "card.png")
     print("docs/logo: atlatl-logo.svg, atlatl-logo-light.svg, atlatl-icon.svg, atlatl-icon-512.png, "
           "atlatl-favicon-32.png, atlatl-social.png; docs/card.png")
+    # the brand where it is used
+    themed = svg_logo(font, THEMED, bg=False).strip()
+    themed = themed.replace(' width="', ' data-w="', 1).replace(' height="', ' data-h="', 1)   # (sized by the page's CSS)
+    (OUT / "atlatl-logo-themed.svg").write_text(themed + "\n")
+    ed = ROOT / "web" / "editor.html"
+    inline(ed, "<!--brand:logo-->", "<!--/brand:logo-->", themed.replace("aria-label=\"skiff-atlatl\"",
+                                                                          "aria-label=\"ATLATL\""))
+    icon = re.sub(r"\s+", " ", svg_icon(NEON, 64, 14)).strip()
+    inline(ed, '<link rel="icon" href="', '"><!--/brand:icon-->',
+           "data:image/svg+xml;base64," + base64.b64encode(icon.encode()).decode())
+    inline(ROOT / "plugin" / "src" / "shim.js", "/*brand:mark*/`", "`/*/brand:mark*/", svg_mark_only(NEON))
+    res = ROOT / "plugin" / "res"
+    res.mkdir(exist_ok=True)
+    big = png_icon(NEON, 1024)
+    big.save(res / "atlatl.icns")                       # (Pillow makes its sizes, 16 .. 1024)
+    png_icon(NEON, 256).save(res / "atlatl.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128),
+                                                         (256, 256)])
+    print("the brand: web/editor.html (logo, favicon), plugin/src/shim.js (mark), plugin/res/atlatl.icns, atlatl.ico")
 
 
 if __name__ == "__main__":

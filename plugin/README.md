@@ -1,4 +1,6 @@
-# FM-1 plugin (skiff-atlatl)
+<p align="center"><img src="../docs/logo/atlatl-icon.svg" alt="" width="96"></p>
+
+# ATLATL FM-1 (the plugin)
 
 The FM-1 on skiff-atlatl firmware, in your DAW. Each instance of the plugin is one FM-1 track:
 
@@ -85,12 +87,12 @@ Download the zip for your system from the **plugin** workflow's artifacts on Git
 
 | | CLAP | VST3 | AU | Standalone |
 | --- | --- | --- | --- | --- |
-| **Windows** | `%COMMONPROGRAMFILES%\CLAP` | `%COMMONPROGRAMFILES%\VST3` | — | `FM-1 skiff-atlatl.exe` |
-| **macOS** | `~/Library/Audio/Plug-Ins/CLAP` | `~/Library/Audio/Plug-Ins/VST3` | `~/Library/Audio/Plug-Ins/Components` | `FM-1 skiff-atlatl.app` |
-| **Linux** | `~/.clap` | `~/.vst3` | — | `FM-1 skiff-atlatl` |
+| **Windows** | `%COMMONPROGRAMFILES%\CLAP` | `%COMMONPROGRAMFILES%\VST3` | — | `ATLATL FM-1.exe` |
+| **macOS** | `~/Library/Audio/Plug-Ins/CLAP` | `~/Library/Audio/Plug-Ins/VST3` | `~/Library/Audio/Plug-Ins/Components` | `ATLATL FM-1.app` |
+| **Linux** | `~/.clap` | `~/.vst3` | — | `ATLATL FM-1` |
 
 - **macOS:** the build is not notarized. After copying, run
-  `xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/*/FM-1*`.
+  `xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/*/ATLATL*`.
 - **Windows:** the window uses Microsoft Edge WebView2, which comes with Windows 11 and current Windows 10.
 - **Linux:** the window needs GTK 3 and WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`). The CLAP opens its window
   floating; the VST3 opens inside the DAW's.
