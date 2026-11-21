@@ -8,7 +8,9 @@
  * 2. USR1: KICK plays the kick WAV, its length and its shape (the decoded sample's correlation with the WAV's), SNARE
  *    the snare, a lane without a sample (BELL) silent;
  * 3. the lane's TUNE plays it faster, its DECAY shorter;
- * 4. an empty slot (USR2) silent; STD as before. */
+ * 4. an empty slot (USR2) silent; STD as before;
+ * 5. (the editor's lane view) the selected track's hits counted on their lane, with the note each played; the lane
+ *    rendered alone (drum_pv_*) as the track plays it. */
 #include <stdarg.h>
 #include <stdint.h>
 static uint32_t host_slots[3u * 0x14000u / 4u];          /* USR1..3, as the flash at 0xA0000 */
@@ -145,6 +147,63 @@ int main(int argc, char **argv)
     check("the lane's TUNE up: faster (about half as long); its DECAY down: shorter",
           kick_up * 2u <= kick + 6u && kick_up * 2u + 6u >= kick && kick_short < kick * 3u / 4u, "%u %u of %u blocks",
           kick_up, kick_short, kick);
+    {                                                    /* (the editor's lane view: editor.c ED_HIT) */
+        uint8_t h0 = drum_hitn[0], h1, n35;
+        TSEL = &trk[0];
+        kit_play(kit_track(DK_USR1), 36, 4, 0);
+        h1 = drum_hitn[0];
+        kit_play(kit_track(DK_USR1), 35, 4, 0);
+        n35 = drum_hitnote[0];
+        TSEL = &trk[1];
+        kit_play(kit_track(DK_USR1), 36, 4, 0);          /* (not the selected track) */
+        TSEL = &trk[0];
+        kit_play(kit_track(DK_STD), 36, 4, 0);           /* (STD: counted too) */
+        check("the lane view's hits (ED_HIT): the selected track's hits counted on their lane (any kit), with their note",
+              (uint8_t)(h1 - h0) == 1u && (uint8_t)(drum_hitn[0] - h0) == 3u && n35 == 35u, "KICK %u hits, the note %u",
+              (uint8_t)(drum_hitn[0] - h0), n35);
+    }
+    {                                                    /* (the lane view's render: drum_pv_* = the track's sound) */
+        static const int16_t KITS[3] = {DK_USR1, DK_STD, DK_MD909};
+        static double pa[600], pb[600];
+        double worst = 1;
+        uint32_t c, b, la = 0, lb = 0, dl = 0;
+        for (c = 0; c < 3u; c++) {
+            double sab = 0, saa = 0, sbb = 0, r;
+            int32_t o[CTL];
+            t = kit_track(KITS[c]);
+            t->p[P_E3] = 50, t->p[P_E2] = 40, t->p[P_LTUNE0] = 70;
+            memset(y, 0, sizeof y);
+            kit_play(t, 36, 600, y);
+            t = kit_track(KITS[c]);
+            t->p[P_E3] = 50, t->p[P_E2] = 40, t->p[P_LTUNE0] = 70;
+            drum_pv_start(t, 36);
+            for (b = 0, la = lb = 0; b < 600u; b++) {
+                int32_t ka = 0, kb = 0, live = drum_pv_block(t, o);
+                for (i = 0; i < CTL; i++) {
+                    ka = abs(y[b * CTL + i]) > ka ? abs(y[b * CTL + i]) : ka;
+                    kb = abs(o[i]) > kb ? abs(o[i]) : kb;
+                }
+                pa[b] = ka, pb[b] = kb;
+                (void)live;
+            }
+            {                                            /* (lengths: down to 1/300 of each one's peak: their levels
+                                                          * differ, the track's LEVEL and the velocity) */
+                double ma = 0, mb = 0;
+                for (b = 0; b < 600u; b++)
+                    ma = pa[b] > ma ? pa[b] : ma, mb = pb[b] > mb ? pb[b] : mb;
+                for (b = 0; b < 600u; b++)
+                    la = pa[b] > ma / 300 ? b + 1u : la, lb = pb[b] > mb / 300 ? b + 1u : lb;
+            }
+            for (b = 0; b < 600u; b++)
+                sab += pa[b] * pb[b], saa += pa[b] * pa[b], sbb += pb[b] * pb[b];
+            r = saa > 0 && sbb > 0 ? sab / sqrt(saa * sbb) : 0;
+            worst = r < worst ? r : worst;
+            b = la > lb ? la - lb : lb - la;             /* (5 %: the mix's master stage shapes its tail a little) */
+            dl = b * 20u > la && b > dl ? b : dl;
+        }
+        check("the lane view's render (drum_pv_*, the editor's LANE): the track's own sound (USR1, STD, 909: TONE DECAY TUNE turned)",
+              worst > 0.98 && !dl, "envelope r %.3f at worst, lengths within 5 %% (%u blocks off)", worst, dl);
+    }
     empty = kit_play(kit_track(DK_USR2), 36, 100, 0);
     std = kit_play(kit_track(DK_STD), 36, 100, 0);
     check("an empty slot (USR2): silent; STD: its own KICK", !empty && std > 0, "%u %u", empty, std);

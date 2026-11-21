@@ -190,7 +190,10 @@ static int preferences(void)
     uint8_t a[4] = {0, 3, 0, 0};                          /* (THEME: 3, CRYPT) */
     reset();
     uint32_t n = request(ED_INFO, a, 0);
-    bad += check("INFO (custom) ARP STEP's tag last: 41 01 16 (ED_ARP)",
+    bad += check("INFO (custom) DRUM's lane view's tag last: 44 01 03 (HIT while WATCH bit 2, LANE and LANE_PK)",
+        host_wire[n - 4] == 0x44 && host_wire[n - 3] == 1 && host_wire[n - 2] == 3);
+    n -= 3u;
+    bad += check("INFO (custom) ARP STEP's tag before it: 41 01 16 (ED_ARP)",
         host_wire[n - 4] == 0x41 && host_wire[n - 3] == 1 && host_wire[n - 2] == ARP_NS);
     n -= 3u;
     bad += check("INFO (2.0) the song's tag before it: 58 01 01 (LIST2, NEW, COPY+, CHAIN, ONCE, EMPTY, CLEAR UNUSED)",
@@ -1716,11 +1719,106 @@ static int custom_colors(void)
     return bad;
 }
 
+/* (custom) DRUM's lane view: LANE (87) a lane rendered on the unit, its peaks pushed as LANE_PK (88) a chunk at a time,
+ * main loop pass by pass (ed_lv_run); HIT (86) pushed while WATCH bit 2: the selected track's hits (eng_drum.c
+ * drum_hitn), none of before the WATCH */
+static uint32_t lv_pts, lv_frames, lv_bad;
+static int32_t lv_max;
+static uint32_t lane_render(uint32_t note, uint32_t *lane, uint32_t *rc)
+{
+    uint8_t a[1] = {(uint8_t)note};
+    uint32_t pass, i, next = 0, done = 0;
+    request(ED_LANE, a, 1);
+    *lane = host_wire[6];
+    *rc = host_wire[8];
+    lv_pts = lv_frames = lv_bad = 0;
+    lv_max = 0;
+    for (pass = 0; pass < 2000u && !done; pass++) {
+        host_wire_n = 0;
+        ed_lv_run();
+        host_drain();
+        for (i = 0; i + 12u < host_wire_n; i++)
+            if (host_wire[i] == 0xF0 && host_wire[i + 1] == ED_HDR0 && host_wire[i + 4] == ED_LANE_PK) {
+                const uint8_t *x = host_wire + i + 5;
+                uint32_t first = x[3] | x[4] << 7, n = x[6], j;
+                lv_frames++;
+                lv_bad += first != next || x[0] != song.sel || x[1] != *lane || x[2] != note || !n || n > 32u ||
+                          host_wire[i + 12 + 2 * n] != 0xF7;
+                for (j = 0; j < n; j++) {
+                    int32_t v = x[7 + 2 * j] | x[8 + 2 * j] << 7;
+                    lv_max = v > lv_max ? v : lv_max;
+                }
+                next = first + n;
+                lv_pts = next;
+                done |= x[5];
+            }
+    }
+    return done;
+}
+static int lane_view(void)
+{
+    uint8_t a[4];
+    uint32_t ln, rc, n0, n1, k;
+    int bad = 0;
+    const uint8_t *x = 0;
+    track_t *t;
+    reset();
+    usb.resets = 0;
+    t = TSEL;
+    set_engine_of(t, ENGI_DRUM); apply_preset_to(t, 0); t->engine = t->eng_req;
+    a[0] = 36;
+    request(ED_LANE, a, 1);
+    bad += check("(custom) LANE while not watching: rc 1, nothing rendered",
+                 host_wire[4] == ED_LANE && host_wire[8] == 1 && (ed_lv_run(), !ed_lv.run && !ed_lv.want));
+    drum_hitn[0]++;                                      /* (a hit before the WATCH) */
+    a[0] = 5;
+    request(ED_WATCH, a, 1);
+    bad += check("WATCH 5: watching, HIT on (the reply's bit 2); a hit of before not pushed",
+                 host_wire[5] == 5 && ed_w.hits && !wire_frames(ED_HIT, 0) && (sync_pass(), !wire_frames(ED_HIT, 0)));
+    k = lane_render(36, &ln, &rc);
+    n0 = lv_pts;
+    bad += check("LANE 36 on STD: rc 0, KICK (lane 0) rendered: LANE_PK chunks in order, the last flagged, it sounds",
+                 k && !rc && !ln && !lv_bad && lv_frames >= 2u && n0 > 20u && n0 < 512u && lv_max > 2000);
+    t->p[P_LDECAY0] = -50;
+    k = lane_render(36, &ln, &rc);
+    n1 = lv_pts;
+    bad += check("  the lane's DECAY down: rendered again, shorter", k && !lv_bad && n1 < n0 / 2u);
+    t->p[P_LDECAY0] = 0;
+    t->p[P_E0] = DK_MD808;
+    k = lane_render(38, &ln, &rc);
+    bad += check("  KIT 808 (an MD kit), SNARE (38, lane 1): rendered", k && ln == 1u && !lv_bad && lv_pts > 5u && lv_max > 1000);
+    t->p[P_E0] = DK_DX;
+    k = lane_render(42, &ln, &rc);
+    bad += check("  KIT DX, the closed hat (42, lane 3): rendered", k && ln == 3u && !lv_bad && lv_pts > 2u && lv_max > 500);
+    t->p[P_E0] = DK_STD;
+    a[0] = 36; request(ED_LANE, a, 1); ed_lv_run(); host_wire_n = 0;
+    k = lane_render(36, &ln, &rc);
+    bad += check("  a LANE of the lane being rendered starts it over (one complete render, from point 0)",
+                 k && !lv_bad && lv_pts == n0);
+    set_engine_of(t, 0); apply_preset_to(t, 0); t->engine = t->eng_req;
+    a[0] = 36;
+    request(ED_LANE, a, 1);
+    bad += check("  not a DRUM track: rc 1", host_wire[8] == 1);
+
+    sync_pass(); sync_pass();                            /* (the RELOAD of the engine change, the CHANGED) */
+    drum_hitnote[1] = 40; drum_hitn[1]++; drum_hitn[3] += 2; drum_hitnote[3] = 42;
+    sync_pass();
+    bad += check("two lanes struck: a HIT each (the track, the lane, the note), the later frame lane 3's",
+                 wire_frames(ED_HIT, &x) == 2u && x[0] == song.sel && x[1] == 3 && x[2] == 42 && host_wire[4] == ED_HIT &&
+                 host_wire[5] == song.sel && host_wire[6] == 1 && host_wire[7] == 40 && !(sync_pass(), wire_frames(ED_HIT, 0)));
+    a[0] = 1;
+    request(ED_WATCH, a, 1);
+    k = host_wire[5];
+    drum_hitn[2]++;
+    bad += check("WATCH 1: watching, no HIT", k == 1u && !ed_w.hits && !sync_pass());
+    return bad;
+}
+
 int main(void)
 {
     int bad = preferences() + motion_locks() + wide_ids() + framing() + uart_recovery() + steps() + samples() + smp_mix() + arp_cmd() + song_protocol() + malformed_saves() +
               fm6_patches() + user_preset_roundtrip() + live_sync() + usb_burst() + menu_protocol() + drum_kit_retired() +
-              light_tracks() + preset_more() + transport_names() + song_cmds() + song2_cmds() + custom_colors();
+              light_tracks() + preset_more() + transport_names() + song_cmds() + song2_cmds() + custom_colors() + lane_view();
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");
     return bad != 0;
 }

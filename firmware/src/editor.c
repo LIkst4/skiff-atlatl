@@ -24,9 +24,12 @@ enum { ED_INFO = 1, ED_GET, ED_SET, ED_DUMP, ED_DESC, ED_STEP_GET, ED_STEP_SET, 
 enum { ED_KIT_GET = 74, ED_KIT_PUT };                 /* (Skiff W3) the DRUM-X kit (INFO 4B 01 8) */
 enum { ED_SMP_MIX = 81 };                             /* (Skiff, #21) a user slot's sounds' LEVEL REV DLY (INFO 57 01 bit 5) */
 enum { ED_CAST = 83, ED_PANEL,                        /* (Skiff Studio) the cast (cast.c; INFO 59 01); (2.7) the */
-       ED_ARP };                                      /* Screen tab's panel (ed_panel; INFO 59 01 bit 1); (custom) a
+       ED_ARP,                                        /* Screen tab's panel (ed_panel; INFO 59 01 bit 1); (custom) a
                                                        * track's ARP STEP (seq.c arp_pat; INFO 41 01 16): 85 since
                                                        * Skiff 2.7 took 83 and 84 */
+       ED_HIT, ED_LANE, ED_LANE_PK };                 /* (custom) DRUM's lane view (INFO 44 01): HIT pushed while
+                                                       * WATCH bit 2 (a hit on the selected track), LANE a lane
+                                                       * rendered on the unit, its peaks pushed as LANE_PK (ed_lv) */
 
 #ifndef ED_OUT_N
 #define ED_OUT_N 2700u
@@ -165,6 +168,7 @@ static const uint8_t ED_TIDS[3] = {P_LEVEL, P_PAN, P_MUTE};
 static struct {
     uint8_t on, eng, preset, sel;
     uint8_t v4;                                          /* WATCH bit 1: TRACK_CHANGED pushes too */
+    uint8_t hits, hitn[DV_NLANE];                        /* ((custom) WATCH bit 2: HIT pushes; drum_hitn as pushed) */
     uint32_t pos, last_ms, run_ms, resets;
     int16_t v[ED_NV];                                    /* TSEL->p[], then song.g[] */
     uint16_t t[ED_NV];                                   /* ms (low 16 bits) of the last push */
@@ -173,6 +177,16 @@ static struct {
     uint16_t tt[ED_NT];
     uint32_t tpos;
 } ed_w;
+/* ((custom) DRUM's lane view: ed_lv_run) */
+#define LV_B 4u
+#define LV_PTS 512u
+#define LV_CH 32u
+#define LV_PASS 16u
+static struct {
+    uint8_t want, tr, cur, run, blk, n, note[DV_NLANE];  /* run: 1 rendering, 2 its last points to push */
+    uint16_t pt, pk[LV_CH];
+    int32_t acc;
+} ed_lv;
 
 static int16_t *ed_val(uint32_t i) { return i < P_COUNT ? &TSEL->p[i] : &song.g[i - P_COUNT]; }
 static uint32_t ed_step_sig(const step_t *s)
@@ -252,6 +266,19 @@ static void ed_sync(void)                                /* main loop */
         ed_b(song.sel);
         ed_send();
         return;
+    }
+    for (i = 0; ed_w.hits && i < DV_NLANE; i++) {          /* ((custom) the hits: the lane, the note it played) */
+        uint8_t c = drum_hitn[i];
+        if (c == ed_w.hitn[i])
+            continue;
+        if (!ed_room())
+            return;
+        ed_w.hitn[i] = c;
+        ed_begin(ED_HIT);
+        ed_b(song.sel);
+        ed_b(i);
+        ed_b(drum_hitnote[i]);
+        ed_send();
     }
     for (i = 0; i < NSTEP && n < ED_PUSH_MAX; i++) {
         uint32_t h = ed_step_sig(&TSEL->step[i]);
@@ -434,6 +461,8 @@ static int ed_args_ok(uint32_t cmd, const uint8_t *a, uint32_t n)
         return ed_project_args_ok(cmd, a, n);
     case ED_POOL: case ED_LIST: case ED_PERFORM: case ED_LIST2:
         return ed_song_args_ok(cmd, a, n);
+    case ED_LANE:                                      /* ((custom) a note) */
+        return n == 1u;
     case ED_KIT_GET:                                   /* (Skiff W3) a lane; a lane and its 15 values, each in range */
         return n == 1u && a[0] < 8u;
 #if FELUCCA_CAST
@@ -647,7 +676,9 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
                                                          * bit 2 the SMK-37's records (its copy: felucca_cast_smk.wasm;
                                                          * not bit 0, so an editor before 2.7 offers it no Screen tab) */
 #endif
-            0x41, 1, ARP_NS,                            /* ((custom) ARP STEP: ED_ARP, its 16 steps; last) */
+            0x41, 1, ARP_NS,                            /* ((custom) ARP STEP: ED_ARP, its 16 steps) */
+            0x44, 1, 3,                                 /* ((custom) DRUM's lane view: bit 0 HIT (WATCH bit 2), bit 1
+                                                         * LANE and LANE_PK; last) */
         };
         ed_str("FELUCCA " FELUCCA_VERSION, 24);
         ed_b(NENGINES);
@@ -949,18 +980,40 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         keep = ed_w.on && ed_w.resets == usb.resets && (a[0] & 1u);   /* already watching: the changes not yet */
         ed_w.on = a[0] & 1u;                                          /* pushed stay pending (INFO 53 01 bit 0) */
         ed_w.v4 = (uint8_t)(ed_w.on && (a[0] & 2u));     /* v4: also TRACK_CHANGED; the reply says it is known */
+        if (ed_w.on && (a[0] & 4u) && !ed_w.hits)        /* ((custom) HIT: from the hits as they are, none of before) */
+            for (i = 0; i < DV_NLANE; i++)
+                ed_w.hitn[i] = drum_hitn[i];
+        ed_w.hits = (uint8_t)(ed_w.on && (a[0] & 4u));
         ed_w.resets = usb.resets;
         if (ed_w.on && !keep)
             ed_shadow();
         else if (keep && ed_w.v4 && !v4was)
             for (i = 0; i < ED_NT; i++)                    /* TRACK_CHANGED newly asked for: from the mix as it is */
                 ed_w.tv[i] = trk[i / 3u].p[ED_TIDS[i % 3u]];
-        ed_b(ed_w.on | ed_w.v4 << 1);
+        ed_b(ed_w.on | ed_w.v4 << 1 | ed_w.hits << 2);
         break;
     }
     case ED_PING:
         ed_b(0);
         break;
+    case ED_LANE: {                                        /* ((custom) ed_lv) */
+        uint32_t ln = drum_lane(a[0] & 127u), rc = 1;
+        if (ed_w.on && ed_eng(TSEL) == ENGI_DRUM) {
+            if (ed_lv.tr != song.sel)
+                ed_lv.want = ed_lv.run = 0;
+            ed_lv.tr = song.sel;
+            if (ed_lv.run && ed_lv.cur == ln)
+                ed_lv.run = 0;                             /* (started over) */
+            ed_lv.note[ln] = a[0] & 127u;
+            ed_lv.want |= (uint8_t)(1u << ln);
+            rc = 0;
+        }
+        ed_b(song.sel);
+        ed_b(ln);
+        ed_b(a[0]);
+        ed_b(rc);
+        break;
+    }
     case ED_TRACK:                                         /* [track] -> selected, NTRK, per track: engine, preset, level, mute, armed */
         if (na >= 1u && a[0] < NTRK && a[0] != song.sel) {
             track_select(a[0]);
@@ -1072,12 +1125,84 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
     ed_send();
 }
 
+/* (custom) DRUM's lane view: LANE (87) note -> track, lane, note, rc (0 queued; 1 not watching, or the selected track
+ * is not DRUM): the selected track's lane of that note rendered on the unit (eng_drum.c drum_pv_*: struck alone, the
+ * knobs as they are), LV_PASS blocks a main loop pass, its peaks pushed as they come: LANE_PK (88) track, lane, note,
+ * the first point (2 x 7 bits), last (0 / 1), count, count x peak (2 x 7 bits: the largest |sample| over LV_B blocks,
+ * >> 2). A LANE of the lane being rendered starts it over; lanes asked for meanwhile wait their turn (each its newest
+ * note); LV_PTS points at most (1.5 s) */
+static void ed_lv_push(uint32_t last)
+{
+    uint32_t i, first = ed_lv.pt - ed_lv.n;
+    ed_begin(ED_LANE_PK);
+    ed_b(ed_lv.tr);
+    ed_b(ed_lv.cur);
+    ed_b(ed_lv.note[ed_lv.cur]);
+    ed_b(first);
+    ed_b(first >> 7);
+    ed_b(last);
+    ed_b(ed_lv.n);
+    for (i = 0; i < ed_lv.n; i++) {
+        ed_b(ed_lv.pk[i]);
+        ed_b(ed_lv.pk[i] >> 7);
+    }
+    ed_send();
+    ed_lv.n = 0;
+}
+static void ed_lv_run(void)                              /* main loop */
+{
+    int32_t out[CTL];
+    uint32_t b, i;
+    int live;
+    if (!ed_w.on) {
+        ed_lv.want = ed_lv.run = 0;
+        return;
+    }
+    if (!ed_lv.run) {
+        if (!ed_lv.want)
+            return;
+        for (i = 0; !((ed_lv.want >> i) & 1u); i++)
+            ;
+        ed_lv.want &= (uint8_t)~(1u << i);
+        if (ed_eng(&trk[ed_lv.tr]) != ENGI_DRUM)
+            return;
+        ed_lv.cur = (uint8_t)i;
+        drum_pv_start(&trk[ed_lv.tr], ed_lv.note[i]);
+        ed_lv.run = 1;
+        ed_lv.pt = ed_lv.blk = ed_lv.n = 0;
+        ed_lv.acc = 0;
+    }
+    for (b = 0; b < LV_PASS; b++) {
+        if (ed_lv.run == 2u || ed_lv.n == LV_CH) {       /* a chunk to push, or the last */
+            if (!ed_room())
+                return;
+            ed_lv_push(ed_lv.run == 2u);
+            if (ed_lv.run == 2u) {
+                ed_lv.run = 0;
+                return;
+            }
+        }
+        live = drum_pv_block(&trk[ed_lv.tr], out);
+        for (i = 0; i < CTL; i++)
+            ed_lv.acc = out[i] > ed_lv.acc ? out[i] : -out[i] > ed_lv.acc ? -out[i] : ed_lv.acc;
+        if (++ed_lv.blk == LV_B || !live) {
+            ed_lv.pk[ed_lv.n++] = (uint16_t)(ed_lv.acc >> 2 > 16383 ? 16383 : ed_lv.acc >> 2);
+            ed_lv.acc = 0;
+            ed_lv.blk = 0;
+            ed_lv.pt++;
+        }
+        if (!live || ed_lv.pt >= LV_PTS)
+            ed_lv.run = 2;
+    }
+}
+
 /* main loop: editor frames first; anything else stays for ota_service() */
 static void ed_service(void)
 {
     const uint8_t *p;
     uint32_t n;
     ed_sync();                                             /* v2 pushes (while watched) */
+    ed_lv_run();                                           /* ((custom) DRUM's lane view) */
     CAST(cast_flush());                                    /* (Skiff Studio) the cast out */
     if (!ota_frame_get(&p, &n) || n < 4u || p[0] != ED_HDR0 || p[1] != ED_HDR1 || p[2] != ED_HDR2)
         return;

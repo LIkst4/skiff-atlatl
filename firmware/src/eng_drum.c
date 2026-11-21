@@ -320,15 +320,80 @@ static voice_t *drum_reuse(track_t *t, uint32_t note)
     return v->active && (uint32_t)v->s[0] == lane ? v : 0;
 }
 
+/* the hit of note on lane L (its lane, role and st as drum_gm gives them), as the kit plays it: (custom) a DX kit's
+ * (DRUM-X's hit; a lane's own MODEL before it), an MD lane's (an MD kit, or the lane's MODEL), ((2.0, #35)) a user kit's
+ * sample from its start (v: the voice), DRUM's own; each from rest when the lane held another. Returns which: 2 DX, 1
+ * MD, 3 a user kit's, 0 DRUM's own. ((custom) Out of line: drum_note_on's and the editor's lane view's, drum_pv_start) */
+static __attribute__((noinline)) uint32_t drum_strike(track_t *t, drum_lane_t *L, voice_t *v, uint32_t lane, uint32_t note,
+                                                      uint32_t role, int32_t st)
+{
+    uint32_t u = drum_user(t->p);
+    L->st = (int8_t)st;
+    v->s[0] = (int32_t)lane;
+    if (drum_dx(t->p) && !drum_lane_md(t->p, lane)) {
+        L->st = (int8_t)DX_GM[dx_gm_ix(note)][1];        /* (its pitch on the lane as DRUM-X's GM map has it) */
+        if (L->pad != 2u) {                              /* (DRUM's own or an MD lane before: from rest) */
+            memset(&L->dx, 0, sizeof L->dx);
+            L->pad = 2;
+            L->dk[0] = L->dk[1] = 0;
+        }
+        dx_trigger(&L->dx);
+        return 2;
+    }
+    if (drum_lane_md(t->p, lane)) {
+        uint32_t model = drum_lane_md(t->p, lane) - 1u;
+        md_lane_t *M = &L->md;
+        if (L->pad != 1u || M->model != model + 1u) {    /* another model (or DRUM's own) on this lane: from rest */
+            memset(M, 0, sizeof *M);
+            M->model = (uint8_t)(model + 1u);
+            L->pad = 1;
+            L->dk[0] = L->dk[1] = 0;
+        }
+        M->again = M->v.active;                          /* (struck again while it rings: the declick) */
+        M->choke = 0;
+        md_knobs(&M->trk, model, t->p, lane, st);
+        md_hit(M, model);
+        return 1;
+    }
+    if (L->pad) {                                        /* (custom) an MD lane before: DRUM's own from rest */
+        L->pad = 0;
+        L->role = 0xFF;
+        L->v.type = 0xFF;
+    }
+    if (u) {
+        v->s[5] = (int32_t)drum_user_zone(u - 1u, lane);
+        v->ph[0] = v->ph[1] = v->ph[2] = 0;
+        v->s[1] = v->s[2] = v->s[3] = 0;
+        v->s[6] = !v->s[5];                              /* (no sample: ended, the lane silent) */
+        v->s[7] = 1 << 24;
+        return 3;
+    }
+    if (L->role != role || L->v.type != dv_run_type(role)) {   /* another drum on this lane: from rest */
+        dv_init(&L->v, role);
+        L->key.type = 0xFF;
+        L->role = (uint8_t)role;
+    }
+    dv_trigger(&L->v);
+    return 0;
+}
+
+/* (custom) the editor's lane view (editor.c ED_HIT): the selected track's hits, counted per lane, with the note each
+ * played (any kit) */
+static volatile uint8_t drum_hitn[DV_NLANE], drum_hitnote[DV_NLANE];
+
 static void drum_note_on(track_t *t, voice_t *v)
 {
-    drum_lane_t *K = drum_kit_of(t), *L;
-    uint32_t i = (uint32_t)(v - t->v), role, lane, u;
+    drum_lane_t *K = drum_kit_of(t), *L, *H;
+    uint32_t i = (uint32_t)(v - t->v), role, lane, u, kind;
     int32_t st;
     if (!K || i >= NVOICE)
         return;
     role = drum_gm(t->p, v->note, &st);
     lane = drum_lane(v->note);
+    if (t == TSEL) {                                     /* ((custom) the editor's lane view) */
+        drum_hitnote[lane] = (uint8_t)v->note;
+        drum_hitn[lane]++;
+    }
     L = &K[(uint32_t)v->s[0] & (DV_NLANE - 1u)];
     u = drum_user(t->p);
     if (u && v->env && L->owner == i + 1u && (v->s[5] & 0x8000) && v->s[6] != 1) {   /* ((#35) its sample still */
@@ -341,82 +406,23 @@ static void drum_note_on(track_t *t, voice_t *v)
     if (L->owner == i + 1u)                              /* this voice played another lane: it stops there */
         L->owner = 0;
     L = &K[lane];
-    if (drum_dx(t->p) && !drum_lane_md(t->p, lane)) {    /* (custom) a DX kit: DRUM-X's hit on the lane (a lane's own
-                                                          * MODEL before it) */
-        st = DX_GM[dx_gm_ix(v->note)][1];                /* (its pitch on the lane as DRUM-X's GM map has it) */
-        if (L->pad != 2u) {                              /* (DRUM's own or an MD lane before: from rest) */
-            memset(&L->dx, 0, sizeof L->dx);
-            L->pad = 2;
-            L->dk[0] = L->dk[1] = 0;
-        }
-        L->st = (int8_t)st;
-        L->owner = (uint8_t)(i + 1u);
-        v->s[0] = (int32_t)lane;
-        v->env_out = v->vel * 258;
-        v->env = 1 << 24;
-        dx_trigger(&L->dx);
-        if (lane == DV_HATC && K[DV_HATO].pad == 2u)
-            dx_choke(&K[DV_HATO].dx);                    /* a closed hat chokes the open one */
-        return;
-    }
-    if (drum_lane_md(t->p, lane)) {                      /* (custom) an MD kit, or the lane's own MODEL: struck */
-        uint32_t model = drum_lane_md(t->p, lane) - 1u;
-        md_lane_t *M = &L->md;
-        if (L->pad != 1u || M->model != model + 1u) {    /* another model (or DRUM's own) on this lane: from rest */
-            memset(M, 0, sizeof *M);
-            M->model = (uint8_t)(model + 1u);
-            L->pad = 1;
-            L->dk[0] = L->dk[1] = 0;
-        }
-        L->st = (int8_t)st;
-        L->owner = (uint8_t)(i + 1u);
-        v->s[0] = (int32_t)lane;
-        v->env_out = v->vel * 258;
-        v->env = 1 << 24;
-        M->again = M->v.active;                          /* (struck again while it rings: the declick) */
-        M->choke = 0;
-        md_knobs(&M->trk, model, t->p, lane, st);
-        md_hit(M, model);
-        if (lane == DV_HATC && K[DV_HATO].pad == 1u && K[DV_HATO].md.v.active)
-            K[DV_HATO].md.choke = 1;                     /* a closed hat chokes the open one */
-        return;
-    }
-    if (L->pad) {                                        /* (custom) an MD lane before: DRUM's own from rest */
-        L->pad = 0;
-        L->role = 0xFF;
-        L->v.type = 0xFF;
-    }
-    if (u) {                                             /* ((2.0, #35) a user kit: the lane's sample, from its start */
-        L->st = (int8_t)st;
-        L->owner = (uint8_t)(i + 1u);
-        v->s[0] = (int32_t)lane;
-        v->s[5] = (int32_t)drum_user_zone(u - 1u, lane);
-        v->ph[0] = v->ph[1] = v->ph[2] = 0;
-        v->s[1] = v->s[2] = v->s[3] = 0;
-        v->s[6] = !v->s[5];                              /* (no sample: ended, the lane silent) */
-        v->s[7] = 1 << 24;
-        v->env_out = v->vel * 258;
-        v->env = 1 << 24;
-        if (lane == DV_HATC && K[DV_HATO].owner && t->v[K[DV_HATO].owner - 1u].active &&
-            !t->v[K[DV_HATO].owner - 1u].s[6])
-            t->v[K[DV_HATO].owner - 1u].s[6] = 2;       /* (the open hat fades out: drum_smp) */
-        return;
-    }
-    if (L->role != role || L->v.type != dv_run_type(role)) {   /* another drum on this lane: from rest */
-        dv_init(&L->v, role);
-        L->key.type = 0xFF;
-        L->role = (uint8_t)role;
-    }
-    L->st = (int8_t)st;
+    kind = drum_strike(t, L, v, lane, v->note, role, st);
     L->owner = (uint8_t)(i + 1u);                        /* (its last voice, if another, ends: drum_amp) */
-    v->s[0] = (int32_t)lane;
     v->env_out = v->vel * 258;                           /* the hit starts at its level (no ramp from 0) */
     v->env = 1 << 24;                                    /* the ADSR held at full from here, not from drum_amp:
                                                           * a key-off before the first block (zero-length MIDI
                                                           * notes) would end a fresh voice at env 0 in env_tick */
-    dv_trigger(&L->v);
-    if (lane == DV_HATC && K[DV_HATO].v.live)            /* a closed hat chokes the open one */
-        dv_choke(&K[DV_HATO].v);
+    if (lane != DV_HATC)
+        return;
+    H = &K[DV_HATO];                                     /* a closed hat chokes the open one: */
+    if (kind == 2u && H->pad == 2u)
+        dx_choke(&H->dx);
+    else if (kind == 1u && H->pad == 1u && H->md.v.active)
+        H->md.choke = 1;
+    else if (kind == 3u && H->owner && t->v[H->owner - 1u].active && !t->v[H->owner - 1u].s[6])
+        t->v[H->owner - 1u].s[6] = 2;                    /* (a user kit's open hat fades out: drum_smp) */
+    else if (!kind && H->v.live)
+        dv_choke(&H->v);
 }
 
 /* the voice's amplitude: the hit, not the ADSR (which still runs, held at full so a release never ends
@@ -601,12 +607,30 @@ static __attribute__((noinline)) int drum_dv_block(drum_lane_t *L, const int16_t
     return again;
 }
 
+/* a lane's block y into out (added): DRV x1..x4 into the soft clip, the level kept (Q12), x1.25 and the knee below, in
+ * 32 bits, at the voice's amplitude m. (custom) Out of line: drum_render's and the lane view's (drum_pv_block) */
+static __attribute__((noinline)) void drum_out(const int32_t *y, int32_t *out, uint32_t n, const vmod_t *m, int32_t drv)
+{
+    int32_t g = 0, mk = 0;
+    uint32_t i;
+    if (drv > 0) {
+        g = 4096 + drv * 3 * 4096 / 127;
+        mk = (int32_t)((19661u << 15) / (uint32_t)softclip((19661 * g) >> 12));
+    }
+    for (i = 0; i < n; i++) {
+        int32_t s = y[i];
+        if (g)
+            s = (softclip((s * g) >> 12) * mk) >> 15;
+        out[i] += voice_amp2(soft_knee(s + (s >> 2), 24000), m, i);
+    }
+}
+
 static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
     drum_lane_t *L = drum_lane_of(t, v);
-    int32_t y[CTL], acc = clamp(p[P_E5] * v->vel * 4, 0, 65536), drv = p[P_E7], g = 0, mk = 0;   /* acc Q16 */
-    uint32_t ln = (uint32_t)v->s[0] & (DV_NLANE - 1u), i;
+    int32_t y[CTL], acc = clamp(p[P_E5] * v->vel * 4, 0, 65536), drv = p[P_E7];   /* acc Q16 */
+    uint32_t ln = (uint32_t)v->s[0] & (DV_NLANE - 1u);
     int again;
     vmod_t ml;
     if (!L)
@@ -631,16 +655,60 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     drum_declick(L, y, n, again);
     if ((drum_mute[(uint32_t)(t - trk) % NTRK] >> ln) & 1u)
         return;                                          /* ((1.3) a muted lane rings on unheard) */
-    if (drv > 0) {                                       /* DRV: x1..x4 into the soft clip, the level kept (Q12) */
-        g = 4096 + drv * 3 * 4096 / 127;
-        mk = (int32_t)((19661u << 15) / (uint32_t)softclip((19661 * g) >> 12));
+    drum_out(y, out, n, m, drv);
+}
+
+/* (custom) the editor's lane view (editor.c ED_LANE): a lane struck alone on a scratch lane, as drum_note_on strikes
+ * it (velocity 127; a user kit's sample, an MD or DX lane, DRUM's own), then played block by block as drum_render plays
+ * it, the knobs as they are now (the lane's LEVEL, TUNE, DECAY too; no choke, no mute): what the lane sounds like.
+ * Main loop only (the audio's lanes untouched; the lane code is the second core's as well: no shared state). In .ramx
+ * (app.ld: the pool's spare is its 8 KiB) */
+static drum_lane_t drum_pv __attribute__((section(".ramx")));
+static voice_t drum_pv_v __attribute__((section(".ramx")));
+static uint8_t drum_pv_kind;                             /* 0 DRUM's own, 1 MD, 2 DX, 3 a user kit's sample */
+static __attribute__((noinline)) void drum_pv_start(track_t *t, uint32_t note)
+{
+    int32_t st;
+    uint32_t role = drum_gm(t->p, note, &st);
+    memset(&drum_pv, 0, sizeof drum_pv);
+    memset(&drum_pv_v, 0, sizeof drum_pv_v);
+    drum_pv.role = 0xFF;                                 /* (from rest) */
+    drum_pv_kind = (uint8_t)drum_strike(t, &drum_pv, &drum_pv_v, drum_lane(note), note, role, st);
+}
+/* .. its next CTL samples into out (at the voice level, as the track mixes them); 0 once it rang out (out silent) */
+static __attribute__((noinline)) int drum_pv_block(track_t *t, int32_t *out)
+{
+    drum_lane_t *L = &drum_pv;
+    const int16_t *p = t->p;
+    uint32_t ln = (uint32_t)drum_pv_v.s[0], i;
+    int32_t y[CTL], live;
+    vmod_t mu, ml;
+    const vmod_t *m;
+    memset(&mu, 0, sizeof mu);
+    mu.amp0 = mu.amp1 = 32767;
+    m = vmod_level(&mu, &ml, clamp(p[P_LN0 + ln], 0, 127));
+    for (i = 0; i < CTL; i++)
+        out[i] = 0;
+    if (drum_pv_kind == 3u) {
+        if (!drum_user(p) || drum_pv_v.s[6] == 1)
+            return 0;
+        drum_smp(t, &drum_pv_v, out, CTL, m, ln, L->st);
+        return 1;
     }
-    for (i = 0; i < n; i++) {                            /* x1.25 and the knee below, in 32 bits */
-        int32_t s = y[i];
-        if (g)
-            s = (softclip((s * g) >> 12) * mk) >> 15;
-        out[i] += voice_amp2(soft_knee(s + (s >> 2), 24000), m, i);
+    if (drum_pv_kind == 2u) {
+        if (drum_dx_run(L, p, ln, y, CTL) < 0)
+            return 0;
+        live = L->dx.live || L->dx.trig;
+    } else if (drum_pv_kind == 1u) {
+        if (drum_md_run(L, p, ln, y, CTL) < 0)
+            return 0;
+        live = L->md.v.active;
+    } else {
+        drum_dv_block(L, p, ln, clamp(p[P_E5] * 127 * 4, 0, 65536), y, CTL);
+        live = L->v.live || L->v.trig;
     }
+    drum_out(y, out, CTL, m, p[P_E7]);                  /* (as drum_render) */
+    return live;
 }
 
 /* the GM drum map, the first C (key 7) is the kick (C2, 36) */

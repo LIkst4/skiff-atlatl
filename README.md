@@ -119,6 +119,9 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - **your own samples** (next): the kits **USR1–USR3** play a user sample slot, a WAV a lane (KICK, SNARE …), loaded
   from the web editor's **Samples** tab; each lane's TUNE, DECAY, LEVEL and the hat choke apply as on any kit. (The
   SAMPLE and SLICE engines stay out of the build, for flash.)
+- **the lanes in the web editor** (next): on a DRUM track's **Sound** tab, each lane drawn as the unit plays it (any
+  kit, rendered on the FM-1 with the knobs as they are), drawn again as you turn PITCH, TONE, DECAY, DRIVE or a lane's
+  LEVEL, TUNE, DECAY, MODEL, with a cursor running across a lane each time it sounds.
 
 **GRAIN** grains real FLUTE and SAX recordings.
 
@@ -182,6 +185,8 @@ its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the f
 **Next (on `atlatl-dev`)**
 - **DRUM's user kits are back**: USR1–USR3 play your WAVs, a lane each, uploaded from the web editor's Samples tab
   (they were left out with the sampler before v1.0; about 2 KB of flash).
+- **DRUM's lanes in the web editor**: the Sound tab draws every lane as the unit plays it (any kit, rendered on the
+  FM-1), redrawn as the knobs turn, with a cursor on each hit; in the plugin too.
 
 **v1.2.5**, on Skiff 2.7 (identity `FM-1_74212`, as v1.2's: a vX.Y.Z keeps X.Y's)
 - **Synced with Skiff 2.7** (through 2.5.1 and 2.6): the editor's Screen tab (full screen, the FM-1 played from the

@@ -235,6 +235,8 @@
        color: var(--head); }
   h3 { font: 500 12px "Barlow Condensed", sans-serif; letter-spacing: .05em; text-transform: uppercase; }
   .group { background: var(--tile); border-radius: 6px; padding: 10px 12px 8px; }
+  #laneview { column-span: all; margin-bottom: 14px; }   /* ((custom) DRUM's lane view, across the columns */
+  .lanecv { display: block; width: 100%; }
   .row > span:first-child { font: 500 14px "Barlow Condensed", sans-serif; letter-spacing: .03em; }
   .row .v { font: 700 15px "Barlow Condensed", sans-serif; }
   button { background: var(--raise); color: var(--fg); border-radius: 4px; padding: 3px 10px; }
@@ -678,9 +680,10 @@ const CMD = { INFO: 1, GET: 2, SET: 3, DUMP: 4, DESC: 5, STEP_GET: 6, STEP_SET: 
   UI_STATE: 34, UI_SET: 35, UI_PALETTES: 36, FAV_GET: 37, FAV_SET: 38, COLORS: 39,
   MOTION: 64, BACKUP_LIST: 65, BACKUP_GET: 66, BACKUP_PUT: 67,
   FM6_GET: 68, FM6_PUT: 69, FM6_LIST: 70, FM6_ERASE: 71, MENU_DESC: 72, MENU_SET: 73, KIT_GET: 74, KIT_PUT: 75, TRANSPORT: 76, PROJ_NAME: 77, POOL: 78, LIST: 79, PERFORM: 80,
-  SMP_MIX: 81, LIST2: 82, CAST: 83, PANEL: 84, ARP: 85 };   /* ((custom) ARP: 85, since Skiff 2.7 took 83 84) */
+  SMP_MIX: 81, LIST2: 82, CAST: 83, PANEL: 84, ARP: 85,   /* ((custom) ARP: 85, since Skiff 2.7 took 83 84) */
+  HIT: 86, LANE: 87, LANE_PK: 88 };                          /* ((custom) DRUM's lane view, INFO 44 01) */
 /* frames the device sends on its own (while WATCH is on); never replies */
-const PUSH = new Set([CMD.CHANGED, CMD.RELOAD, CMD.STEP_CHANGED, CMD.TRACK_CHANGED]);
+const PUSH = new Set([CMD.CHANGED, CMD.RELOAD, CMD.STEP_CHANGED, CMD.TRACK_CHANGED, CMD.HIT, CMD.LANE_PK]);
 /* user preset bank: name 1..12 printable ASCII, a 16-step pattern of (note, flags 1 acc 2 slide 4 tie) */
 const UP = { NAME_MAX: 12, PAT: 16, LIST_MAX: 16 };
 const PAT_REST = 65;                              /* (#28) LIST: an entry that is a REST (patterns 1..64, 0 empty) */
@@ -897,6 +900,8 @@ const parse = {
     o.skiff = 0;                                  /* (Skiff W3, INFO 57 01 caps) bits: 0 TRANSPORT, 1 PROJ_NAME, 2 POOL, 3 LIST,
                                                      4 PERFORM, (#21) 5 SMP_MIX, (2.0, #25) 6 a step's ties */
     o.arpSteps = 0;                               /* ((custom) INFO 41 01 16) ARP: a track's ARP STEP, its steps */
+    o.laneView = 0;                               /* ((custom) INFO 44 01 caps) DRUM's lane view: bit 0 HIT (WATCH bit 2),
+                                                     bit 1 LANE, LANE_PK */
     o.song2 = 0;                                  /* (2.0, INFO 58 01 caps) bit 0: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's
                                                      EMPTY and CLEAR UNUSED */
     o.cast = 0;                                   /* (Skiff Studio, INFO 59 01 caps) bit 0: the cast (cmd 83), the Screen tab;
@@ -926,7 +931,8 @@ const parse = {
       }
       if (trailer[r] === 0x58 && trailer[r + 1] === 1) { o.song2 = trailer[r + 2] & 127; r += 3; }   /* (2.0) the song's */
       if (trailer[r] === 0x59 && trailer[r + 1] === 1) { o.cast = trailer[r + 2] & 127; r += 3; }   /* (Skiff Studio) the cast */
-      if (trailer[r] === 0x41 && trailer[r + 1] === 1) o.arpSteps = trailer[r + 2];   /* ((custom) ARP STEP: ED_ARP 85, last) */
+      if (trailer[r] === 0x41 && trailer[r + 1] === 1) { o.arpSteps = trailer[r + 2]; r += 3; }   /* ((custom) ARP STEP: ED_ARP 85) */
+      if (trailer[r] === 0x44 && trailer[r + 1] === 1) o.laneView = trailer[r + 2] & 3;   /* ((custom) the lane view, last) */
     }
     o.light = o.light || { tracks: 0, engines: 0 };   /* the tracks that may not play some engines, and those engines */
     return o;
@@ -1001,6 +1007,18 @@ const parse = {
     const r = new Reader(a), o = { track: r.b(), len: r.b() };
     o.tr = Array.from({ length: 16 }, () => r.b() - 24);
     o.st = Array.from({ length: 16 }, () => r.b());
+    return o;
+  },
+  /* ((custom) DRUM's lane view) HIT (pushed): the selected track's hit, its lane and note; LANE: the lane of a note
+     queued for rendering (rc 0) or not (1: not watching, not a DRUM track); LANE_PK (pushed): its peaks from point
+     first on (a point the largest |sample| over 128 samples, >> 2), last on the lane's last chunk */
+  [CMD.HIT](a) { const r = new Reader(a); return { track: r.b(), lane: r.b(), note: r.b() }; },
+  [CMD.LANE](a) { const r = new Reader(a); return { track: r.b(), lane: r.b(), note: r.b(), rc: r.b() }; },
+  [CMD.LANE_PK](a) {
+    const r = new Reader(a), o = { track: r.b(), lane: r.b(), note: r.b() };
+    o.first = r.b() | r.b() << 7;
+    o.last = !!r.b();
+    o.pk = Array.from({ length: r.b() }, () => r.b() | r.b() << 7);
     return o;
   },
   /* (Skiff W3) TRANSPORT: rc, playing, counting in, the request the audio has yet to take (1 start, 2 stop, 3 restart),
@@ -1228,8 +1246,9 @@ const req = {
   upStore: (s, name) => [CMD.UP_STORE, [s & 0x7F, ...strEnc(name ? upName(name) : "")]],   /* "": the device names it ("ANALOG 07") */
   upLoad: (s) => [CMD.UP_LOAD, [s & 0x7F]],
   upErase: (s) => [CMD.UP_ERASE, [s & 0x7F]],
-  /* on: 1 = pushes; 3 = also TRACK_CHANGED (v4 firmware answers 3, older firmware 1) */
-  watch: (on) => [CMD.WATCH, [on === 3 ? 3 : on ? 1 : 0]],
+  /* on: 1 = pushes; 3 = also TRACK_CHANGED (v4 firmware answers 3, older firmware 1); ((custom) 7 = HIT too (INFO 44
+     01: the reply's bit 2; firmware before ignores the bit) */
+  watch: (on) => [CMD.WATCH, [on === 7 || on === 3 ? on : on ? 1 : 0]],
   ping: () => [CMD.PING, []],
   /* v3: tracks 0..3 */
   track: (sel) => [CMD.TRACK, sel == null ? [] : [sel & 0x7F]],
@@ -1247,6 +1266,7 @@ const req = {
   menuSet: (id, v) => [CMD.MENU_SET, [id & 0x7F, ...v14enc(v)]],
   kitGet: (lane) => [CMD.KIT_GET, [lane & 7]],
   arpGet: (track) => [CMD.ARP, [track & 0x7F]],                     /* ((custom) ARP STEP) */
+  lane: (note) => [CMD.LANE, [note & 0x7F]],                        /* ((custom) DRUM's lane view) */
   arpPut: (p) => [CMD.ARP, [p.track, p.len, ...p.tr.map((x) => x + 24), ...p.st].map((x) => x & 0x7F)],
   kitPut: (k) => [CMD.KIT_PUT, [k.lane, k.wave, k.filt, +k.snap, k.pmod, +k.drive, ...k.a, ...k.b].map((x) => x & 0x7F)],
   transport: (op = 0) => [CMD.TRANSPORT, op ? [op] : []],            /* 1 PLAY, 2 STOP, 3 RESTART, 4 REC; none: the state */
@@ -1278,6 +1298,7 @@ function replyMatches(cmd, args, a) {
     case CMD.MENU_DESC: return a[0] === args[0];
     case CMD.MENU_SET: return a[1] === args[0];
     case CMD.KIT_GET: case CMD.KIT_PUT: case CMD.ARP: return a[0] === args[0];
+    case CMD.LANE: return a[2] === args[0];
     case CMD.PROJ_NAME: case CMD.POOL: case CMD.LIST: case CMD.LIST2: case CMD.PERFORM: return a[0] === (args[0] || 0);
     case CMD.BACKUP_GET: return a[0] === args[0] && a.slice(2, 7).every((v, i) => v === args[i + 1]);
     case CMD.BACKUP_PUT: return a[0] === args[0] && a[1] === args[1];
@@ -2059,7 +2080,7 @@ async function auditionPatch(rq, info, pt, opt = {}) {
 /* WATCH on (asking for TRACK_CHANGED too): false when the firmware does not know it (older than protocol v2),
    else 1, or 3 when it also has TRACK_PARAM / TRACK_CHANGED (protocol v4) */
 async function startWatch(rq) {
-  try { const on = parse[CMD.WATCH](await rq(req.watch(3), { timeout: 300, retries: 1, quiet: true })).on; return on & 1 ? on & 3 : false; }
+  try { const on = parse[CMD.WATCH](await rq(req.watch(7), { timeout: 300, retries: 1, quiet: true })).on; return on & 1 ? on & 7 : false; }
   catch (e) { if (e.message === "closed") throw e; return false; }
 }
 
@@ -3136,7 +3157,8 @@ function makeMockDevice(opt = {}) {
   const songOn = () => projOn() && !opt.noSong;        /* (Skiff W3, INFO 57 01 31) POOL, LIST, PERFORM */
   const tiesOn = () => songOn() && !opt.noTies;        /* ((2.0, #25) INFO 57 01 bit 6) a step's ties after its NUDGE */
   const song2On = () => songOn() && !opt.noSong2;
-  const arpOn = () => song2On() && !opt.noArp;          /* ((custom) INFO 41 01 16: ARP, a track's ARP STEP */      /* ((2.0) INFO 58 01: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's 2 3) */
+  const arpOn = () => song2On() && !opt.noArp;
+  const laneOn = () => arpOn() && !opt.noLane;          /* ((custom) INFO 44 01 03: HIT, LANE, LANE_PK */          /* ((custom) INFO 41 01 16: ARP, a track's ARP STEP */      /* ((2.0) INFO 58 01: LIST2, NEW, COPY+, CHAIN, ONCE, the pool's 2 3) */
   const sndM = () => song2On() && !opt.noSnd;         /* ((2.0, #30) INFO 58 01 bit 1: LIST2's entry sounds, its op 9) */
   const stepOut = (x, b) => { b(x.n); x.notes.forEach(b); b(x.time); b(x.flags); b(x.vel); hitsEnc(x.hit, x.acc).forEach(b); if (!opt.legacy && !opt.v3 && !opt.v5) b(x.chance ?? 100); if (ratchetOn()) b(x.ratchet ?? 1);
     if (stepxOn()) { b(x.flam ? 1 : 0); b(x.cond | 0); b(((x.nudge | 0) + 32) & 63); } if (tiesOn()) b(x.ties | 0); };
@@ -3238,7 +3260,8 @@ function makeMockDevice(opt = {}) {
       if (projOn()) [0x49, 1, P_COUNT & 127, P_COUNT >> 7, P_E0 & 127, P_E0 >> 7].forEach(b);   /* ((Skiff 1.3) wide ids) */
       if (song2On()) [0x58, 1, sndM() ? 3 : 1].forEach(b);     /* ((2.0) LIST2, NEW, COPY+, CHAIN, ONCE, EMPTY, UNUSED;
                                                                    (#30) bit 1 the entries' sounds) */
-      if (arpOn()) [0x41, 1, 16].forEach(b);                   /* ((custom) ARP STEP, last) */
+      if (arpOn()) [0x41, 1, 16].forEach(b);                   /* ((custom) ARP STEP) */
+      if (laneOn()) [0x44, 1, 3].forEach(b);                   /* ((custom) DRUM's lane view, last) */
     };
     const wid = (s, i) => (s === 2 ? [0, i + 128] : [s, i]);   /* ((1.3) scope 2: a track id from 128 on) */
     if (opt.legacy && cmd >= CMD.UP_LIST) return null;
@@ -3341,7 +3364,8 @@ function makeMockDevice(opt = {}) {
         if (a.length < 1) return null;
         st.watch = !!(a[0] & 1);
         st.v4 = st.watch && !opt.v3 && !!(a[0] & 2);   /* v4: TRACK_CHANGED pushes too */
-        b((st.watch ? 1 : 0) | (st.v4 ? 2 : 0));
+        st.hits = st.watch && laneOn() && !!(a[0] & 4);   /* ((custom) HIT pushes */
+        b((st.watch ? 1 : 0) | (st.v4 ? 2 : 0) | (st.hits ? 4 : 0));
         break;
       case CMD.PING:
         b(0);
@@ -3510,6 +3534,23 @@ function makeMockDevice(opt = {}) {
         const P = st.arp[a[0]];
         if (a.length === 34) { P.len = a[1]; P.tr = a.slice(2, 18).map((x) => x - 24); P.st = a.slice(18); }
         [a[0], P.len, ...P.tr.map((x) => x + 24), ...P.st].forEach(b);
+        break;
+      }
+      case CMD.LANE: {   /* ((custom) editor.c ed_lv: the lane of a note rendered, its peaks pushed after the reply */
+        if (!laneOn() || a.length !== 1) return null;
+        const ln = drumLane(a[0]), ok = watching() && ENG[st.engine].name === "DRUM";
+        [st.sel, ln, a[0], ok ? 0 : 1].forEach(b);
+        if (ok) {                                     /* the mock's lane: a decay as DECAY and the lane's DECAY set it */
+          const e = P_E0, n = Math.max(4, Math.min(512, Math.round((40 + 20 * ln) * 2 ** ((st.p[e + 3] - 64 + st.p[109 + ln]) / 24)))),
+            g = (st.p[83 + ln] / 127) ** 2 * 11000, pk = Array.from({ length: n }, (_, i) => Math.round(g * Math.exp(-4 * i / n)));
+          st.laneGen = st.laneGen || [];               /* (a lane asked for again starts over) */
+          const gen = st.laneGen[ln] = (st.laneGen[ln] | 0) + 1;
+          for (let i = 0; i < n; i += 32) {
+            const c = pk.slice(i, i + 32), last = i + 32 >= n ? 1 : 0;
+            setTimeout(() => { if (st.laneGen[ln] === gen) push(CMD.LANE_PK, [st.sel, ln, a[0], i & 127, i >> 7, last, c.length,
+              ...c.flatMap((x) => [x & 127, x >> 7])]); }, 2 + i / 32);
+          }
+        }
         break;
       }
       case CMD.KIT_GET: case CMD.KIT_PUT: {   /* (Skiff W3) editor.c: a lane; KIT_PUT its 15 values in range (else no reply) */
@@ -3860,6 +3901,10 @@ function makeMockDevice(opt = {}) {
       else if (st.v4) push(CMD.TRACK_CHANGED, [i | (id >> 7 & 1) << 6, id & 127, ...v14enc(t.p[id])]);
       return t.p[id];
     },
+    /* ((custom) a hit on the selected track: HIT while the editor asked for them (WATCH bit 2) */
+    hit(note = 36) {
+      return st.hits && push(CMD.HIT, [st.sel, drumLane(note), note]);
+    },
     /* REC on TRACKS: arm / disarm live recording of a track (no push: the editor reads TRACK) */
     arm(i = st.sel) { st.rec ^= 1 << i; return (st.rec >> i) & 1; },
     step(i = Math.floor(Math.random() * 16)) {
@@ -3876,6 +3921,10 @@ function makeMockDevice(opt = {}) {
     setInterval(() => sim.step(), 11000),
     setInterval(() => sim.reload(), 27000),
     setInterval(() => sim.param((st.sel + 1) % NTRK, 39, Math.round(Math.random() * 80) - 40), 13000),   /* pan of another track */
+    setInterval(() => {                             /* ((custom) a beat on a DRUM track: HIT for the lane view */
+      st.beat = ((st.beat | 0) + 1) % 16;
+      if (ENG[st.engine].name === "DRUM") [[36, 42], [42], [38, 42], [42, 46]][st.beat % 4].forEach((n) => sim.hit(n));
+    }, 150),
   ];
   return {
     state: st, sim,
@@ -4049,6 +4098,7 @@ const TEXT = {
     deviceFavorites: "お気に入りのみ",
     deviceEmpty: "お気に入りはまだありません。「すべてのプリセット」から追加してください。",
     dxKitHelp: "DRUM-X のキット: すべての DRUM-X トラックで共通の 8 音で、プロジェクトと一緒に保存されます。EDIT の MORPH で A から B へ移ります。",
+    laneHelp: "各レーンを本体が鳴らすとおりに表示します（今のノブの値で）。ノブを回すと描き直し、レーンが鳴るとカーソルが走ります。",
     arpStepHelp: "トラックのアルペジエーターのステップパターン (ARP > ARP STEP): 各ステップは ON、OFF (休符)、STACC (GATE の 4 分の 1) で、音を半音単位で上下に移せます。プロジェクトと一緒に保存されます。16 ステップすべて ON・0 なら従来どおりです。",
     customColors: "カスタムカラー", customHelp: "THEME › CUSTOM の色を自分で選べます。選んだ見た目のまま、変えるとすぐ本体に表示され、保存で本体に残ります。",
     customLook: "見た目", customFrom: "ここから始める…", customLive: "本体に表示", customSave: "保存", customRevert: "元に戻す",
@@ -4217,6 +4267,7 @@ const TEXT = {
     deviceFavorites: "Favorites only",
     deviceEmpty: "No favorites yet. Choose All presets to add some.",
     dxKitHelp: "The DRUM-X kit: 8 sounds shared by every DRUM-X track, kept with the project. EDIT's MORPH moves each from A to B.",
+    laneHelp: "Each lane as the unit plays it, with the knobs as they are: turning one draws its lanes again, and a cursor runs across a lane when it sounds.",
     arpStepHelp: "The track's arpeggiator step pattern (ARP > ARP STEP): each step ON, OFF (a rest) or STACC (a quarter of the GATE), its note moved up or down in semitones. Kept with the project; 16 steps ON at 0 play the arpeggiator as before.",
     customColors: "Custom colours", customHelp: "Your own colours for THEME › CUSTOM, in the look you pick. The device shows them as you change them; Save keeps them there.",
     customLook: "Look", customFrom: "Start from…", customLive: "Show on the device", customSave: "Save", customRevert: "Revert",
@@ -4979,7 +5030,8 @@ async function load(d) {
     /* protocol v2: live pushes and the user bank; older firmware: DUMP polling, no bank */
     const rqd = (r, o) => sessionRequest(d, r, o);
     d.watch = await startWatch(rqd);
-    d.v4 = d.watch === 3;                           /* TRACK_PARAM / TRACK_CHANGED */
+    d.v4 = (d.watch & 3) === 3;                     /* TRACK_PARAM / TRACK_CHANGED; ((custom) bit 2: HIT) */
+    laneCheck(d);                                   /* ((custom) the lane view needs the watch */
     if (d.watch) {
       sayK("readingBank");
       try { d.bank = await bank.list((r, o) => sessionRequest(d, r, { ...o, quiet: true })); }
@@ -5164,11 +5216,13 @@ function buildGroups() {
     groups.groups.push(a, b);
     groups.setgroups.push(c);
   }
+  if (laneShown()) groups.groups.unshift(laneGroup());   /* ((custom) DRUM's lanes, across the top */
   if (kitShown()) groups.groups.push(kitGroup());     /* ((Skiff W3)) */
   if (arpShown()) groups.groups.push(arpGroup());     /* ((custom) ARP STEP) */
   for (const [id, divs] of Object.entries(groups)) $(id).replaceChildren(...divs);
   if (kitShown()) { renderKit(); op(() => readKit()); }
   if (arpShown()) { renderArp(); op(() => readArp()); }
+  laneStart();
 }
 
 /* (Skiff W3) the DRUM-X kit on a DRUM-X track's Sound tab (INFO 4B): one kit for every DRUM-X track, the project's (as
@@ -5221,6 +5275,119 @@ function renderKit() {
       pick("P SHAPE", DX.shapes, "pmod"), tog("DRIVE", "drive")),
     el("div", { class: "row kitrow dim" }, el("span"), el("span", { text: "A" }), el("span"), el("span", { text: "B" }), el("span")),
     ...DX.values.map((n, i) => el("div", { class: "row kitrow" }, el("span", { text: n }), ...slider(n, "a", i), ...slider(n, "b", i))));
+}
+
+/* ((custom) INFO 44 01) DRUM's lane view on a DRUM track's Sound tab, any KIT: each lane as the unit plays it, the
+   knobs as they are (LANE: the unit renders the lane alone, its peaks come as LANE_PK), drawn again when a knob that
+   shapes it moves (the device's own turns come as CHANGED); a lane struck (HIT) runs a cursor across it. A point is
+   128 samples (2.9 ms), 512 at most (1.5 s) */
+const LV = { PT: 128 / 44100, MAX: 12000, ROW: 34, LABEL: 60 };
+const lv = { lanes: [], raf: 0, at: 0, axis: 0.5 };
+const laneShown = () => !!dev && !!dev.dump && !!dev.info && (dev.info.laneView & 3) === 3 && !!(dev.watch & 4) &&
+  dev.info.engines[dev.dump.engine] === "DRUM";
+/* the Sound tab built again when the lane view comes or goes with the watch (its bit 2) */
+function laneCheck(d) { if (d === dev && d.dump && laneShown() !== !!$("laneview")) buildGroups(); }
+function laneGroup() {
+  return el("div", { class: "group", id: "laneview" }, el("h2", { ic: "symbol_waves", text: "LANES" }),
+    el("p", { class: "dim", "data-t": "laneHelp", text: t("laneHelp") }),
+    el("canvas", { id: "lanecv", class: "lanecv", height: LV.ROW * 8 + 14 }));
+}
+/* the knobs that shape lane l (KIT, PITCH .. DRIVE, its LEVEL, TUNE, DECAY, MODEL) and the note it plays */
+function laneSig(l) {
+  const p = dev.dump.p, e = dev.info.pe0, L = lv.lanes[l];
+  return [L.note, ...p.slice(e, e + 8), p[P_LANES[l]], p[P_LTUNE[l]], p[P_LDECAY[l]], e >= 161 ? p[P_LMDL[l]] : 0].join(",");
+}
+function laneStart() {
+  lv.lanes = LANE_NOTE.map((note) => ({ note, pk: [], n: 0, done: false, old: null, sig: "", hit: 0 }));
+  if (!lv.raf && laneShown()) lv.raf = requestAnimationFrame(laneTick);
+}
+async function laneAsk(l) {
+  const d = dev, L = lv.lanes[l];
+  try {
+    const r = parse[CMD.LANE](await sessionRequest(d, req.lane(L.note), { key: "lane:" + l, quiet: true, retries: 0 }));
+    if (d !== dev || r.rc || r.lane !== l) return;
+    if (L.done) L.old = { pk: L.pk, n: L.n };      /* (shown dimmed until the new one is whole) */
+    Object.assign(L, { pk: [], n: 0, done: false });
+  } catch (e) { if (e.message !== "closed") console.warn(e); }
+}
+function lanePk(o) {
+  const L = dev && o.track === (dev.sel || 0) && lv.lanes[o.lane];
+  if (!L) return;
+  o.pk.forEach((v, i) => { L.pk[o.first + i] = v; });
+  L.n = Math.max(L.n, o.first + o.pk.length);
+  if (o.last) {
+    Object.assign(L, { done: true, old: null });
+    const len = Math.max(...lv.lanes.map((x) => (x.done ? x.n : 0))) * LV.PT;   /* the longest lane, in 0.25 s */
+    lv.axis = Math.min(1.5, Math.max(0.25, Math.ceil(len * 4) / 4));
+  }
+}
+function laneHit(o) {
+  const L = dev && o.track === (dev.sel || 0) && lv.lanes[o.lane];
+  if (!L) return;
+  L.hit = performance.now();
+  L.note = o.note;                                  /* (another pitch on the lane: drawn again) */
+  if (o.lane === 3 && lv.lanes[4]) lv.lanes[4].hit = 0;   /* (a closed hat chokes the open one) */
+}
+function laneTick(now) {
+  lv.raf = 0;
+  const cv = $("lanecv");
+  if (!cv || !laneShown() || !cv.isConnected) return;
+  lv.raf = requestAnimationFrame(laneTick);
+  if (document.hidden || tab !== "sound") return;
+  if (now - lv.at > 80 && dev.link.idle) {          /* (a knob being turned: its lanes again, at most ~12 times a second) */
+    lv.at = now;
+    lv.lanes.forEach((L, l) => { const s = laneSig(l); if (s !== L.sig) { L.sig = s; laneAsk(l); } });
+  }
+  laneDraw(cv, now);
+}
+function laneDraw(cv, now) {
+  const dpr = window.devicePixelRatio || 1, w = Math.max(200, cv.clientWidth), h = LV.ROW * 8 + 14;
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext("2d"), cs = getComputedStyle(cv), x0 = LV.LABEL, aw = w - x0 - 4;
+  const fg = cs.getPropertyValue("--fg").trim() || "#ddd", dim = cs.getPropertyValue("--dim").trim() || "#888";
+  const line = cs.getPropertyValue("--line").trim() || "#666", acc = cs.getPropertyValue("--trk").trim() || "#f80";
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.font = "11px system-ui, sans-serif";
+  g.textBaseline = "middle";
+  const tx = (s) => x0 + s / lv.axis * aw;
+  g.fillStyle = line;
+  for (let s = 0.25; s < lv.axis + 1e-6; s += 0.25) {   /* the time, a mark each 0.25 s */
+    g.fillRect(Math.round(tx(s)), 0, 1, LV.ROW * 8);
+    g.fillText(`${s.toFixed(2)} s`, Math.min(tx(s) - 14, w - 40), LV.ROW * 8 + 7);
+  }
+  const shape = (pk, n, y, color) => {
+    g.fillStyle = color;
+    g.beginPath();
+    const half = LV.ROW / 2 - 2, xs = [];
+    for (let x = 0; x <= aw; x++) {
+      const a = Math.floor(x / aw * lv.axis / LV.PT), b = Math.max(a + 1, Math.floor((x + 1) / aw * lv.axis / LV.PT));
+      let m = 0;
+      for (let i = a; i < b && i < n; i++) m = Math.max(m, pk[i] || 0);
+      if (a >= n) break;
+      xs.push([x0 + x, Math.min(1, m / LV.MAX) * half]);
+    }
+    if (!xs.length) return;
+    g.moveTo(xs[0][0], y);
+    xs.forEach(([x, v]) => g.lineTo(x, y - v));
+    for (let i = xs.length - 1; i >= 0; i--) g.lineTo(xs[i][0], y + xs[i][1]);
+    g.closePath();
+    g.fill();
+  };
+  lv.lanes.forEach((L, l) => {
+    const y = l * LV.ROW + LV.ROW / 2, el2 = L.hit ? (now - L.hit) / 1000 : Infinity, n = L.done ? L.n : Math.max(L.n, L.old ? L.old.n : 0);
+    const on = el2 < n * LV.PT;
+    g.fillStyle = on ? acc : dim;
+    g.fillText(DX.lanes[l], 2, y);
+    g.fillStyle = line;
+    g.fillRect(x0, Math.round(y), aw, 1);
+    if (L.old && !L.done) shape(L.old.pk, L.old.n, y, line);
+    shape(L.pk, L.n, y, on ? acc : fg);
+    if (on && el2 <= lv.axis) {                     /* the cursor */
+      g.fillStyle = acc;
+      g.fillRect(Math.round(tx(el2)) - 1, l * LV.ROW + 1, 2, LV.ROW - 2);
+    }
+  });
 }
 
 /* ((custom) INFO 41 01) the selected track's ARP STEP (the device's ARP > ARP STEP): STEPS,
@@ -7150,6 +7317,10 @@ function onPush(f) {
     } else if (f.cmd === CMD.STEP_CHANGED) {
       const { index } = parse[CMD.STEP_CHANGED](f.a);
       if (index < d.info.nstep) refreshStep(index);
+    } else if (f.cmd === CMD.LANE_PK) {             /* ((custom) DRUM's lane view */
+      lanePk(parse[CMD.LANE_PK](f.a));
+    } else if (f.cmd === CMD.HIT) {
+      laneHit(parse[CMD.HIT](f.a));
     } else if (f.cmd === CMD.TRACK_CHANGED) {       /* v4: level / pan / mute of a track that is not selected */
       const c = parse[CMD.TRACK_CHANGED](f.a), x = d.mix && d.mix.tracks[c.track];
       if (!x || c.track === d.sel) return;
@@ -7206,7 +7377,10 @@ async function keepAlive() {
       const on = await startWatch((r, o) => sessionRequest(d, r, o));
       assertSession(d);
       rewatch = false;                              /* (this WATCH itself may have flagged the gap) */
-      if (on) { d.v4 = on === 3; needReload = true; maybeReload(); }
+      if (on) {
+        d.v4 = (on & 3) === 3; d.watch = on; needReload = true; maybeReload();
+        laneCheck(d);
+      }
       else if (d === dev) { d.watch = false; renderLive(); }
     } catch (e) { /* closed */ } finally { keepAlive.run = false; }
   } else if (gap > 850 && d.link.idle) {
@@ -8209,7 +8383,7 @@ function scrLoaded(d) {
   scrSay(t("scrWait"));
   (async () => {
     try {
-      await sessionRequest(d, req.watch(3), { front: true, timeout: 500, retries: 3 });
+      await sessionRequest(d, req.watch(7), { front: true, timeout: 500, retries: 3 });
       Object.assign(scr, { queue: [], seq: -1, lost: 0, draws: -1, log: false });
       const a = await sessionRequest(d, [CMD.CAST, [1]], { front: true, timeout: 1000, retries: 2 });
       if (a[1] !== 1) throw new Error(t("scrNoStart"));

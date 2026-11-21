@@ -1063,6 +1063,36 @@ async function editorArp() {
   o.done();
 }
 
+/* ((custom) INFO 44 01 03, last) DRUM's lane view: WATCH 7 asks for HIT too (bit 2 back); LANE renders a lane, its
+   peaks pushed after the reply as LANE_PK chunks; HIT pushed for the selected track's hits */
+async function editorLane() {
+  const C = E.CMD;
+  const { m, rq, ev, done } = attachMock({});
+  const info = E.parse[C.INFO](await rq(E.req.info()));
+  ok(info.laneView === 3 && info.arpSteps === 16, "lane view: INFO 44 01 03 after ARP STEP's 41 01 16");
+  ok(E.req.watch(7)[1][0] === 7 && E.req.watch(3)[1][0] === 3 && E.req.watch(true)[1][0] === 1, "lane view: WATCH 7 (bit 2: HIT)");
+  let r = E.parse[C.LANE](await rq(E.req.lane(36)));
+  ok(r.rc === 1, "lane view: LANE while not watching: rc 1");
+  const w = E.parse[C.WATCH](await rq(E.req.watch(7))).on;
+  await rq(E.req.set(1, 20, 10));                    /* (G_ENGSEL: DRUM) */
+  r = E.parse[C.LANE](await rq(E.req.lane(38)));
+  await sleep(60);
+  const pk = ev.pushes.filter((f) => f.cmd === C.LANE_PK).map((f) => E.parse[C.LANE_PK](f.a));
+  ok(w === 7 && r.rc === 0 && r.lane === 1 && r.note === 38 && pk.length >= 1 && pk.every((x, i) => x.lane === 1 && x.note === 38 &&
+     x.first === 32 * i && x.last === (i === pk.length - 1)) && pk[0].pk[0] > 0,
+    "lane view: LANE 38 on DRUM: SNARE (lane 1) queued, its peaks pushed in order, the last flagged");
+  m.sim.hit(42);
+  await sleep(20);
+  const h = ev.pushes.filter((f) => f.cmd === C.HIT).map((f) => E.parse[C.HIT](f.a));
+  ok(h.length === 1 && h[0].lane === 3 && h[0].note === 42, "lane view: a hit pushes HIT: the lane, the note");
+  done();
+  const o = attachMock({ noLane: true });
+  const oi = E.parse[C.INFO](await o.rq(E.req.info()));
+  ok(!oi.laneView && oi.arpSteps === 16 && E.parse[C.WATCH](await o.rq(E.req.watch(7))).on === 3,
+    "lane view: firmware without it (no 44): none, WATCH 7 answers 3");
+  o.done();
+}
+
 /* (Skiff W3) the DRUM-X kit (INFO 4B 01 08 after the step extras): KIT_GET reads a lane, KIT_PUT sets one, whole */
 async function editorKit() {
   const C = E.CMD;
@@ -1559,7 +1589,7 @@ async function editorTrackParam() {
   m.sim.param(2, PAN, 11);
   await sleep(10);
   ok(w1.on === 1 && !ev.pushes.some((f) => f.cmd === C.TRACK_CHANGED), "v4: WATCH 1 answers 1 as before (no TRACK_CHANGED pushes)");
-  ok(await E.startWatch(rq) === 3, "v4: WATCH 3 -> 3 (TRACK_PARAM / TRACK_CHANGED known)");
+  ok(await E.startWatch(rq) === 7, "v4: WATCH 7 -> 7 (TRACK_PARAM / TRACK_CHANGED known; (custom) HIT too)");
   const tracks0 = sent[C.TRACK] || 0, pushes = ev.pushes.length;
   const g = E.parse[C.TRACK_PARAM](await rq(E.req.trackParam(1, PAN)));
   const p2 = await E.mixer.setPan(rq, 2, 0, PAN, -40, true);
@@ -1826,7 +1856,7 @@ async function editorSessions() {
     paramKeys: noop, libAdopt: () => { adoptStarted?.(); return adopted || Promise.resolve(); },
     buildUI: () => { shown++; }, renderPanels: noop, loadSteps: noop, loadStepsIfShown: noop, readMenu: noop, readTransport: noop, readProj: noop,
     startWatch: async () => false, renderLive: noop, renderLib: noop, scrLoaded: noop,
-    renderBank: noop, renderSysinfo: noop, sayK: noop, report: noop, syncPreferences: noop,
+    renderBank: noop, renderSysinfo: noop, sayK: noop, report: noop, syncPreferences: noop, laneCheck: noop,
   });
   const oldRelease = S.beginBusy();
   S.resetBusy();
@@ -2275,6 +2305,7 @@ await editorStepExtras();
 await editorStepTies();
 await editorKit();
 await editorArp();
+await editorLane();
 await editorMirror();
 await editorTransportNames();
 await editorLists();

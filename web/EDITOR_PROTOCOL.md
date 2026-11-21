@@ -198,7 +198,7 @@ at 1..3 and hides 6 5 8: what it sets still plays the right kit, and the device 
 
 | cmd | Request args | Reply args |
 | --- | --- | --- |
-| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (4; Skiff phase 6: 6), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18, Skiff U2: 16) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (Skiff phase 6) `54 01 tracks e0 e1 e2` (light tracks) (below) and (Skiff W1) `43 01 count` (a step's FLAM, COND, NUDGE; count: the trig conditions) and (Skiff W3) `4B 01 8` (the DRUM-X kit, below) and (Skiff W3) `57 01 caps` (bit 0 TRANSPORT, bit 1 PROJ_NAME, bit 2 POOL, bit 3 LIST, bit 4 PERFORM, (#21) bit 5 SMP_MIX, (2.0) bit 6 a step's ties, below) and (Skiff 1.3) `49 01 c0 c1 e0 e1` (wide ids: P_COUNT and P_E0, above) and (2.0) `58 01 caps` (bit 0: LIST2, NEW, COPY+, CHAIN, SONG ONCE, the pool's EMPTY and CLEAR UNUSED; (#30) bit 1: the entries' sounds, LIST2's op 9 and its reply's sound bytes; "Pool, lists, PERFORM" below) and (Skiff Studio) `59 01 caps` (the cast, below) and (custom) `41 01 16` (85 ARP: a track's ARP STEP, below; 83 before Skiff 2.7 took 83 and 84) ; older firmware ends earlier |
+| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (4; Skiff phase 6: 6), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18, Skiff U2: 16) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (Skiff phase 6) `54 01 tracks e0 e1 e2` (light tracks) (below) and (Skiff W1) `43 01 count` (a step's FLAM, COND, NUDGE; count: the trig conditions) and (Skiff W3) `4B 01 8` (the DRUM-X kit, below) and (Skiff W3) `57 01 caps` (bit 0 TRANSPORT, bit 1 PROJ_NAME, bit 2 POOL, bit 3 LIST, bit 4 PERFORM, (#21) bit 5 SMP_MIX, (2.0) bit 6 a step's ties, below) and (Skiff 1.3) `49 01 c0 c1 e0 e1` (wide ids: P_COUNT and P_E0, above) and (2.0) `58 01 caps` (bit 0: LIST2, NEW, COPY+, CHAIN, SONG ONCE, the pool's EMPTY and CLEAR UNUSED; (#30) bit 1: the entries' sounds, LIST2's op 9 and its reply's sound bytes; "Pool, lists, PERFORM" below) and (Skiff Studio) `59 01 caps` (the cast, below) and (custom) `41 01 16` (85 ARP: a track's ARP STEP, below; 83 before Skiff 2.7 took 83 and 84) and (custom) `44 01 3` (DRUM's lane view: bit 0 HIT, bit 1 LANE and LANE_PK, below); older firmware ends earlier |
 | 2 GET | scope, id | scope, id, v14 |
 | 3 SET | scope, id, v14 | scope, id, v14 (the value after clamping). Setting global `G_ENGSEL` (id from DESC label "ENG") changes the engine: its defaults, then its first preset (as on the device) |
 | 4 DUMP | — | engine, preset, then P_COUNT × v14 (the selected track), then G_COUNT × v14 (globals) |
@@ -219,7 +219,7 @@ at 1..3 and hides 6 5 8: what it sets still plays the right kit, and the device 
 | 19 UP_STORE | slot, name | slot, rc. Stores the current sound: engine, parameters, the first 16 sequencer steps as the pattern (TIE steps → flag 4) |
 | 20 UP_LOAD | slot | slot, rc (0 ok, 1 empty/invalid). Applies its sound (not its pattern; the steps stay) |
 | 21 UP_ERASE | slot | slot, rc |
-| 22 WATCH | on (0/1; v4: 3 = also `TRACK_CHANGED`) | on (0/1; v4 firmware: 3 when 3 was asked for). While on, the device pushes cmds 23, 24, 26 (and 32 with bit 1) |
+| 22 WATCH | on (0/1; v4: 3 = also `TRACK_CHANGED`; (custom, `44 01`) bit 2 = also `HIT`) | on (0/1; v4 firmware: 3 when 3 was asked for; bit 2 when `HIT` was asked for and is known). While on, the device pushes cmds 23, 24, 26 (and 32 with bit 1, 86 with bit 2, 88 after a `LANE`) |
 | 23 CHANGED (push) | — | scope, id, v14 |
 | 24 RELOAD (push) | — | engine, preset, then (v3) the selected track |
 | 25 PING | — | 0 |
@@ -952,6 +952,21 @@ SAMPLES pages closed); the device says MIX SAVED. Another length or slot gets no
 sent and mean nothing. The editor sends a set after each upload (its files' values; 100 %, 0, 0 unless changed). On the
 device the same values are EDIT > SAMPLES (a SAMPLE track on that USR set): KNOB 1 the sound, KNOB 2..4 its LEVEL,
 REVERB, DELAY.
+
+## DRUM's lane view (86-88; custom)
+
+INFO's `44 01 3`. On a DRUM track (any KIT: DRUM's own, the MD kits, the DX kits, a user kit's samples) the editor
+draws each lane as the unit plays it with the knobs as they are, and runs a cursor across a lane when it sounds.
+
+| cmd | Request args | Reply args |
+| --- | --- | --- |
+| 86 HIT (push) | — | track, lane 0..7, note: a hit on the selected track (any source: the sequencer, the keys, MIDI), only while `WATCH` was sent with bit 2. Hits close together on one lane come as one |
+| 87 LANE | a note 0..127 | track (the selected), lane (the note's), the note, rc (0 queued; 1 refused: not watching, or the selected track is not DRUM). The unit then renders that lane alone (struck at velocity 127, unmuted, no choke) with the track's knobs as they are, a few blocks each main loop pass, and pushes its peaks as `LANE_PK`. A `LANE` of the lane being rendered starts it over; other lanes wait their turn |
+| 88 LANE_PK (push) | — | track, lane, note, first (2 x 7 bits), last (0/1), count (1..32), then count x peak (2 x 7 bits): from point first on, a point the largest \|sample\| over 128 samples (2.9 ms) at the track's voice level, >> 2; 512 points at most (1.5 s). The last chunk of a render has last 1 |
+
+The editor asks for a lane again whenever a knob that shapes it moves (KIT, PITCH .. DRIVE, the lane's LEVEL, TUNE,
+DECAY, MODEL), at most about 12 times a second, and for the note a HIT played (a lane's other pitches). Firmware
+without the tag answers neither and ignores `WATCH` bit 2.
 
 ## Transport, project names (76, 77; Skiff W3)
 
