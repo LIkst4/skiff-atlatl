@@ -20,9 +20,9 @@ if not os.path.exists(od):
 hdr = subprocess.run([od, "-h", elf], capture_output=True, text=True, check=True).stdout
 print("== sections")
 flash = 0
-for m in re.finditer(r"^\s*\d+\s+(\S+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)", hdr, re.M):
-    name, size, vma, lma = m.group(1), int(m.group(2), 16), int(m.group(3), 16), int(m.group(4), 16)
-    print(f"  {name:<14} {size:8d} B  vma {vma:#010x}  lma {lma:#010x}")
+for m in re.finditer(r"^\s*\d+\s+(\S+)\s+([0-9a-f]{8})\s+([0-9a-f]{8})", hdr, re.M):   # (GNU's and LLVM's -h)
+    name, size, vma = m.group(1), int(m.group(2), 16), int(m.group(3), 16)
+    print(f"  {name:<14} {size:8d} B  at {vma:#010x}")
     if name in (".text", ".data", ".ram_text"):
         flash += size
 print(f"  in the image (.text .data .ram_text): {flash} B")
