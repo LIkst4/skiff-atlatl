@@ -230,13 +230,14 @@ static uint32_t fr_atan2(int64_t y, int64_t x)
         a = 0x80000000u;
     }
     for (i = 0; i < 16u; i++) {
+        int64_t yi = sar64(y, i), xi = sar64(x, i);    /* ((custom) y >> i, x >> i: core.h sar64) */
         if (y > 0) {
-            t = x + (y >> i);
-            y -= x >> i;
+            t = x + yi;
+            y -= xi;
             a += AT[i];
         } else {
-            t = x - (y >> i);
-            y += x >> i;
+            t = x - yi;
+            y += xi;
             a -= AT[i];
         }
         x = t;
@@ -352,7 +353,7 @@ static int64_t fr_pos(uint32_t t)
     uint32_t inc = fr_inc(fr.bpm[fr.ci]), ts = fr_on[fr.start];
     int32_t dev = (int32_t)(ts * inc - fr.ph[fr.ci]);   /* the first beat's own note off the 1/16 grid */
     int64_t p = (int64_t)((int32_t)t - (int32_t)ts) * inc + dev;
-    return FR_BARS[fr.bi] >= 8u ? p >> 1 : p;           /* (BARS 8: 1/8 steps) */
+    return sar64(p, FR_BARS[fr.bi] >= 8u);              /* (BARS 8: 1/8 steps; (custom) sar64: the count chosen) */
 }
 static int32_t fr_step(int64_t p) { return (int32_t)((p + (1LL << 31)) >> 32); }   /* to the nearest step */
 /* the phrase into the track's steps (all of them: the pattern it had goes) at the guess, BARS and first beat in use;

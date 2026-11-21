@@ -148,7 +148,7 @@ static int32_t qratio(int32_t v, int32_t st)
     if (n >= 0)
         y = n > 30 ? (y ? (y > 0 ? INT32_MAX : INT32_MIN) : 0) : y << n;
     else
-        y = n < -40 ? 0 : y >> -n;
+        y = n < -40 ? 0 : sar64(y, (uint32_t)-n);      /* ((custom) y >> -n: core.h sar64) */
     return y > INT32_MAX ? INT32_MAX : y < INT32_MIN ? INT32_MIN : (int32_t)y;
 }
 /* stmlib tan approximations of pi f (f: Q24 normalized frequency) */

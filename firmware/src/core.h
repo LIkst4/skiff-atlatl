@@ -738,6 +738,19 @@ static inline uint32_t bpm_quarter(uint32_t bpm)
 }
 #endif
 
+/* (custom) x >> s for a 64-bit x and a count s (0 .. 63) not known when compiled, arithmetic, from 32-bit shifts: the
+ * compiler's own (E1D8, its arithmetic kind) stops the FM-1 emulator (tools/emu_gaps.py); the same value */
+static inline int64_t sar64(int64_t x, uint32_t s)
+{
+    int32_t hi = (int32_t)((uint64_t)x >> 32);
+    uint32_t lo = (uint32_t)x;
+    if (s >= 32u)
+        return (int64_t)(hi >> (s - 32u));             /* (the high word's sign down through the whole) */
+    if (s)
+        lo = (lo >> s) | ((uint32_t)hi << (32u - s));
+    return (int64_t)((uint64_t)(uint32_t)(hi >> s) << 32 | lo);
+}
+
 /* ----------------------------------------------------------- system --- */
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")   /* slot store before the index update */
 /* (Skiff Studio) the cast (cast.c): what the main loop and the audio ISR take, stamped, so that a copy of Skiff in the
