@@ -85,7 +85,20 @@ recording in the DAW.
 
 ## Install
 
-Download the zip for your system from the **plugin** workflow's artifacts on GitHub (Actions › plugin › the latest run).
+Download the installer for your system from the [latest release](https://github.com/LIkst4/skiff-atlatl/releases/latest)
+(v1.2.5 and later), beside the firmware:
+
+- **macOS:** `ATLATL-FM-1-plugin-X.Y.Z-macos.pkg` puts the CLAP, VST3 and AU into `/Library/Audio/Plug-Ins` and the
+  app into `/Applications`. It is not signed by a registered developer: if macOS refuses to open it, right-click it
+  and choose **Open**, or allow it in System Settings › Privacy & Security.
+- **Windows:** `ATLATL-FM-1-plugin-X.Y.Z-windows-setup.exe` puts the CLAP and VST3 into `Common Files` and the app into
+  `Program Files` (with a Start menu entry and an uninstaller). It is not signed: if SmartScreen stops it, choose
+  **More info › Run anyway**.
+- **Linux:** unpack `ATLATL-FM-1-plugin-X.Y.Z-linux.tar.gz` and run `./install.sh` (into `~/.clap`, `~/.vst3` and
+  `~/.local/bin/atlatl-fm1`; no root needed).
+
+Each release also has a zip per system with the plugins alone, to copy by hand where the table says (the same
+files are the **plugin** workflow's artifacts for any build: Actions › plugin):
 
 | | CLAP | VST3 | AU | Standalone |
 | --- | --- | --- | --- | --- |
@@ -93,8 +106,8 @@ Download the zip for your system from the **plugin** workflow's artifacts on Git
 | **macOS** | `~/Library/Audio/Plug-Ins/CLAP` | `~/Library/Audio/Plug-Ins/VST3` | `~/Library/Audio/Plug-Ins/Components` | `ATLATL FM-1.app` |
 | **Linux** | `~/.clap` | `~/.vst3` | — | `ATLATL FM-1` |
 
-- **macOS:** the build is not notarized. After copying, run
-  `xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/*/ATLATL*`.
+- **macOS:** the build is not notarized. After copying from the zip by hand, run
+  `xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/*/ATLATL*` (the .pkg needs none of this).
 - **Windows:** the window uses Microsoft Edge WebView2, which comes with Windows 11 and current Windows 10.
 - **Linux:** the window needs GTK 3 and WebKitGTK 4.1 (`libwebkit2gtk-4.1-0`). The CLAP opens its window
   floating; the VST3 opens inside the DAW's.

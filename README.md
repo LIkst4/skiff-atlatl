@@ -166,7 +166,8 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 each track's parameters as DAW automation both ways, notes, MIDI clock and transport to the FM-1; the sound back live on
 the DAW's input (DIRECT), or CAPTURE takes the 8 USB channels itself, each track on its own instrument track, its
 latency measured so the sound lands on the beat. In the plugin the screen is the **Mirror** tab (the Screen tab
-restarts the unit and is left out there). See [plugin/README.md](plugin/README.md).
+restarts the unit and is left out there). Its installers (macOS .pkg, Windows setup, Linux) are on each release
+beside the firmware. See [plugin/README.md](plugin/README.md).
 
 **Envelopes**: ATTACK, DECAY and RELEASE start at 0 ms (instant) and rise smoothly (0.1, 0.2 … ms), on every engine.
 

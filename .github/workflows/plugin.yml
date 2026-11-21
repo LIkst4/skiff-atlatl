@@ -1,11 +1,20 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # (custom) ATLATL FM-1, the FM-1 plugin (plugin/): CLAP, VST3, AUv2 (macOS) and a standalone app, on Windows, macOS (universal) and
 # Linux; the link's tests, clap-validator on the CLAP, pluginval on the VST3, auval on the AU, a look at the window
-# (Linux, Xvfb). The plugins are this run's artifacts.
+# (Linux, Xvfb). The plugins are this run's artifacts: a zip each, and an installer each (a .pkg for macOS, a setup .exe
+# for Windows, a .tar.gz with install.sh for Linux). A tag vX.Y (or VX.Y.Z), or a run asked for with a release's tag,
+# builds that tag's source and attaches them to its release, beside the firmware (build.yml).
 name: plugin
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "a release's tag (vX.Y, VX.Y.Z): build its source and attach the plugin's installers to it"
+        required: false
+        default: ""
   push:
+    branches: ["**"]
+    tags: ["v*", "V*"]            # (tags: every one, whatever changed; branches: the paths below)
     paths:
       - "plugin/**"
       - "web/editor.html"
@@ -15,7 +24,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: plugin-${{ github.ref }}
+  group: plugin-${{ inputs.release || github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -33,6 +42,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release || github.ref }}
       - name: "Linux: GTK, WebKitGTK, ALSA, Xvfb"
         if: runner.os == 'Linux'
         run: |
@@ -108,10 +119,126 @@ jobs:
       - name: Package
         shell: bash
         run: |
+          rm -f build/plugin/dist/window-linux.png       # (the look at the window: not shipped)
           cd build/plugin/dist
           cp ../../../plugin/README.md README-plugin.md
           7z a -tzip "../fm1-plugin-${{ matrix.name }}.zip" . >/dev/null
+      - name: "Installer: its version (the release's tag, or dev)"
+        id: ver
+        shell: bash
+        env:
+          TAG: ${{ inputs.release || github.ref_name }}
+        run: |
+          v=dev
+          case "$GITHUB_REF_TYPE:$TAG" in tag:[vV]*) v="${TAG#[vV]}";; esac
+          [ -n "${{ inputs.release }}" ] && v="${TAG#[vV]}"
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+          mkdir -p build/plugin/installer
+      - name: "Installer (macOS): a .pkg, the plugins into /Library/Audio/Plug-Ins, the app into /Applications"
+        if: runner.os == 'macOS'
+        run: |
+          r=build/plugin/pkgroot
+          mkdir -p "$r/Library/Audio/Plug-Ins/CLAP" "$r/Library/Audio/Plug-Ins/VST3" "$r/Library/Audio/Plug-Ins/Components" "$r/Applications"
+          d=build/plugin/dist
+          cp -R "$d"/*.clap "$r/Library/Audio/Plug-Ins/CLAP/"
+          cp -R "$d"/*.vst3 "$r/Library/Audio/Plug-Ins/VST3/"
+          cp -R "$d"/*.component "$r/Library/Audio/Plug-Ins/Components/"
+          cp -R "$d"/*.app "$r/Applications/"
+          mkdir -p build/plugin/scripts
+          printf '#!/bin/sh\nkillall -9 AudioComponentRegistrar 2>/dev/null || true\nexit 0\n' > build/plugin/scripts/postinstall
+          chmod +x build/plugin/scripts/postinstall
+          pkgbuild --root "$r" --identifier io.github.likst4.skiff-atlatl.fm1.pkg --version "${{ steps.ver.outputs.v }}" \
+            --install-location / --scripts build/plugin/scripts \
+            "build/plugin/installer/ATLATL-FM-1-plugin-${{ steps.ver.outputs.v }}-macos.pkg"
+          ls -la build/plugin/installer
+      - name: "Installer (Windows): a setup .exe (Inno Setup), CLAP and VST3 into Common Files, the app into Program Files"
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          [ -x "$iscc" ] || { choco install innosetup -y --no-progress >/dev/null; }
+          v="${{ steps.ver.outputs.v }}"
+          vst3=$(cd build/plugin/dist && ls -d *.vst3 | head -1)
+          clap=$(cd build/plugin/dist && ls *.clap | head -1)
+          cat > build/plugin/setup.iss <<'ISS'
+          [Setup]
+          AppName=ATLATL FM-1
+          AppVersion=@V@
+          AppPublisher=skiff-atlatl
+          AppPublisherURL=https://github.com/LIkst4/skiff-atlatl
+          DefaultDirName={autopf}\ATLATL FM-1
+          DefaultGroupName=ATLATL FM-1
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          PrivilegesRequired=admin
+          OutputDir=installer
+          OutputBaseFilename=ATLATL-FM-1-plugin-@V@-windows-setup
+          LicenseFile=..\..\LICENSE
+          Compression=lzma2
+          SolidCompression=yes
+          [Files]
+          Source: "dist\@CLAP@"; DestDir: "{commoncf64}\CLAP"; Flags: ignoreversion
+          Source: "dist\@VST3@\*"; DestDir: "{commoncf64}\VST3\@VST3@"; Flags: ignoreversion recursesubdirs createallsubdirs
+          Source: "dist\ATLATL FM-1.exe"; DestDir: "{app}"; Flags: ignoreversion
+          Source: "dist\README-plugin.md"; DestDir: "{app}"; Flags: ignoreversion
+          [Icons]
+          Name: "{group}\ATLATL FM-1"; Filename: "{app}\ATLATL FM-1.exe"
+          Name: "{group}\Uninstall ATLATL FM-1"; Filename: "{uninstallexe}"
+          ISS
+          sed -i -e "s/@V@/$v/g" -e "s/@CLAP@/$clap/g" -e "s/@VST3@/$vst3/g" build/plugin/setup.iss
+          cat build/plugin/setup.iss
+          "$iscc" //Q build/plugin/setup.iss
+          ls -la build/plugin/installer
+      - name: "Installer (Linux): a .tar.gz with install.sh (into ~/.clap, ~/.vst3, ~/.local/bin)"
+        if: runner.os == 'Linux'
+        run: |
+          v="${{ steps.ver.outputs.v }}"
+          n="ATLATL-FM-1-plugin-$v-linux"
+          t=build/plugin/$n
+          mkdir -p "$t"
+          cp -R build/plugin/dist/. "$t/"
+          cat > "$t/install.sh" <<'SH'
+          #!/bin/sh
+          # ATLATL FM-1: the CLAP into ~/.clap, the VST3 into ~/.vst3, the standalone into ~/.local/bin (no root needed)
+          set -e
+          d=$(cd "$(dirname "$0")" && pwd)
+          mkdir -p "$HOME/.clap" "$HOME/.vst3" "$HOME/.local/bin"
+          cp -R "$d"/*.clap "$HOME/.clap/"
+          cp -R "$d"/*.vst3 "$HOME/.vst3/"
+          cp "$d/ATLATL FM-1" "$HOME/.local/bin/atlatl-fm1"
+          chmod +x "$HOME/.local/bin/atlatl-fm1"
+          echo "ATLATL FM-1 installed: ~/.clap, ~/.vst3, ~/.local/bin/atlatl-fm1 (needs GTK 3 and WebKitGTK 4.1)"
+          SH
+          chmod +x "$t/install.sh"
+          tar -C build/plugin -czf "build/plugin/installer/$n.tar.gz" "$n"
+          ls -la build/plugin/installer
+      - name: "Installer: the zip beside it, named for the release"
+        shell: bash
+        run: cp "build/plugin/fm1-plugin-${{ matrix.name }}.zip" "build/plugin/installer/ATLATL-FM-1-plugin-${{ steps.ver.outputs.v }}-${{ matrix.name }}.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: fm1-plugin-${{ matrix.name }}
-          path: build/plugin/fm1-plugin-${{ matrix.name }}.zip
+          path: build/plugin/installer/*
+  release:
+    # (custom) a release's tag: its installers and zips onto that release (made by build.yml, or by hand on GitHub)
+    needs: build
+    if: >-
+      (github.event_name == 'push' && github.ref_type == 'tag') ||
+      (github.event_name == 'workflow_dispatch' && inputs.release != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fm1-plugin-*
+          merge-multiple: true
+          path: out
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release || github.ref_name }}
+        run: |
+          ls -la out
+          for i in $(seq 1 30); do gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break; sleep 20; done
+          gh release upload "$TAG" out/* --clobber -R "$GITHUB_REPOSITORY"
