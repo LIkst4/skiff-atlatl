@@ -1063,6 +1063,34 @@ async function editorArp() {
   o.done();
 }
 
+/* ((custom) the Sound tab's layout: the firmware's INFO (P_COUNT, P_E0, G_COUNT) is one the editor lays out in groups
+   (else every parameter in a plain list), and the groups show every parameter: each track id below P_E0 on some
+   engine's (8, nothing reads it, and DIGITAL's operator envelopes 61..80 apart), E1..E8, every global that is not an
+   action (G_SKIP) or the engine */
+function editorLayout() {
+  const a = html.indexOf("const P_CHORD = [81, 82];"), b = html.indexOf("const trackOwn");
+  const c = html.indexOf("const EXPECT = "), d = html.indexOf("const key = (s, id) =>");
+  const S = vm.runInNewContext(html.slice(a, b) + "\n" + html.slice(c, d) + "\n;({ LAYOUT, knownLayout, G_SKIP })",
+    { engName: () => S.eng, get S() { return S; } });
+  const m = E.makeMockDevice({ auto: false }), T = m.tables;
+  const info = { pcount: T.P_COUNT, pe0: T.P_E0, gcount: T.G_COUNT };
+  m.stop();
+  ok(S.knownLayout(info), `layout: P_COUNT ${info.pcount}, P_E0 ${info.pe0}, G_COUNT ${info.gcount}: laid out in groups`);
+  const tr = new Set(), gl = new Set();
+  for (const e of ["DRUM", "SYNTH", "FM6", "GRAIN", "PHYS", "VOICE", "FMINI", "DRUM-X"]) {
+    S.eng = e;
+    for (const g of S.LAYOUT(info.pe0, info.gcount)) {
+      if (g.mod != null) for (let i = 0; i < 12; i++) tr.add(g.mod + i);
+      for (const [, sc, ids] of g.pages || []) ids.forEach((i) => (sc ? gl : tr).add(i));
+    }
+  }
+  const skip = (i) => i === 8 || (i >= 61 && i <= 80);
+  const mt = Array.from({ length: info.pe0 + 8 }, (_, i) => i).filter((i) => !skip(i) && !tr.has(i));
+  const mg = T.GP.map((p, i) => i).filter((i) => i !== T.G_ENGSEL && !gl.has(i) && !S.G_SKIP.has(T.GP[i].label));   /* (ENGINE: the
+                                                         Sound tab's own picker) */
+  ok(!mt.length && !mg.length, `layout: every parameter in a group (track ids left out: ${mt.join(" ") || "none"}; globals: ${mg.join(" ") || "none"})`);
+}
+
 /* ((custom) INFO 44 01 03, last) DRUM's lane view: WATCH 7 asks for HIT too (bit 2 back); LANE renders a lane, its
    peaks pushed after the reply as LANE_PK chunks; HIT pushed for the selected track's hits */
 async function editorLane() {
@@ -2306,6 +2334,7 @@ await editorStepTies();
 await editorKit();
 await editorArp();
 await editorLane();
+editorLayout();
 await editorMirror();
 await editorTransportNames();
 await editorLists();

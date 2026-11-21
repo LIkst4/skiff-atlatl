@@ -187,6 +187,8 @@ its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the f
   (they were left out with the sampler before v1.0; about 2 KB of flash).
 - **DRUM's lanes in the web editor**: the Sound tab draws every lane as the unit plays it (any kit, rendered on the
   FM-1), redrawn as the knobs turn, with a cursor on each hit; in the plugin too.
+- **The editor's Sound tab grouped again** (ENV, LFO, MOD, EDIT, VOICE, FX, SCALE, ARP): with this firmware's
+  parameter count it had fallen back to a plain list. FX now has DLY MODE and GLO › MULTI with its three bands.
 
 **v1.2.5**, on Skiff 2.7 (identity `FM-1_74212`, as v1.2's: a vX.Y.Z keeps X.Y's)
 - **Synced with Skiff 2.7** (through 2.5.1 and 2.6): the editor's Screen tab (full screen, the FM-1 played from the

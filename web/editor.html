@@ -4832,10 +4832,12 @@ const stepEdit = new Map(); /* index -> time of the last edit */
 const EXPECT = { pcount: 91, gcount: 27, pe0: 83 };
 /* the same layout without the chord keys (P_COUNT 89, P_E0 81), the FM operator ENVs too (69, 61) or the matrix
    (firmware 1.0: 57, 49) */
-const knownLayout = (info) => info.gcount === EXPECT.gcount &&
-  [[151, 143], [146, 138], [143, 135], [135, 127], [125, 117], [103, 95], [100, 92], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
+/* ((custom) the fork's layouts too: P_COUNT 173 (POLY MOD), 176 (STRUM), 180 (FILTER 2), 181 (STACK); the globals 27,
+   (2.5) 28 with DLY MODE, (custom) 44 with MULTI and its bands) */
+const knownLayout = (info) => [EXPECT.gcount, 28, 44].includes(info.gcount) &&
+  [[181, 173], [180, 172], [176, 168], [173, 165], [151, 143], [146, 138], [143, 135], [135, 127], [125, 117], [103, 95], [100, 92], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
 const P = { LEVEL: 0, SLEN: 29 };
-const LAYOUT = (pe0) => [
+const LAYOUT = (pe0, gc = 27) => [
   { t: "ENV", pages: [["ENV", 0, [1, 2, 3, 4]], ["ENV DEST", 0, pe0 >= 127 ? [5, 6, 7, P_ESYNC] : [5, 6, 7]],   /* ((Skiff W5) P_ED_FX,
                                                     8: nothing reads it; (1.3) ENV SYNC) */
     ...(pe0 >= 117 ? [["ENV 2", 0, P_ENV2]] : [])] },   /* ((Skiff phase 9) ENV 2: the MOD matrix's ENV2) */
@@ -4862,7 +4864,9 @@ const LAYOUT = (pe0) => [
     ...(pe0 >= 172 && engName() === "SYNTH" ? [["FILTER 2", 0, P_F2]] : []),   /* ((custom) the Virus's F2 BOOST PUNCH) */
     ...(pe0 >= 127 ? [["INSERT", 0, P_INSERT], ["MIX", 0, [P_IMIX]]] : []),   /* ((1.3) the track's INSERT; (2.5) its MIX
                                                     on the device: INSERT's PRESETS, INSERT 2 before) */
-    ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]]] },   /* G_RTYPE 24: ROOM / SPRING */
+    ["SLICER", 0, [45, 46, 47, 48]], ...(pe0 >= 95 ? [["DUCK", 0, P_DUCK]] : []), ["DLY", 1, gc > 27 ? [4, 5, 6, 7, 27] : [4, 5, 6, 7]], ["REVERB", 1, [24, 8, 9]], ["CHORUS", 1, pe0 >= 117 ? [10, 11, 25, 26] : [10, 11]],   /* G_RTYPE 24: ROOM / SPRING; ((2.5) G_DMODE 27) */
+    ...(gc >= 44 ? [["MULTI", 1, [28, 29, 30, 31]], ["MB LOW", 1, [32, 33, 34, 35]], ["MB MID", 1, [36, 37, 38, 39]],
+      ["MB HIGH", 1, [40, 41, 42, 43]]] : [])] },   /* ((custom) GLO > MULTI, the master's 3 bands, and each band */
   { t: "SCALE", pages: [["SCALE", 0, [25, 26, 27, 28]],
     ...(pe0 >= 83 ? [["CHORD", 0, pe0 >= 168 ? [...P_CHORD, ...P_STRUM] : P_CHORD]] : []),   /* CHRD VOIC 81, 82; (2.5)
                                                     STRUM DIR ((custom) 166, 167) */
@@ -5183,7 +5187,7 @@ function buildGroups() {
   const groups = { groups: [], seqgroups: [], setgroups: [] };
   const { info } = dev;
   if (knownLayout(info)) {
-    for (const g of LAYOUT(info.pe0)) {
+    for (const g of LAYOUT(info.pe0, info.gcount)) {
       const div = el("div", { class: "group" }, el("h2", { ic: HEAD_IC[g.t], text: g.engine ? `EDIT ${info.engines[dev.dump.engine] || ""}` : g.t }));
       if (g.mod != null) {                          /* MOD: slot number, SRC, DST, AMT in one row */
         for (let k = 0; k < 4; k++) {
