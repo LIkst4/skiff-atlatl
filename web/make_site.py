@@ -8,7 +8,8 @@
                               JieLi SDK files under Apache-2.0, see LICENSING.md)
   webapp/installer/index.html index_pkg.html, self-contained (fm1pkg.js, fm1ota.js, metadata inlined)
   webapp/editor/index.html    editor.html (+ fukiai.ttf, FUKIAI-LICENSE.txt; (2.0) conv/: conv.js and build/conv/conv.wasm,
-                              the converter its Restore and the installer use)
+                              the converter its Restore and the installer use; (Skiff Studio) felucca_cast.wasm, the
+                              Screen tab's copy, from build/cast when web/emu/build.sh made it)
   learn/                      Learn Skiff, the manual in chapters (web/learn, without its local/ review videos)
   try/                        the browser emulator (build/emu from web/emu/build.sh, EMU_PREVIEW=0)
   panel.js, fonts/            the panel's drawing and the fonts the Learn page shares, at the paths it has in web/
@@ -103,9 +104,13 @@ def main(pkg, version, out, *more):
     for doc in ("LICENSE", "LICENSING.md"):
         shutil.copy(HERE.parent / doc, fw / doc)
     shutil.copy(HERE / "editor.html", ed / "index.html")
-    for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js"):
+    for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js", "panel.js"):   # ((2.7) panel.js: the Screen tab's panel)
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)
+    for name in ("felucca_cast.wasm", "felucca_cast_smk.wasm"):   # ((Skiff Studio) the Screen tab's copies, an FM-1's and
+        cast = HERE.parent / "build" / "cast" / name                # an SMK-37's: web/emu/build.sh's
+        if cast.exists():
+            shutil.copy(cast, ed / name)
     (ed / "conv").mkdir(exist_ok=True)              # ((2.0) the converter: the editor's Restore, the installer's write-back)
     shutil.copy(HERE / "conv" / "conv.js", ed / "conv" / "conv.js")
     shutil.copy(conv, ed / "conv" / "conv.wasm")

@@ -600,6 +600,25 @@ static void sound_name(const track_t *t, char *b)
         str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
 }
 
+#if FELUCCA_OTA
+/* ((custom) mirror.c) the sound playing for FM-1 Mirror: "T1 SYNTH SAW LEAD", the selected track (b holds 40) */
+static void mirror_name(char *b)
+{
+    const track_t *t = &trk[song.sel % NTRK];
+    char s[20];
+    sound_name(t, s);
+    b[0] = 'T';
+    b[1] = (char)('1' + song.sel % NTRK);
+    b[2] = ' ';
+    str_cpy(b + 3, ENGINES[t->eng_req % NENGINES]->name, 12);
+    if (s[0]) {
+        uint32_t n = str_len(b);
+        b[n] = ' ';
+        str_cpy(b + n + 1u, s, 40u - n - 1u);
+    }
+}
+#endif
+
 /* (Skiff) BLOCKS: where the footer's hints end, the page's title (and its icon) right of them on the one line */
 static int32_t foot_hint_r(const char *ti)
 {

@@ -1289,6 +1289,7 @@ static void kb_outer(void)
     int32_t e;
     while ((e = smk_extkey_take()) >= 0) {
         uint32_t bed = (uint32_t)e >> 8, k = bed < 5u ? bed + 27u : bed;
+        CAST(cast_rec('X', (uint32_t)e, fm1_in.buttons));   /* (Skiff Studio: the event, the buttons it saw) */
         if (k < 27u || k >= KB_N)
             continue;
         if (e & 0xFF) {
@@ -1323,6 +1324,12 @@ static __attribute__((noinline)) void keyboard_block(void)
     ch = cur ^ kb_prev;                           /* keys also sound while entering steps */
     if (!ch)
         return;
+    CAST(cast_rec('N', cur, fm1_in.buttons));    /* (Skiff Studio: the keys and buttons this block sees) */
+#if BOARD_SMK37 && FELUCCA_CAST
+    for (k = 0; cast.on == 1u && k < 27u; k++)    /* (.. and the velocity of each key struck: KB_VEL) */
+        if ((ch & cur) >> k & 1u)
+            cast_rec('V', k, fm1_in.key_vel[kb_bed(k)]);
+#endif
     if (kb_boot_hold) {                           /* #137: under the splash; their release is silent too */
         for (k = 0; k < 27u; k++)
             if ((ch & cur) >> k & 1u)
@@ -1376,6 +1383,9 @@ static __attribute__((noinline)) void keyboard_block(void)
     kb_prev = cur;
 }
 
+#include "sync_out.c"                                /* MENU > AUDIO > SYNC OUT: mono and an analog sync on the
+                                                      * line out (audio.c), on the sequencer's grid */
+
 /* -------------------------------------------------------- sequencer --- */
 /* (2.2) MENU > MIDI > CLOCK OUT (ON by default): with the internal clock, MIDI clock out of USB ((SMK-37 Pro) and the
  * TRS jack, as its 1.4 did): Start when the sequencer starts (after a count-in), its first pulse with step 0, then 24 a
@@ -1422,6 +1432,7 @@ static void seq_start(void)
     beat_pos = 0; beat_n = 0;                      /* the ARP LED's beat from the top too */
     launch_steps = 0; launch_pos = CLK_START;      /* (Skiff) the launch points' steps from the top, as the click's */
     clk_pos = CLK_START;                           /* the metronome's first beat with step 0 */
+    sy_clk = SY_START;                             /* (SYNC OUT) the first pulse with step 0 (sync_out.c) */
     song.playing = 1;
     slicer_start();                                /* slicer.c: its step 0 with the sequencer's */
     perf_start();                                  /* perform.c: its 1/16 grid too */
@@ -2192,6 +2203,7 @@ static __attribute__((noinline)) void events_block(uint32_t n)
 {
     uint32_t i, pr, ord, seq_n = n, pulse;
     uint32_t clock_mode = (uint32_t)song.g[G_CLOCK];
+    CAST_BLOCK();                                     /* (Skiff Studio: the block count the cast's stamps use) */
     if (midi_clock.mode != clock_mode) {
         seq_stop();
         memset(&midi_clock, 0, sizeof midi_clock);
@@ -2225,6 +2237,7 @@ static __attribute__((noinline)) void events_block(uint32_t n)
     pr = panic_req;
     panic_req = 0;
     if (midi_in_overflow) {                            /* a lost note-off must never leave a held note */
+        CAST(cast_ev('o'));
         mi_r = mi_w;
         memset(midi_sel_on, 0, sizeof midi_sel_on);
         memset(midi_ch, 0, sizeof midi_ch);
@@ -2271,6 +2284,7 @@ static __attribute__((noinline)) void events_block(uint32_t n)
         uint32_t d1 = (pkt >> 16) & 0x7Fu, d2 = (pkt >> 24) & 0x7Fu;
         uint32_t source = midi_in_source[at] ? midi_in_source[at] : 1u, ms = midi_in_ms[at];
         mi_r++;
+        CAST(cast_rec('M', pkt, ms | (uint32_t)midi_in_source[at] << 24));
         if (status >= 0xF8u) {
             if (clock_mode == source) {
                 if (status == 0xF8u)
@@ -2294,8 +2308,10 @@ static __attribute__((noinline)) void events_block(uint32_t n)
         seq_tick(&trk[ord & 15u], seq_n);
     if (cin_flush)
         cin_record();
-    if (song.playing)
+    if (song.playing) {
         click_tick(seq_n);
+        sy_tick(seq_n, n);                            /* (SYNC OUT) the analog sync's pulse (sync_out.c) */
+    }
     for (i = 0; i < NPART; i++)
         arp_step(&trk[i], clock_mode ? seq_n : n, clock_mode && song.playing ? seq_n : n);
     if (pulse)

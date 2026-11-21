@@ -21,14 +21,14 @@ lane, a step arpeggiator, more trig conditions, 8-channel USB audio and screen m
 
 <p align="center">
   <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><img src="https://img.shields.io/github/v/release/LIkst4/skiff-atlatl?label=release" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/based%20on-Skiff%202.5-555" alt="Based on Skiff 2.5">
+  <img src="https://img.shields.io/badge/based%20on-Skiff%202.7-555" alt="Based on Skiff 2.7">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--only-blue.svg" alt="License: GPL-3.0-only"></a>
   <img src="https://img.shields.io/badge/hardware-M--VAVE%20FM--1-555" alt="Hardware: M-VAVE FM-1">
 </p>
 
 ## About
 
-**skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) 2.5 by illuminus5 (itself built on
+**skiff-atlatl** is a fork of [Skiff](https://github.com/illuminus5/skiff) 2.7 by illuminus5 (itself built on
 [Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments). It keeps everything Skiff does and adds more
 synthesis, a deeper sequencer and arpeggiator, and more tools for playing live and recording. Skiff's own README
 follows further below and still applies, except where the changes listed here say otherwise.
@@ -102,12 +102,13 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - **ARP › ARP STEP**, a step pattern for the arp: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones.
 
 **Screen over USB**:
-- the web editor's **Screen** tab shows the FM-1's display live;
-- [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) works too.
+- the web editor's **Screen** tab is Skiff 2.7's (full screen, the FM-1 played from the page);
+- [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) works too, the sound playing named on its spyglass
+  (`T1 SYNTH SAW LEAD`).
 
 **Envelopes**: ATTACK, DECAY and RELEASE start at 0 ms (instant) and rise smoothly (0.1, 0.2 … ms), on every engine.
 
-**Web editor**: ARP STEP, the new conditions, the new oscillators and filters, BLEND and the Screen tab; its own
+**Web editor**: ARP STEP, the new conditions, the new oscillators and filters and BLEND; its own
 [installer](https://likst4.github.io/skiff-atlatl/installer/) with the fork's package.
 
 ## Release history
@@ -121,6 +122,10 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - The FM-1 emulator runs the whole firmware again (two instruction forms it does not decode, rewritten bit for bit).
 
 **Next (on `atlatl-dev`)**
+- On **Skiff 2.7** (from 2.5): the editor's **Screen** tab (full screen, the FM-1 played from the page; it takes the
+  place of the fork's own Screen tab), the editor's Sequencer as a piano roll, **SYNC OUT** for Pocket Operators,
+  CRUSH's crack on chords and the phaser's squeal fixed, the INSERT's FILTR on spread voices. FM-1 Mirror keeps
+  working beside it and now names the sound playing.
 - On **Skiff 2.5**: 16 voices a track, a true-stereo delay and chorus (MODE: MONO, STEREO, PING), takes played while
   stopped, a song you can follow, the INSERT's **FILTR** and the chord keys' **STRUM**.
 - The arpeggiator recorded into the sequencer stays on the steps however long it is held (each arp step was rounded up
@@ -199,11 +204,21 @@ The logo is skiff-atlatl's own (`tools/make_logo.py`): a stepped hook, an atlatl
 
 # Skiff's README
 
-*Everything below is Skiff's own README (2.5), kept as it is; the installer, links and issue tracker in it are Skiff's.*
+*Everything below is Skiff's own README (2.7), kept as it is; the installer, links and issue tracker in it are Skiff's.*
 
 ---
 
-<p align="center"><b>New in 2.5:</b> 16 voices a track, a true-stereo delay and chorus, takes played while stopped
+<p align="center"><b>New in 2.7:</b> the Screen tab goes full screen, works the FM-1 from the page (mouse, touch or
+keyboard) and comes to the SMK-37, the editor's Sequencer as a piano roll, SYNC OUT for Pocket Operators, and fixes: the phaser's squeal, the
+filter on spread voices, TRIO's and SUB BASS's clicks, the editor's stray entries ·
+<a href="https://github.com/illuminus5/skiff/releases/tag/v2.7">the release notes</a><br>
+<b>New in 2.6:</b> the Skiff Editor's Screen tab: the FM-1's screen, large, on a computer or an
+Android tablet, following the unit as you play ·
+<a href="https://github.com/illuminus5/skiff/releases/tag/v2.6">the release notes</a><br>
+<b>New in 2.5.1:</b> FX › DRIVE's CRUSH no longer cracks on chords and loud notes, as LOFI PIANO
+did ·
+<a href="https://github.com/illuminus5/skiff/releases/tag/v2.5.1">the release notes</a><br>
+<b>New in 2.5:</b> 16 voices a track, a true-stereo delay and chorus, takes played while stopped
 (Skiff finds the tempo), the delay and reverb beside their sends, a song you can follow and start from any entry, a
 FILTER insert, STRUM, and fixes from your issues ·
 <a href="https://github.com/illuminus5/skiff/releases/tag/v2.5">the release notes</a><br>
@@ -269,15 +284,18 @@ Custom firmware, at your own risk; the way back to the official firmware is belo
 connect the FM-1 by USB and follow it. The same page takes the FM-1 back to the official firmware (V15 or V16: the
 version it had before Skiff), saving a complete backup of your music first.
 
-**With Python 3:** download `skiff-2.5.fwsc` from the [latest release](https://github.com/illuminus5/skiff/releases/latest)
+**With Python 3:** download `skiff-2.7.fwsc` from the [latest release](https://github.com/illuminus5/skiff/releases/latest)
 and, with this repository's `tools/` folder,
 
 ```
 pip install mido python-rtmidi
-python tools/fm1_install.py skiff-2.5.fwsc
+python tools/fm1_install.py skiff-2.7.fwsc
 ```
 
 It takes about two minutes and the FM-1 restarts on Skiff.
+
+Skiff doesn't use the FM-1's Bluetooth, so there is nothing to pair; holding HOME (the official firmware's Bluetooth
+switch) opens Skiff's MENU when you let it go.
 
 **Back to the official firmware:** the installer page above, `python tools/fm1_install.py FM-1.fwsc` with M-VAVE's
 file, or M-VAVE's own updater. An FM-1 that ran V16 before Skiff goes back to V16, one that only ever ran V15 to V15:
@@ -286,7 +304,7 @@ October 21 (Skiff 2.0.2 and later; done on a unit: back to V16, then on to Skiff
 [fm1_open repository](https://github.com/m-vave/fm1_open) as `sdk/firmware/FM-1_015.fwsc`. The official firmware
 writes its Bluetooth settings anew on its first start, so pair Bluetooth devices again if they don't connect.
 
-**On the SMK-37 Pro:** the same installer finds the keyboard and picks its build (`skiff-2.5-smk37.fwsc` for
+**On the SMK-37 Pro:** the same installer finds the keyboard and picks its build (`skiff-2.7-smk37.fwsc` for
 Python). Two steps come first: M-VAVE's firmware V016 on the keyboard, and a backup of its flash, which holds the
 keyboard's own key calibration. [SMK37.md](SMK37.md#install) has both, the way back and what to do if it does not
 start.
@@ -510,7 +528,13 @@ display). It also keeps a library of sounds on the computer, imports
 FM6 patches from `.syx` files and saves complete backups. Its Samples tab fills the user sample slots from WAV files
 or a recording; (2.0) its Drum kit switch makes a slot a kit for DRUM: a WAV a lane, each with a level, the files'
 levels to each other kept. On 2.0 its Restore converts a backup of before (Skiff 1.x,
-Felucca) first, and lists what it converted.
+Felucca) first, and lists what it converted. (2.6) Its Screen tab shows the FM-1's screen as large as the window
+allows, on the computer or on an Android phone or tablet in Chrome with the FM-1 plugged into it: a copy of Skiff in
+the page follows the unit and draws what it draws, and the USB audio stays on. (2.7, #142) The SMK-37's too, the
+screen alone: its keys, pads, faders, wheels and pedal followed. (2.7) Its Full screen button fills the display with it; Controls draws the FM-1's panel round the screen (the screen large, the
+knobs, buttons and keys beside it; on a phone held upright, the FM-1's tall drawing), so you can work the FM-1 from
+the page: click or tap the buttons and keys, drag or scroll a knob, Shift-click or right-click to hold a button down
+(SHIFT is HOME held), or use the computer's keyboard as on Try Skiff. MASTER stays on the unit.
 
 <table>
 <tr>
@@ -727,7 +751,8 @@ by the keys, with what each key is in Skiff.
   while any track is armed). **SHIFT + REC** opens the REC layer:
   F3 held clears the track's sequence, then CLICK, COUNT-IN, CLICK LEVEL, FEEL
 - **EDIT** opens the EDIT pages everywhere; on NOTES with REC armed it clears the cursor step
-- **SELECT** turns the pages of a family; **GLO + SELECT** sets the tempo (MENU › BPM LOCK, on by default)
+- **SELECT** turns the pages of a family (in the MENU, its tabs); **GLO + SELECT** sets the tempo (MENU › BPM LOCK,
+  on by default)
 - **PRESETS** changes the sound; on NOTES and FEEL it moves the step cursor, on PATTERN it turns the direction, on
   lists it picks, (2.5) on DELAY it turns the MODE and on INSERT the MIX (a card says so). With SAVE › PRESETS' LIST
   on a type (BASS, PAD ..) it steps through that type only
@@ -801,7 +826,8 @@ In the order the device lists them:
   before. (2.0) KIT **USR1**–**USR3** plays a user sample slot as the kit: each lane its sample on its key (KICK
   C2, SNARE D2, CLAP D#2, CL HAT F#2, OP HAT A#2, TOM A2, RIM C#2, BELL G#3), with the lanes' level, tune, decay and pan,
   the open hat cut by the closed one; a lane with no sample is silent. The editor's Samples tab builds such a slot
-  (Drum kit: a WAV a lane)
+  (Drum kit: a WAV a lane). **Your own kits are not among the PRESETS:** on a DRUM track tap EDIT, and on its first
+  page, KIT, turn KNOB 1 past PERC to USR1, USR2 or USR3
 - **DRUM-X**: a synthesized 8-sound kit from [JIANT FM](https://github.com/juanjiant-bit/JIANT), after the idea of
   Sonic Charge's Microtonic: each sound an oscillator (SIN, FM, MTL, BEL) with a pitch envelope and filtered noise,
   two patches A and B with MORPH between them; one kit a project, edited on EDIT › SOUND, a sound at a time. Its
@@ -839,10 +865,10 @@ and BREAK 1.1's own break.
 
 Hold **HOME** and let it go for the menu. It is in five tabs: **DISPLAY** (THEME, PLAYHEAD, LARGE, ANIM, LEDS,
 SCREEN OFF, HINTS), **CONTROL** (HOLD, KNOB ACCEL, BPM LOCK, SCALE LEDS, STEP PREVIEW, RETURN, KEEP SENDS), **AUDIO** (SPEAKER EQ,
-USB LEVEL, CLICK, CLICK LEVEL, COUNT-IN, TUNE), **SYSTEM** (RESTORE LAST, CPU, CPU CLOCK, HARDWARE CALIBRATION, RESET
+USB LEVEL, CLICK, CLICK LEVEL, COUNT-IN, TUNE, SYNC OUT, SYNC PPQN, SYNC INVERT), **SYSTEM** (RESTORE LAST, CPU, CPU CLOCK, HARDWARE CALIBRATION, RESET
 SETTINGS, ABOUT) and **MIDI** (CLOCK, CLOCK OUT, MIDI IN, AUTO CHANNEL, T1–T6 CHANNEL, NOTES OUT, CC OUT, THRU, REMOTE,
 MIDI LEARN, LEARN CLEAR); a tab of more than six rows scrolls.
-ALGORITHM moves between the tabs and PRESETS through the rows of one; any of KNOB 1–4, or OCT+ / OCT−,
+ALGORITHM or SELECT moves between the tabs and PRESETS through the rows of one; any of KNOB 1–4, or OCT+ / OCT−,
 changes the value (OCT+ opens HARDWARE CALIBRATION and ABOUT, starts MIDI LEARN and clears what it learned); press
 HOME to close the menu. RESET SETTINGS puts
 every setting back as a new unit has it. The web editor's Settings tab reads and changes them too.
@@ -864,7 +890,8 @@ every setting back as a new unit has it. The web editor's Settings tab reads and
   the drum grid and the quick layers keep their layout with larger labels
 - **ANIM:** ON or OFF; OFF shows every change at once, without rolling digits, a gliding piano roll or
   the LED sweep at power-on
-- **LEDS:** OFF (no glow), DIM LO, DIM HI (default) or INV (the idle LEDs lit, the active ones dark).
+- **LEDS:** OFF (no glow), DIM LO, DIM HI (default) or INV (the idle LEDs lit, the active ones dark; (2.7) REC
+  breathes while a track is armed).
   What can be pressed breathes up to about 60 % of a lit LED, about 30 % with DIM LO
 - **SCREEN OFF:** NEVER, 5 MIN, 15 MIN, 30 MIN (default) or 60 MIN: after that long with no button, key or
   knob touched, the screen and its backlight go off; the sound, the sequencer, MIDI and USB go on. The next
@@ -927,7 +954,8 @@ every setting back as a new unit has it. The web editor's Settings tab reads and
   (the row says STOP while the music plays, since settings are saved stopped), then restart when it says RESTART.
   With 2 CORES the second core renders some of the tracks of every block, the sound bit for bit the same, and up to
   16 voices sound at once instead of 8 (12 before 2.5). If the second core misreads or stops answering (some units
-  do), the FM-1 goes on with one core, says CORE 2 FAILED and sets the row back to 1 CORE
+  do), the FM-1 goes on with one core, says CORE 2 FAILED and sets the row back to 1 CORE. (2.7) After a crash or a
+  hang on 2 CORES it restarts on 1 CORE and says the same; set 2 CORES again to try it once more
 - **CPU CLOCK** (SYSTEM, 1.3.1): **360 MHZ** (default: what the FM-1's boot sets) or **320 MHZ**, the clock JieLi rates
   the chip for (curist's switch, no voltage changed). It takes effect at the next power-on, as CPU does (STOP, then
   RESTART). 320 is about 11 % slower: the same music shows a higher CPU. A unit whose clock is set up differently
@@ -945,7 +973,17 @@ every setting back as a new unit has it. The web editor's Settings tab reads and
   bar's first beat higher. **CLICK LEVEL:** LOW, MID (default) or HIGH; MASTER sets it too
 - **COUNT-IN:** OFF (default), 1 BAR or 2 BARS: with a track armed, PLAY counts in first (clicking even with
   CLICK OFF), and a note played in the last half beat lands on step 1. Not with an external clock
-- **USB SERIAL** (2.0: only in a build from source without `--release`, see [BUILDING.md](BUILDING.md)): the serial
+- **SYNC OUT:** NO SYNC: STEREO (default), L SYNC: MONO/SYNC or R SYNC: SYNC/MONO: an analog sync out of the
+  headphone / line out for gear that follows pulses on its audio input. L SYNC puts the pulses on the left and the music,
+  summed to mono, on the right: a Teenage Engineering Pocket Operator in **SY4** (or SY5) follows it. R SYNC is the
+  other way round. The pulses follow the sequencer (the internal clock or CLOCK USB / TRS), the first with step 1, and
+  only while it plays, so the PO starts and stops with Skiff; 20 ms each at full level (shorter at a high PPQN),
+  whatever MASTER is, and just below zero between them, PocketSync's shape (as JAN3000 found it). USB audio stays
+  stereo. **SYNC PPQN:** 1–24 pulses a quarter note, 2 by default (the Pocket Operator's and the Volca's).
+  **SYNC INVERT:** ON (default) or OFF: the FM-1's headphone output turns the signal upside down, so with ON the PO
+  gets the pulse the right way up; OFF for an output that doesn't (the browser emulator through a computer). All three
+  are the unit's, as CLOCK OUT, so loading a project never changes them
+- **USB SERIAL** (only in a build from source with `--console`, see [BUILDING.md](BUILDING.md)): the serial
   console, a developer tool. A release has none, so the FM-1 is a plain audio + MIDI device and macOS 13–15 see its
   USB audio input
 - **RESTORE LAST:** ON (default) or OFF. ON, the FM-1 starts with the music you left (the header says
@@ -1083,7 +1121,7 @@ On the SMK-37: [SMK37.md](SMK37.md#if-it-does-not-start).
 **The screen says UPDATE MODE, or stays black while a computer sees a USB MIDI device named "Felucca
 Update":** an install was cut off, and the FM-1 waits in Skiff's update loader at every power-on. Nothing is
 lost. Connect it by USB and run the [Skiff installer](https://illuminus5.github.io/skiff/webapp/installer/) again
-(or `python tools/fm1_install.py skiff-2.5.fwsc`): it finishes the install. If the installer can't find it, plug
+(or `python tools/fm1_install.py skiff-2.7.fwsc`): it finishes the install. If the installer can't find it, plug
 the FM-1 straight into the computer: a USB hub or USB-sharing software can lose it when it switches to update mode.
 M-VAVE's own updater does not see the FM-1 in this state. (Since 1.3.2 the loader says UPDATE MODE on the screen;
 one an older Skiff left there keeps it black.)

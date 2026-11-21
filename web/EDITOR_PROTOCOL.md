@@ -198,7 +198,7 @@ at 1..3 and hides 6 5 8: what it sets still plays the right kit, and the device 
 
 | cmd | Request args | Reply args |
 | --- | --- | --- |
-| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (4; Skiff phase 6: 6), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18, Skiff U2: 16) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (Skiff phase 6) `54 01 tracks e0 e1 e2` (light tracks) (below) and (Skiff W1) `43 01 count` (a step's FLAM, COND, NUDGE; count: the trig conditions) and (Skiff W3) `4B 01 8` (the DRUM-X kit, below) and (Skiff W3) `57 01 caps` (bit 0 TRANSPORT, bit 1 PROJ_NAME, bit 2 POOL, bit 3 LIST, bit 4 PERFORM, (#21) bit 5 SMP_MIX, (2.0) bit 6 a step's ties, below) and (Skiff 1.3) `49 01 c0 c1 e0 e1` (wide ids: P_COUNT and P_E0, above) and (2.0) `58 01 caps` (bit 0: LIST2, NEW, COPY+, CHAIN, SONG ONCE, the pool's EMPTY and CLEAR UNUSED; (#30) bit 1: the entries' sounds, LIST2's op 9 and its reply's sound bytes; "Pool, lists, PERFORM" below) and (custom) `41 01 16` (83 ARP: a track's ARP STEP, below) ; older firmware ends earlier |
+| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (4; Skiff phase 6: 6), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18, Skiff U2: 16) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (Skiff phase 6) `54 01 tracks e0 e1 e2` (light tracks) (below) and (Skiff W1) `43 01 count` (a step's FLAM, COND, NUDGE; count: the trig conditions) and (Skiff W3) `4B 01 8` (the DRUM-X kit, below) and (Skiff W3) `57 01 caps` (bit 0 TRANSPORT, bit 1 PROJ_NAME, bit 2 POOL, bit 3 LIST, bit 4 PERFORM, (#21) bit 5 SMP_MIX, (2.0) bit 6 a step's ties, below) and (Skiff 1.3) `49 01 c0 c1 e0 e1` (wide ids: P_COUNT and P_E0, above) and (2.0) `58 01 caps` (bit 0: LIST2, NEW, COPY+, CHAIN, SONG ONCE, the pool's EMPTY and CLEAR UNUSED; (#30) bit 1: the entries' sounds, LIST2's op 9 and its reply's sound bytes; "Pool, lists, PERFORM" below) and (Skiff Studio) `59 01 caps` (the cast, below) and (custom) `41 01 16` (85 ARP: a track's ARP STEP, below; 83 before Skiff 2.7 took 83 and 84) ; older firmware ends earlier |
 | 2 GET | scope, id | scope, id, v14 |
 | 3 SET | scope, id, v14 | scope, id, v14 (the value after clamping). Setting global `G_ENGSEL` (id from DESC label "ENG") changes the engine: its defaults, then its first preset (as on the device) |
 | 4 DUMP | — | engine, preset, then P_COUNT × v14 (the selected track), then G_COUNT × v14 (globals) |
@@ -486,7 +486,7 @@ grid lives in the steps themselves, so every engine has it:
   from the editor. Since 1.0 the same USB device also has an audio input ("Felucca",
   44.1 kHz stereo; bcdDevice 3.11; since 1.1 44.1 or 48 kHz, the host's choice, bcdDevice 3.21
   (3.20 with MENU > USB SERIAL OFF); Skiff 1.3 to 2.1: 3.29 / 3.28; Skiff 2.2, the MIDI interface after the audio
-  streaming one: 3.A1 / 3.A0, a release 3.A0); the MIDI port and this protocol are unchanged, and both
+  streaming one: 3.A1 / 3.A0, a release ((2.7) any build but `--console`) 3.A0); the MIDI port and this protocol are unchanged, and both
   work while the computer records. (2.2) With MENU > MIDI > NOTES OUT ALL (the default) and CLOCK OUT ON the port also
   carries the tracks' notes and MIDI clock: the editor ignores both.
 - **Global ids.** (Skiff U3: `G_CLOCK`, `G_ROUTE` and `G_TUNE` are the unit's, MENU > CLOCK, MIDI IN, TUNE on the
@@ -944,7 +944,7 @@ the bit answers nothing.
 
 | cmd | Request args | Reply args |
 | --- | --- | --- |
-| 83 ARP | (custom, `41 01 16`) track 0..5 (get), or track, STEPS 1..16, the 16 steps' TRANSPOSE + 24 (0..48), their states (0 ON, 1 OFF: a rest, 2 STACC: a quarter of the GATE) (set, whole); anything out of range: no reply | track, STEPS, the 16 TRANSPOSE + 24, the 16 states, as they are now. The pattern is the project's (the device's ARP > ARP STEP); the device's own edits push nothing |
+| 85 ARP | (custom, `41 01 16`; 83 until the merge of Skiff 2.7, whose CAST and PANEL are 83, 84) track 0..5 (get), or track, STEPS 1..16, the 16 steps' TRANSPOSE + 24 (0..48), their states (0 ON, 1 OFF: a rest, 2 STACC: a quarter of the GATE) (set, whole); anything out of range: no reply | track, STEPS, the 16 TRANSPOSE + 24, the 16 states, as they are now. The pattern is the project's (the device's ARP > ARP STEP); the device's own edits push nothing |
 | 81 SMP_MIX | slot 0..2 (get), or slot and 48 values: LEVEL x 16, REV x 16, DLY x 16, one per sound in the slot's order (lowest root first), 0..127 (set) | slot, rc (0, 1 refused: an empty slot, nothing set; 2 set, but the sample fills the slot's last sector: the values last until the power goes off), the slot's sound count nz, then nz x (lo, hi): each sound's keys, then the 48 values as they are now |
 
 A set applies at once (sounding notes too) and is kept with the slot once the device's transport stops (its SLICES and
@@ -1147,3 +1147,90 @@ device gone at ~0.3 s, the MIDI port gone at ~0.57 s and back at ~1.15 s; ON -> 
 at ~0.6 s while the MIDI port was not seen to disappear at all (so do not wait for a disconnect event: after
 a real change, wait ~1.5 s and open again). What the editor sends in that window is lost, `WATCH` ends with the
 bus reset (send `INFO` and `WATCH` again after reconnecting), and a backup in progress answers rc 5 (stale).
+
+## Cast (83; Skiff Studio, a prototype)
+
+The cast lets a copy of Skiff in the browser (the web build, as Try Skiff) follow the unit exactly: the unit sends
+what its main loop and its audio ISR take, stamped, and the copy does the same at the same moments, so it draws the
+same screen and plays the same sound (`firmware/src/cast.c`; the copy: `web/emu/cast_follow.c`).
+FM-1 and (2.7) SMK-37 builds (`FELUCCA_CAST`). INFO advertises `59 01` and its bits: bit 0 the FM-1's records
+(`59 01 01`), (2.7) bit 1 PANEL, the FM-1's (`59 01 03`), bit 2 the SMK-37's records, their layout below (`59 01 04`;
+not bit 0, so an editor before 2.7 offers an SMK-37 no Screen tab). Firmware without the tag answers no 83 (nor 84).
+
+| cmd | Request args | Reply args |
+| --- | --- | --- |
+| 83 CAST | op: 0 stop, 1 start (only while `WATCH`ed), 2 restart the unit and cast from its first frame | op, the cast on (0/1), rc (op 2: 1 = the music is not stored yet: the device stores it, ask again) |
+| 84 PANEL (2.7, `59 01` bit 1) | op 0: the buttons held (2 bytes: 14 bits by label, `panel.c` `B_*`: FX 0 .. OCT+ 13), the keys held (4 bytes: 27 bits, F3 = bit 0); op 1: a knob's role (`EN_*`: SELECT 0, ALGORITHM 1, PRESETS 2, KNOB 1..4 3..6), its steps (7-bit two's complement: 1..63 clockwise, 65..127 back) | op |
+
+PANEL is the editor's Screen tab working the unit: the buttons and keys held are taken as the panel's own contacts,
+through the scan's debounce (a press shorter than a scan still lands), the turns as REMOTE's (they go where the knob's
+own would). Each change is its own request, in order (the unit holds one SysEx frame at a time: send the next after
+the reply). They let go when the cast stops (op 0) or watching ends. The copy runs every PANEL too: its turns count
+there, its buttons and keys come with the unit's `T` and `N` records.
+
+**Records.** While it casts, the device pushes one frame per record, `F0 7D 46 4C 53 seq w0 w1 w2 w3 F7`: `seq`
+counts 0..63 (a gap means a lost frame: resync), each word a u32 (5 bytes of 7 bits, LSB first). `w0` is TIMER4's
+ticks (24 MHz) when the record was put, `w1` the audio blocks rendered since power-on (24 bits; one block is 32
+samples) | the record's type << 24, `w2` and `w3` its own:
+
+| type | `w2`, `w3` | put |
+| --- | --- | --- |
+| `B` begin | ms, the MASTER knob (x16) \| the layout (4; 3 without `C`'s sound or the scope's `P`) << 24 \| bit 31 with the second core running | at the start (op 1) |
+| `F` frame | the battery's reading \| MASTER's << 11 (each 11 bits, signed) \| the MENU's CPU load (%) << 22, the ms (`fm1_ms`) it read | a main-loop frame starts, after its readings |
+| `P` piece | its index in the frame (0: the draw begins, main.c before `ui_draw`; then each canvas, gfx.c `cv_begin`, and (layout 4) each read of the sound by the scope, ui_graph.c `graph_scope`), - | the draw or a piece begins and the audio ran since the `F` or the last `P` |
+| `e` drawn | the frame's pixels, hashed (FNV-1a: each fill's place and colour, each blit's place and pixels, as `lcd.c` sends them), - | the frame is drawn: the main loop reads the panel again |
+| `T` take | buttons \| buttons pressed << 14 (bit = matrix id), keys \| the pass << 27 (5 bits) | ui_input saw the panel change, or took edges |
+| `U` struck | the keys struck it took | after a `T`, when it took any |
+| `K` knob | role (`EN_*`) \| the pass << 8 (8 bits), steps | panel_enc took the knob's own detents |
+| `N` keys | keys, buttons | the audio ISR saw the keys change (keyboard_block) |
+| `M` MIDI | the USB-MIDI packet, its ms \| source << 24 | the audio ISR took a message (USB or TRS) |
+| `R` request | the editor command | the main loop takes an editor request (the copy runs the same request) |
+| `C` check | a hash of the music and the UI, (layout 4) the last 512 samples of the sound (the scope's, oldest first, FNV-1a \| 1; 0: the audio ran since the `F`, not taken) | once a second, after an `F` |
+| `s`, `o` | - | the audio shed a voice (CPU load); MIDI IN overflowed |
+
+**The SMK-37's layout** (`B`'s layout | 0x40, INFO's bit 2): its 18 buttons don't fit `T`'s 14, and its own controls
+have records of their own.
+
+| type | `w2`, `w3` | put |
+| --- | --- | --- |
+| `T` take | buttons, keys \| the pass << 27 | as the FM-1's |
+| `U` struck | the keys struck it took, the buttons pressed it took | after a `T`, when it took either |
+| `X` outer key | the outer-key event (keybed key << 8 \| velocity, 0 = release), buttons | the audio ISR took it (seq.c `kb_outer`) |
+| `V` velocity | key (0..26), its velocity | after an `N`, each key struck |
+| `D` pad | the step tap (pad << 8 \| velocity, 0 = let go) | smk_ui_frame took it |
+| `A` analog | faders 1..4 (7 bits each) \| settled << 28, the wheels \| the pedal << 20 (10 bits each) | smk_ui_frame read them changed (the first frame always) |
+
+The copy (`felucca_cast_smk.wasm`, the same `cast_follow.c` with `-DBOARD_SMK37=1`) applies `X` and `V` at their block,
+`A` and `D` before its frame's `smk_ui_frame`; the wheels' and the pedal's MIDI comes as the unit's `M` records. K1 (the
+MASTER) is `F`'s MASTER reading.
+
+`seq` 127 instead: the device's ring (64 records) overflowed and the cast stopped; start it again (and resync). The
+device sends between frames and between the pieces of a frame's drawing, about three records at a time.
+
+The pass is ui_input's pass count (every call of it): the `T`, `U` and `K` records one pass took share it.
+
+**Replaying.** The copy starts from the same state (at power-on: op 2, then the same stored data, and USB power: the
+header's battery shows the bolt). It renders until its block count is a record's (the main loop sees whole halves:
+4 blocks), sets its clock to the record's ticks (`fm1_ms` from them, each `F` giving the exact one), and does what the
+record says: at block b the `N` and `M` records of b (the keys and buttons the ISR sees, the MIDI it takes); an `s`
+sheds a voice at the next half's start, as the ISR does; at an `F` its readings, the `C` check, then the frame, with
+the `T`, `U`, `K` records of its pass applied first; between `F` and `e` no panel read; after `e`, main.c's wait loop:
+a panel read at every millisecond and after every audio half (once the ISR is done: the `F`'s CPU load gives its
+share of the half), until 15 ms after the `F` (a slower frame: none), each pass
+that took something (its records, grouped by their pass) at its own block. At an `e` the copy compares its frame's
+pixel hash, at a `C` its music and UI hash. At an `R` the copy runs the same request: the page logs every frame it
+sends after its `CAST 1` frame (the unit takes those with the cast on, each with an `R`), and the copy runs the next
+logged frame of the `R`'s command (earlier ones never reached the unit) through the unit's own `editor.c`, in a frame
+before its panel read, else in the wait loop: what the page changes, the copy changes too.
+
+The copy is the editor's Screen tab (`web/editor.html`): `felucca_cast.wasm` (`felucca_cast_smk.wasm` for an SMK-37), built by `web/emu/build.sh` from
+`web/emu/cast_follow.c` (the web build with `editor.c` and `cast.c`), fed the records and the page's frames as they come
+(`web/emu/cast_test.mjs` feeds it a recording the same way).
+
+**Restart (op 2).** Once the reply has gone, the device resets itself (the boot guard told it is no failed boot) and
+keeps its splash for up to 10 s until an editor sends `WATCH` and `CAST 1`; the cast then begins before the first
+frame. The music is the stored one: op 2 answers rc 1 (and stores it) while it isn't. This restart loads the music
+before the audio ISR first runs (a normal power-on starts the sound first), as the copy does: so from block 0 both
+have the same LFOs and the same shared random generator. The copy's sound is then the firmware's, sample for sample,
+as fm1emu runs the binary; on an FM-1 itself the HALL reverb comes out slightly different (found 2026-11-11, cause
+open), which shows only where the screen draws the sound (the scopes).

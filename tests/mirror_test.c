@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* (custom) the screen mirror (firmware/src/mirror.c, screen_mirror/ MIT): nothing goes out until an app's hello; a
  * hello asks for the whole screen; what is painted then (blits, the panel's byte order, and fills) arrives as rows that
- * rebuild the picture exactly; a busy USB queue waits; 3 s after the last hello it stops.
+ * rebuild the picture exactly; a busy USB queue waits; 3 s after the last hello it stops. (FM-1 Mirror 1.3) the sound
+ * playing (F0 7D 'F' 'S' 02 name F7) after each hello and when it changes; a hello 02 asks for it alone.
  *   cc -O1 -Ifirmware/src -o build/host/mirror_test tests/mirror_test.c && build/host/mirror_test */
 #include <stdint.h>
 #include <stdio.h>
@@ -17,9 +18,17 @@ static uint32_t msgs;
 static const uint8_t *frame_p;
 static uint32_t frame_n, frame_ready;
 
+static char snd[48];                                /* the app's: the last sound named */
+static uint32_t snds;
 static int ota_wire_send(const uint8_t *m, uint32_t n)   /* the app's side: decode the row */
 {
     uint32_t y, x, k;
+    if (n >= 6u && m[0] == 0xF0 && m[1] == 0x7D && m[2] == 'F' && m[3] == 'S' && m[4] == 2 && m[n - 1] == 0xF7) {
+        memcpy(snd, m + 5, n - 6u);
+        snd[n - 6u] = 0;
+        snds++;
+        return 0;
+    }
     if (n < 11u || m[0] != 0xF0 || m[1] != 0x7D || m[2] != 'F' || m[3] != 'S' || m[4] != 1 || m[n - 1] != 0xF7 ||
         n > 70u)
         return -1;
@@ -42,6 +51,18 @@ static int ota_frame_get(const uint8_t **p, uint32_t *n)
 }
 static void ota_frame_done(void) { frame_ready = 0; }
 
+static int str_eq(const char *a, const char *b) { return !strcmp(a, b); }
+static void str_cpy(char *d, const char *s, unsigned max)
+{
+    unsigned i = 0;
+    while (s[i] && i + 1 < max) {
+        d[i] = s[i];
+        i++;
+    }
+    d[i] = 0;
+}
+static const char *playing = "T1 SYNTH SAW LEAD";   /* (ui_draw.c's, the selected track's) */
+static void mirror_name(char *b) { str_cpy(b, playing, 40); }
 #include "mirror.c"
 
 static int bad;
@@ -99,6 +120,31 @@ int main(void)
     mirror_rows(0, 0, 240, 1, canvas, 0);
     mirror_poll();
     check("3 s after the last hello: off, nothing sent", !sm_on() && msgs == x);
+    fm1_ms += 1000u;                                 /* (custom) the sound playing */
+    snds = 0;
+    hello(0);
+    mirror_poll();
+    check("(FM-1 Mirror 1.3) a hello: the sound playing named, F0 7D 'F' 'S' 02 T1 SYNTH SAW LEAD F7",
+          snds == 1u && !strcmp(snd, "T1 SYNTH SAW LEAD"));
+    fm1_ms += 500u;
+    mirror_poll();
+    check("  .. not again while it stays the same", snds == 1u);
+    playing = "T2 FM6 ICE BELL";
+    fm1_ms += 150u;
+    mirror_poll();
+    check("  .. again when it changes (another track, another sound)", snds == 2u && !strcmp(snd, "T2 FM6 ICE BELL"));
+    fm1_ms += 3100u;
+    snds = 0;
+    hello(2);
+    x = msgs;
+    mirror_poll();
+    mirror_rows(0, 0, 240, 1, canvas, 0);
+    mirror_poll();
+    check("a hello (02): the sound alone, no screen", snds == 1u && !sm_on() && msgs == x && !frame_ready);
+    fm1_ms += 3100u;
+    playing = "T3 DRUM 909";
+    mirror_poll();
+    check("3 s after it: the sound no more", snds == 1u);
     printf(bad ? "mirror: %d FAILED\n" : "mirror tests passed\n", bad);
     return bad != 0;
 }
