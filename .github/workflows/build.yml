@@ -51,6 +51,9 @@ jobs:
           python tools/emu_gaps.py build/felucca.dis || true
       - name: Build
         run: ./build.sh
+      - name: "(custom) Where the flash goes (sections, the largest symbols)"
+        continue-on-error: true
+        run: python tools/size_report.py build/felucca.elf 400
       - name: "(custom) Emscripten, for the browser emulator"
         uses: mymindstorm/setup-emsdk@v14
         with:
