@@ -427,7 +427,7 @@ async function editorSamplePresets() {
   ok(alias.preset === 0 && setAlias.value === 0 && setPerc.value === 0,
     "SAMPLE: preset 1 and SET 1 / 4 (once TRANH, PERC) land on PIANO");
   }
-  const U = sampler ? ["USR1", "USR2", "USR3"] : ["STD", "STD", "STD"];   /* ((custom) user kits: with the sampler only */
+  const U = ["USR1", "USR2", "USR3"];          /* ((custom) user kits: in every build again (FELUCCA_USER_KITS) */
   await rq(E.req.preset(10, 0));
   const kitD = E.parse[C.DESC](await rq(E.req.desc(0, info.pe0)));
   const kitSet = [];
@@ -436,7 +436,7 @@ async function editorSamplePresets() {
         "808", "909", "TRX", "EFM", "TRX-P", "MI", "DX", "DX+", "626"]) &&
      eq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((v) => E.aliasOf(kitD.names, v)), [0, 6, 5, 8, 4, 5, 6, 7, 8, 9, 10, 11]) &&
      eq(E.enumShown(kitD).filter((v) => E.aliasOf(kitD.names, v) === v).map((v) => kitD.names[v]),
-        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", ...(sampler ? U : []), "808", "909", "TRX", "EFM", "TRX-P",
+        ["STD", "80", "10", "66", "55", "77", "DEEP", "TIGHT", "PERC", ...U, "808", "909", "TRX", "EFM", "TRX-P",
          "MI", "DX", "DX+", "626"]) &&
      eq(kitSet, [6, 5, 8]),
     "DRUM: KIT 1..3 (once HAND CYM H+CYM) named 66 10 77, aliases of 6 5 8: hidden, a SET lands there; ((2.0, #35) USR1..3 after; (custom) the MD kits, DX DX+, 626)");
