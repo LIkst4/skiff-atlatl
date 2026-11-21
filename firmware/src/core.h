@@ -742,7 +742,7 @@ static inline uint32_t bpm_quarter(uint32_t bpm)
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")   /* slot store before the index update */
 /* (Skiff Studio) the cast (cast.c): what the main loop and the audio ISR take, stamped, so that a copy of Skiff in the
  * browser takes the same at the same moments and draws the same screen. Its hooks are CAST(..): nothing without
- * FELUCCA_CAST. Its state is in .pool (off the audio ISR's merged globals) */
+ * FELUCCA_CAST. Its state is in .ramx (off the audio ISR's merged globals; Skiff's FM-1: .pool) */
 #ifndef FELUCCA_CAST
 #define FELUCCA_CAST 0
 #endif
@@ -761,10 +761,9 @@ static struct {
     uint32_t q[CAST_N * 4u];
 #if BOARD_SMK37
     uint32_t la, lw;                       /* (SMK) the faders and the wheels, the pedal last told (A, cast_smk) */
-} cast __attribute__((section(".ramx")));  /* (SMK: the pool keeps its 8 KiB spare; .ramx is zeroed at boot too) */
-#else
-} cast __attribute__((section(".pool")));
 #endif
+} cast __attribute__((section(".ramx")));  /* (SMK: the pool keeps its 8 KiB spare; .ramx is zeroed at boot too;
+                                            * (custom) the fork's FM-1 too: its pool is fuller than Skiff's) */
 static void cast_rec(uint32_t type, uint32_t a, uint32_t b);   /* a record, stamped (cast.c) */
 #define cast_ev(type) cast_rec((type), 0u, 0u)
 static void cast_take(uint32_t pressed, uint32_t struck);
