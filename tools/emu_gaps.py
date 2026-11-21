@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 """(custom) Where the firmware uses instruction forms Simon Johansson's FM-1 emulator does not decode (its
-docs/instruction-gaps.md): ED5D..ED5F, a signed halfword load with a pre-increment past 255 bytes. The hardware runs
-them; the emulator stops. Lists each with its function, from tools/build.py's listing:
+docs/instruction-gaps.md): ED5D..ED5F, a signed halfword load with a pre-increment past 255 bytes; E1D8 but its kinds 0
+and 2 (a 64-bit pair shifted by a register: left and logical right; kind 3, the arithmetic right, stops it). The
+hardware runs them; the emulator stops. Lists each with its function, from tools/build.py's listing:
     tools/emu_gaps.py build/felucca.dis [PC ...]
 A PC (hex, as the emulator reports it) prints its function and the instructions around it."""
 import re, sys
@@ -15,9 +16,12 @@ for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
     if m:
         fn = m.group(1) or m.group(2)
         continue
-    m = re.match(r"^\s*([0-9a-f]+):\s+([0-9a-f]{2}) ([0-9a-f]{2})", line)
+    m = re.match(r"^\s*([0-9a-f]+):\s+([0-9a-f]{2}) ([0-9a-f]{2})(?: ([0-9a-f]{2}) ([0-9a-f]{2}))?", line)
     if m and int(m.group(3) + m.group(2), 16) in GAPS:
         hits.append((m.group(1), fn, line.strip()))
+    elif m and m.group(4) and int(m.group(3) + m.group(2), 16) == 0xe1d8 and (int(m.group(4), 16) not in (0, 2) or
+                                                                             (int(m.group(5), 16) >> 4) & 1):
+        hits.append((m.group(1), fn, line.strip()))   # ((custom) E1D8: a pair shift of a kind the emulator lacks)
 for k, (f, l) in enumerate(lines):
     m = re.match(r"^\s*([0-9a-f]+):", l)
     if m and m.group(1).lstrip("0") in want:
