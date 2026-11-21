@@ -319,7 +319,7 @@ int main(void)
     ok = P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_CHRD &&
          P_VOIC + 1 == P_LN0 && P_LN7 + 1 == P_DIR && P_DKREL + 1 == P_DTYPE && P_LDECAY7 + 1 == P_LSYNC &&
          P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_FBLND && P_FBLND + 1 == P_STRUM && P_SDIR + 1 == P_SYF2 &&
-         P_SYPNCH + 1 == P_E0 && P_E0 == 172 && P_COUNT == 180;   /* ((custom) FILTER 2) */                      /* ((custom) the track FILTER, SYNTH's own; (2.5) STRUM DIR) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
+         P_SYPNCH + 1 == P_USTK && P_USTK + 1 == P_E0 && P_E0 == 173 && P_COUNT == 181;   /* ((custom) FILTER 2, STACK) */                      /* ((custom) the track FILTER, SYNTH's own; (2.5) STRUM DIR) */                                    /* ((Skiff) DIR, the ducking; phase 9: DRIVE, ENV 2, the
                                                               * lanes; 1.3: LFO SYNC TRIG POL, SPREAD, INSERT, ENV SYNC;
                                                               * (2.0, #36) the lane pans; (2.1) the chord follow; (2.5)
                                                               * STRUM, DIR) */

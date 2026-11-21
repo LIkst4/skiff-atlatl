@@ -650,12 +650,13 @@ static __attribute__((noinline)) void sy_punch(int32_t *k, int32_t *y, uint32_t 
     *k = k1;
 }
 
-static uint32_t trk_nvoice(const track_t *t);          /* (voice.c) */
+static uint32_t uni_nvoice(const track_t *t);          /* (voice.c) */
 
-/* the oscillators of voice v (A, B, SUB) added into y[0..n) at weight w (Q15), at the rate inca0 (its pitch: the
- * vmod's, with its own fine tune fine); *bs: B's value this block, *e15: POLY MOD's ENV (the filter's routings) */
-static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod_t *m, uint32_t inca0, int32_t fine,
-                                              int32_t *y, uint32_t n, int32_t w, int32_t *bs_out, int32_t *e15_out)
+/* the oscillators of voice v (A, B, SUB) added into y[0..n) at weight w (Q15), at the rate inca0 (its pitch p16, 1/16
+ * semitone, with its own fine tune fine); *bs: B's value this block, *e15: POLY MOD's ENV (the filter's routings) */
+static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod_t *m, uint32_t inca0, int32_t p16,
+                                              int32_t fine, int32_t *y, uint32_t n, int32_t w, int32_t *bs_out,
+                                              int32_t *e15_out)
 {
     const int16_t *p = t->p;
     synth_vc_t *S = synth_vc(t, v);
@@ -683,7 +684,7 @@ static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod
     if (pme && ppw)                                      /* .. -> PW A: SHAPE A +-63 */
         sha += (e15 * pme) >> 7;
     if (dct)
-        inca = cents_inc(m->pitch16, dct, fine);
+        inca = cents_inc(p16, dct, fine);
     ga = mb == SY_BOFF ? 32767 : 32767 - mix;
     gb = mb == SY_BOFF ? 0 : mix;
     if (drift) {                                         /* (DRIFT: the card's level) */
@@ -694,7 +695,7 @@ static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod
         ga = mulq15(ga, w);
         gb = mulq15(gb, w);
     }
-    incb = mb != SY_BOFF ? cents_inc(clamp(m->pitch16 + p[P_E5] * 16, 0, 2047), (gb || p[P_SYXMOD]) ? p[P_E6] * 50 / 127 : 0,
+    incb = mb != SY_BOFF ? cents_inc(clamp(p16 + p[P_E5] * 16, 0, 2047), (gb || p[P_SYXMOD]) ? p[P_E6] * 50 / 127 : 0,
                                   (gb || p[P_SYXMOD]) ? fine : 0) : 0u;
     if (mb != SY_BOFF && p[P_SYBLOW]) {                  /* (custom, the Prophet's LOW FREQ) B an LFO: 0.5 Hz x 2^(B TUNE
                                                           * + 24) / 12, the keys out */
@@ -752,20 +753,30 @@ static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod
     *e15_out = e15;
 }
 
-/* (custom) UNISON on SYNTH: the voices of a side (SPREAD's: voices 0, 2, 4, 6 and 1, 3, 5, 7) through one filter,
- * the side's first voice rendering them all; the others render nothing of their own. As a supersaw's: the saws summed,
- * then filtered once (eight filters a note were the engine's cost: two oscillators in UNISON slowed the unit down),
- * the stack's middle voices louder than its edges. 0: not so (POLY, MONO, another voice of a side) */
+/* (custom) UNISON on SYNTH. With both oscillators (B on, heard or moving A: MIX, X-MOD, POLY MOD's OSC B) the voices
+ * of a side (SPREAD's: the even ones, the odd ones) go through one filter, the side's first voice rendering them all
+ * and the others nothing of their own: as a supersaw's, the saws summed, then filtered once (a filter a voice, with
+ * two oscillators, slowed the unit down). With one, each voice its own filter, as POLY (their DRIFT, their keys).
+ * Either way the stack's middle voices louder than its edges (sy_place). 0 not UNISON, 1 the side's sum, 2 none (the
+ * side's first renders it), 3 the voice alone */
 static uint32_t sy_uni(track_t *t, voice_t *v, uint32_t *nv)
 {
-    uint32_t i = (uint32_t)(v - t->v), j, c = trk_nvoice(t);
-    *nv = c < UNI_NV ? c : UNI_NV;
-    if (t->p[P_VOICE] != V_UNISON || *nv < 2u || i >= *nv)
+    const int16_t *p = t->p;
+    uint32_t i = (uint32_t)(v - t->v), j;
+    *nv = uni_nvoice(t);
+    if (p[P_VOICE] != V_UNISON || *nv < 2u || i >= *nv)
         return 0;
+    if (sy_bmodel(clamp(p[P_E3], 0, SYB_N - 1)) == SY_BOFF || !(p[P_E7] || p[P_SYXMOD] || p[P_SYPMB]))
+        return 3;
     for (j = i & 1u; j < i; j += 2u)
         if (t->v[j].active)
             return 2;                                    /* (an earlier voice of the side renders this one) */
     return 1;
+}
+static int32_t sy_place(uint32_t j, uint32_t nv)        /* UNISON voice j's weight, Q15: the edges ~0.68 */
+{
+    int32_t k = 2 * (int32_t)j - (int32_t)(nv - 1u);
+    return 32767 - 10400 * (k < 0 ? -k : k) / (int32_t)(nv - 1u);
 }
 
 static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
@@ -781,28 +792,29 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         return;
     for (i = 0; i < n; i++)
         y[i] = 0;
-    if (uni) {                                           /* the side's voices: their oscillators, a quarter each (the
+    if (uni == 1u) {                                     /* the side's voices: their oscillators, 1 / ns each (the
                                                           * filter sees what one voice gave it), weighted by place */
-        uint32_t j, inc0 = pitch_inc(m->pitch16);
+        uint32_t j;
         int32_t bsj, e15j;
         for (j = vi; j < nv; j += 2u) {
             voice_t *w = &t->v[j];
-            int32_t k = 2 * (int32_t)j - (int32_t)(nv - 1u), fine = m->fine - v->fine + w->fine, ak = k < 0 ? -k : k;
-            uint32_t inc = inc0;
+            int32_t fine = m->fine - v->fine + w->fine, p16 = clamp(m->pitch16 + (w->ust - v->ust) * 16, 0, 2047);
+            uint32_t inc = pitch_inc(p16);
             if (!w->active)
                 continue;
             if (fine)
                 inc += (uint32_t)((int32_t)(inc >> 12) * fine);
-            sy_oscs(t, w, m, inc, fine, y, n, 8192 - 2600 * ak / (int32_t)(nv - 1u), &bsj, &e15j);   /* (edges ~0.68) */
+            sy_oscs(t, w, m, inc, p16, fine, y, n, sy_place(j, nv) / (int32_t)((nv - (vi & 1u) + 1u) / 2u), &bsj, &e15j);
             if (w == v) {
                 bs = bsj;
                 e15 = e15j;
             }
         }
     } else {
-        sy_oscs(t, v, m, m->inc, m->fine, y, n, 32767, &bs, &e15);
+        sy_oscs(t, v, m, m->inc, m->pitch16, m->fine, y, n, uni ? sy_place(vi, nv) : 32767, &bs, &e15);
     }
-    cm = (m->cutoff >> 5) + (((v->pitch16 - 60 * 16) * 9) >> 5);   /* the routings; half key tracking */
+    cm = (m->cutoff >> 5) + (((v->pitch16 + v->ust * 16 - 60 * 16) * 9) >> 5);   /* the routings; half key tracking
+                                                                              * (STACK's interval too) */
     if (pfl)                                             /* (POLY MOD) -> FILTER: ENV +-~5 octaves, B +-~4 */
         cm += ((e15 * pme) >> 12) + ((bs * pob) >> 13);   /* ((custom) ENV: >> 12, was >> 6: 32 x too far) */
     if (drift)
@@ -835,11 +847,12 @@ static void synth_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         sy_boost(&v->s[7], y, n, p[P_SYBST]);
     if (p[P_SYPNCH] && v->s[4])
         sy_punch(&v->s[4], y, n, p[P_SYPNCH]);
-    if (uni) {                                           /* (UNISON: the side's sum, a quarter: back as loud, its knee
+    if (uni == 1u) {                                     /* (UNISON: the side's sum, 1 / ns: back as loud, its knee
                                                           * as wide as a few voices' sum needs) */
-        int32_t kn = (p[P_SYMUF] ? 16000 - p[P_SYMUF] * 100 : 16000) * 3 / 2;
+        int32_t kn = (p[P_SYMUF] ? 16000 - p[P_SYMUF] * 100 : 16000) * 3 / 2, ns = (int32_t)(nv - (vi & 1u) + 1u) / 2,
+                lim = 262140 / ns;
         for (i = 0; i < n; i++)
-            out[i] += voice_amp2(soft_knee(clamp(y[i], -65535, 65535) << 1, kn), m, i);
+            out[i] += voice_amp2(soft_knee((clamp(y[i], -lim, lim) * ns) >> 1, kn), m, i);
         return;
     }
     if (p[P_SYMUF]) {                                    /* (Devil Fish) MUFFLE: the VCA's soft clip, louder in */

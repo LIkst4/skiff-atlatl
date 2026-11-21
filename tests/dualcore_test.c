@@ -144,6 +144,28 @@ static int voice_budget(void)
     }
     printf("dualcore: voice budget: %u voices on one core, %u with the second (VOICES_2CORE %u)   %s\n", n[0], n[1],
            (unsigned)VOICES_2CORE, n[0] == VOICES_1CORE && n[1] == want ? "ok" : "FAIL");
+    {   /* (custom) UNISON: a SYNTH note on as many voices as the budget gives (8, 16), a side's sum each with B on */
+        uint32_t u[2];
+        for (pass = 0; pass < 2u; pass++) {
+            host_tracks_init();
+            for (k = 0; k < NPART; k++)             /* (the budget test's voices gone) */
+                memset(trk[k].v, 0, sizeof trk[k].v);
+            memset(eng_mem, 0, sizeof eng_mem);
+            c1h_off = !pass;
+            host_preset(&trk[0], ENGI_SYNTH, 0u);
+            trk[0].p[P_VOICE] = V_UNISON;
+            trk[0].p[P_USTK] = 5;                   /* (PWR) */
+            trk[0].p[P_E3] = 1;                     /* (OSC B VA) */
+            mix_block(o, CTL);                      /* (the second core answering, or not: C1_ON) */
+            trk_note_on(&trk[0], 48u, 100);
+            mix_block(o, CTL);
+            u[pass] = voices_busy();
+        }
+        printf("dualcore: UNISON: %u voices on one core, %u with the second   %s\n", u[0], u[1],
+               u[0] == VOICES_1CORE && u[1] == (VOICES_2CORE < UNI_NV ? VOICES_2CORE : UNI_NV) ? "ok" : "FAIL");
+        if (!(u[0] == VOICES_1CORE && u[1] == (VOICES_2CORE < UNI_NV ? VOICES_2CORE : UNI_NV)))
+            return 1;
+    }
     return !(n[0] == VOICES_1CORE && n[1] == want);
 }
 

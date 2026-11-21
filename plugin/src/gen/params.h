@@ -5,7 +5,7 @@
 
 namespace fm1 {
 
-constexpr uint32_t kFirmwarePCount = 180, kFirmwarePE0 = 172;
+constexpr uint32_t kFirmwarePCount = 181, kFirmwarePE0 = 173;
 constexpr int kGEngSel = 20;   /* the global that sets the selected track's engine */
 
 struct ParamDef {
@@ -67,6 +67,7 @@ static const char *const kNames163[] = {"FREQ A", "PW A", "FILTER", "FRQ+FLT", "
 static const char *const kNames164[] = {"OFF", "ON"};
 static const char *const kNames167[] = {"DOWN", "UP", "ALT"};
 static const char *const kNames168[] = {"OFF", "SER LP", "SER HP", "SER BP", "PAR LP", "PAR HP", "PAR BP"};
+static const char *const kNames172[] = {"STD", "C-12", "C-24", "OCT", "2OCT", "PWR", "2PWR", "MAJ", "MIN", "HARM", "ODD"};
 
 static const ParamDef kParams[] = {
     {0, 0, 0, 127, 104, 6, "LEVEL", "TRACK/TRACK", nullptr},
@@ -220,14 +221,15 @@ static const ParamDef kParams[] = {
     {169, 169, -64, 63, 0, 0, "F2 OFS", "EDIT/EDIT FILTER 2", nullptr},
     {170, 170, 0, 127, 0, 1, "BOOST", "EDIT/EDIT FILTER 2", nullptr},
     {171, 171, 0, 127, 0, 1, "PUNCH", "EDIT/EDIT FILTER 2", nullptr},
-    {127, 172, 0, 127, 0, 0, "E1", "EDIT/ENGINE", nullptr},
-    {128, 173, -7, 127, 0, 0, "E2", "EDIT/ENGINE", nullptr},
-    {129, 174, -64, 127, 0, 0, "E3", "EDIT/ENGINE", nullptr},
-    {130, 175, -16, 127, 0, 0, "E4", "EDIT/ENGINE", nullptr},
-    {131, 176, -64, 127, 0, 0, "E5", "EDIT/ENGINE", nullptr},
-    {132, 177, -24, 127, 0, 0, "E6", "EDIT/ENGINE", nullptr},
-    {133, 178, 0, 127, 0, 0, "E7", "EDIT/ENGINE", nullptr},
-    {134, 179, -64, 127, 64, 0, "E8", "EDIT/ENGINE", nullptr},
+    {172, 172, 0, 10, 0, 8, "STACK", "EDIT/VOICE 2", kNames172},
+    {127, 173, 0, 127, 0, 0, "E1", "EDIT/ENGINE", nullptr},
+    {128, 174, -7, 127, 0, 0, "E2", "EDIT/ENGINE", nullptr},
+    {129, 175, -64, 127, 0, 0, "E3", "EDIT/ENGINE", nullptr},
+    {130, 176, -16, 127, 0, 0, "E4", "EDIT/ENGINE", nullptr},
+    {131, 177, -64, 127, 0, 0, "E5", "EDIT/ENGINE", nullptr},
+    {132, 178, -24, 127, 0, 0, "E6", "EDIT/ENGINE", nullptr},
+    {133, 179, 0, 127, 0, 0, "E7", "EDIT/ENGINE", nullptr},
+    {134, 180, -64, 127, 64, 0, "E8", "EDIT/ENGINE", nullptr},
 };
 constexpr uint32_t kParamCount = sizeof kParams / sizeof kParams[0];
 

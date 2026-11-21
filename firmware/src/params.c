@@ -43,6 +43,8 @@ static const char *const N_LTRIG[] = {"NOTE", "FREE"};
 static const char *const N_LPOL[] = {"BI", "UNI"};
 static const char *const N_SYSUBO[] = {"-1 OCT", "-2 OCT"};   /* (custom) SYNTH's SUB OCT */
 static const char *const N_SYF2[] = {"OFF", "SER LP", "SER HP", "SER BP", "PAR LP", "PAR HP", "PAR BP"};   /* (custom) F2 */
+static const char *const N_USTK[] = {"STD", "C-12", "C-24", "OCT", "2OCT", "PWR", "2PWR", "MAJ", "MIN", "HARM",
+                                     "ODD"};   /* (custom) VOICE 2's STACK: voice.c US_* (Vital's stack styles) */
 static const char *const N_SYPMD[] = {"FREQ A", "PW A", "FILTER", "FRQ+FLT", "ALL"};   /* (custom) SYNTH's POLY MOD DEST */
 static const char *const N_FTYPE[] = {"OFF", "LP MG", "LD", "SVF", "SK", "OB 12", "OB 24", "ACID", "COMB",
                                      "VOWEL", "ANLG"};   /* (custom) P_FTYPE: FT_* (flt.c), append only */
@@ -233,6 +235,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_SYBST] = PD("BOOST", F_PCT, 0, 127, 0),       /* .. the low end up (to ~+8 dB below ~140 Hz): 0 off, as before;
                                                       * (no saturation of its own: DRIVE, MUFFLE, the INSERT have it) */
     [P_SYPNCH] = PD("PUNCH", F_PCT, 0, 127, 0),      /* .. the attack's kick: 0 off, as before */
+    [P_USTK] = PE("STACK", N_USTK, 0),               /* (custom) UNISON's voices on intervals: STD (DETUNE's spread
+                                                      * alone, as before), CENTER DROP 12 / 24, OCTAVES, POWER CHORDS,
+                                                      * MAJOR, MINOR, HARMONICS, ODD HARMONICS (voice.c uni_stack) */
 #define LMDL(k) [P_LMDL0 + k] = PE("MODEL", N_LMDL, 0)   /* (custom) a DRUM lane's MODEL: KIT, the kit's own (as before) */
     LMDL(0), LMDL(1), LMDL(2), LMDL(3), LMDL(4), LMDL(5), LMDL(6), LMDL(7),
 #undef LMDL
@@ -689,7 +694,7 @@ static const page_t PAGES[] = {
     {"OP4 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM4_ATK, P_FM4_DEC, P_FM4_SUS, P_FM4_REL}},
     {"OP LEVEL", FAM_EDIT, SC_TRACK, GR_NONE, {P_FM1_LEVEL, P_FM2_LEVEL, P_FM3_LEVEL, P_FM4_LEVEL}},
     {"VOICE", FAM_EDIT, SC_TRACK, GR_VOICE, {P_VOICE, P_GLIDE, P_GLMODE, P_PRIO}},
-    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_VOICE2, {P_ALLOC, P_DETUNE, P_SPRD, 0xFF}},   /* ((U3, R4) PAN MUTE: MIXER's;
+    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_VOICE2, {P_ALLOC, P_DETUNE, P_SPRD, P_USTK}},   /* ((U3, R4) PAN MUTE: MIXER's;
                                                                                      * (1.3) SPREAD) */
     {"MIXER", FAM_TRK, SC_TRK, GR_TRK, {0, 1, 2, 3}},   /* GLO button; LEVEL PAN REV MUTE */
     {"DELAY", FAM_GLO, SC_GLOBAL, GR_DELAY, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},   /* ((U3, N4) the buses: FX's before) */

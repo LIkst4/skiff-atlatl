@@ -541,16 +541,23 @@ static void graph_voice2(const track_t *t, uint16_t c)
     } else
         str_cpy(b, mode != V_POLY ? "ALLOC: ONLY IN POLY" : "NEXT NOTE: THE NEAREST", 24);
     pg_text(12, 16, b, T_MID);
-    for (i = 0; i < (uni ? np : 1u); i++) {
-        int32_t k = 2 * (int32_t)i - (int32_t)(uni ? np - 1u : 0u);
-        if (uni && np > 1u && np < UNI_NV)
-            k = k * (UNI_NV - 1) / (int32_t)(np - 1u);
-        if (ux.crypt) {                              /* (Skiff C4) CRYPT: a row of dashes each, - - - */
-            int32_t x;
-            for (x = 76; x <= 224; x += 6)
-                cv_rect(x, 95 + k * t->p[P_DETUNE] * 40 / 889, 4, 2, !uni ? T_DIM : k >= -1 && k <= 1 ? T_THEME : CR_EMBER);
-        } else
-        cv_rect(76, 95 + k * t->p[P_DETUNE] * 40 / 889, 152, 2, !uni ? T_DIM : k == 0 || k == 1 || k == -1 ? c : T_MID);
+    {   /* ((custom) each voice's pitch from the note, cents: DETUNE's spread (uni_fine) and STACK's interval; 24 cents
+         * 40 px, a wider stack fitted in) */
+        int32_t ct[UNI_NV], mx = 24;
+        for (i = 0; i < (uni ? np : 1u); i++) {
+            ct[i] = uni && np > 1u ? uni_stack(i, np, (uint32_t)t->p[P_USTK]) + uni_fine(i, np, t->p[P_DETUNE]) * 1000 / 2367
+                                   : 0;
+            mx = ct[i] > mx ? ct[i] : -ct[i] > mx ? -ct[i] : mx;
+        }
+        for (i = 0; i < (uni ? np : 1u); i++) {
+            int32_t k = 2 * (int32_t)i - (int32_t)(uni ? np - 1u : 0u), yy = 95 - ct[i] * 40 / mx;
+            if (ux.crypt) {                          /* (Skiff C4) CRYPT: a row of dashes each, - - - */
+                int32_t x;
+                for (x = 76; x <= 224; x += 6)
+                    cv_rect(x, yy, 4, 2, !uni ? T_DIM : k >= -1 && k <= 1 ? T_THEME : CR_EMBER);
+            } else
+                cv_rect(76, yy, 152, 2, !uni ? T_DIM : k == 0 || k == 1 || k == -1 ? c : T_MID);
+        }
     }
     pg_text(12, 100, uni ? "DETUNE" : "UNI ONLY", T_DIM);   /* ((1.3) DETUNE's: SPREAD is the stereo one) */
 }

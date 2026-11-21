@@ -148,7 +148,7 @@ e519457e51b5dab5 CRYPT_layer_scl_peek
 72b7b509ccb09dba CRYPT_layer_seq_tools
 6866502b4ef3a9b6 CRYPT_layer_seq_tools_drum
 c6acc1b812fef1f4 CRYPT_learn
-01cc91cad36d737e CRYPT_learn_cc
+877c43a675cc8a8a CRYPT_learn_cc
 d4b192041874a4a1 CRYPT_lfo
 d36d126ae36ce43f CRYPT_lfo_2
 a4e1a5d646e83449 CRYPT_lfo_run
@@ -277,8 +277,8 @@ d4aaa3f9c79e8732 CRYPT_synth_a
 5836b5371d4fd3c3 CRYPT_user
 e28a10113a015c17 CRYPT_user_foot
 eab8d478beab4abd CRYPT_voice
-0ee1f0c171a69da3 CRYPT_voice_2
-2ae87570aff80ac8 CRYPT_voice_2_uni
+de4bd858a9c5ece6 CRYPT_voice_2
+48f5e6c86b841ae6 CRYPT_voice_2_uni
 adb852d7ca160c87 CRYPT_voice_glide
 8ec4594ae1be28c2 CUSTOM_CRYPT_about
 58e33ab8f98e8f41 CUSTOM_CRYPT_about_credits
@@ -426,7 +426,7 @@ d494a6674d9fdf25 CUSTOM_CRYPT_layer_scl_peek
 a4b9be8b2d8fc290 CUSTOM_CRYPT_layer_seq_tools
 b4b22471c73aee79 CUSTOM_CRYPT_layer_seq_tools_drum
 3aac755c4f432b47 CUSTOM_CRYPT_learn
-ff7dcfbcf460df27 CUSTOM_CRYPT_learn_cc
+dd3609a1c99416af CUSTOM_CRYPT_learn_cc
 34e405530b0451d6 CUSTOM_CRYPT_lfo
 c24fad67881c9a22 CUSTOM_CRYPT_lfo_2
 bd117a5bdc53e8f2 CUSTOM_CRYPT_lfo_run
@@ -555,8 +555,8 @@ da89e69959d95fa9 CUSTOM_CRYPT_step_tiles_bar2
 67b8ccf0f192bcaa CUSTOM_CRYPT_user
 39c76f55ecf959cd CUSTOM_CRYPT_user_foot
 64f9f08d72debd94 CUSTOM_CRYPT_voice
-2762d1edd8f64652 CUSTOM_CRYPT_voice_2
-ec6a8c4000aa79d8 CUSTOM_CRYPT_voice_2_uni
+46e0b4fd3517cc36 CUSTOM_CRYPT_voice_2
+a3297309deba7aff CUSTOM_CRYPT_voice_2_uni
 4d3cf66311dc392e CUSTOM_CRYPT_voice_glide
 8ec4594ae1be28c2 CUSTOM_NEON_about
 58e33ab8f98e8f41 CUSTOM_NEON_about_credits
@@ -704,7 +704,7 @@ f451341f9d914fa1 CUSTOM_NEON_layer_rec_set
 2ec5bd7952e724d8 CUSTOM_NEON_layer_seq_tools
 58fec5445732e635 CUSTOM_NEON_layer_seq_tools_drum
 fff83f6e0c73544b CUSTOM_NEON_learn
-36f2c6d2feddbcf3 CUSTOM_NEON_learn_cc
+568eaafa38e3b74b CUSTOM_NEON_learn_cc
 a780d44b88c44b2d CUSTOM_NEON_lfo
 8adec5a748a150b2 CUSTOM_NEON_lfo_2
 0a692c8fe5236b1f CUSTOM_NEON_lfo_run
@@ -833,8 +833,8 @@ fcf21b566381cd1a CUSTOM_NEON_take_partial
 de9f2ffffd8e9ae8 CUSTOM_NEON_user
 048516fbdb68f427 CUSTOM_NEON_user_foot
 86ad439a81ee470a CUSTOM_NEON_voice
-fde1225acfaaa15d CUSTOM_NEON_voice_2
-df983df048ae1b98 CUSTOM_NEON_voice_2_uni
+d04d9780c7d47c7a CUSTOM_NEON_voice_2
+ce4ba5368937f623 CUSTOM_NEON_voice_2_uni
 a547055d1cedb6bb CUSTOM_NEON_voice_glide
 6dfcfae8fa3d44e3 CUSTOM_QUARK_about
 272b1c538c0417b6 CUSTOM_QUARK_about_credits
@@ -982,7 +982,7 @@ f0eb469e135b48e9 CUSTOM_QUARK_layer_rec_set
 afa41e25ac365a10 CUSTOM_QUARK_layer_seq_tools
 12b3daa47147dbc6 CUSTOM_QUARK_layer_seq_tools_drum
 b6faaf76acda8c21 CUSTOM_QUARK_learn
-4624bcd0b09ff1af CUSTOM_QUARK_learn_cc
+e4652b6b847b2a76 CUSTOM_QUARK_learn_cc
 22536abd4e72e892 CUSTOM_QUARK_lfo
 64e9fe4a756ee105 CUSTOM_QUARK_lfo_2
 76d63bf41fe13f73 CUSTOM_QUARK_lfo_run
@@ -1111,8 +1111,8 @@ e18cde014896db53 CUSTOM_QUARK_undo_box
 30412cd5befcb93d CUSTOM_QUARK_user
 cc651918769c3748 CUSTOM_QUARK_user_foot
 02b04e9c93601420 CUSTOM_QUARK_voice
-19474a6873e09aa1 CUSTOM_QUARK_voice_2
-cfbd732d8e5c2fd1 CUSTOM_QUARK_voice_2_uni
+79a2f89a9b2e5b6f CUSTOM_QUARK_voice_2
+93c28e7318a4f7cb CUSTOM_QUARK_voice_2_uni
 3c79bbc06653efd3 CUSTOM_QUARK_voice_glide
 6dfcfae8fa3d44e3 CUSTOM_SKIFF_about
 272b1c538c0417b6 CUSTOM_SKIFF_about_credits
@@ -1260,7 +1260,7 @@ e62105548c4fd401 CUSTOM_SKIFF_layer_rec_set
 20cab738f4d2e9db CUSTOM_SKIFF_layer_seq_tools
 8b4f0fd879d530b8 CUSTOM_SKIFF_layer_seq_tools_drum
 6d9122a02743e08d CUSTOM_SKIFF_learn
-e1a2a48f60e82e2b CUSTOM_SKIFF_learn_cc
+df15afe3d112431a CUSTOM_SKIFF_learn_cc
 cd7b41bffe683ade CUSTOM_SKIFF_lfo
 fdfc12eb18d7d9da CUSTOM_SKIFF_lfo_2
 666f5626d66c873d CUSTOM_SKIFF_lfo_run
@@ -1389,8 +1389,8 @@ e5704b4fd08b3a62 CUSTOM_SKIFF_take_partial
 86eb8a426f76d1f6 CUSTOM_SKIFF_user
 6eebb6b1297962f3 CUSTOM_SKIFF_user_foot
 738bf9d1f1766a00 CUSTOM_SKIFF_voice
-f5dce7949238a8fe CUSTOM_SKIFF_voice_2
-992aa905e4fda5de CUSTOM_SKIFF_voice_2_uni
+ea899da7755e6617 CUSTOM_SKIFF_voice_2
+057f18e338a0663f CUSTOM_SKIFF_voice_2_uni
 c2e2cde4748b8be1 CUSTOM_SKIFF_voice_glide
 e0c939f2340a67a7 HI-CON_about
 45b1484da3de2369 HI-CON_about_credits
@@ -1538,7 +1538,7 @@ cace7c5ee5531052 HI-CON_layer_rec_set
 565abb0180595fbe HI-CON_layer_seq_tools
 90c86bea0a61e157 HI-CON_layer_seq_tools_drum
 ba729a88e91bc530 HI-CON_learn
-70f034993ded6219 HI-CON_learn_cc
+8845ce376d61f28b HI-CON_learn_cc
 f2a2a9c86aa72e4f HI-CON_lfo
 9d9bd79dd7ee1e01 HI-CON_lfo_2
 06c47c5668685804 HI-CON_lfo_run
@@ -1667,8 +1667,8 @@ f0f6ebaab87c6022 HI-CON_take_box
 6a017dec6419e705 HI-CON_user
 1f9f727756a7fac0 HI-CON_user_foot
 3e0ddffe39e7d479 HI-CON_voice
-d3766a4c118c6d0f HI-CON_voice_2
-334564a4d89469ad HI-CON_voice_2_uni
+921922dfae2fb67a HI-CON_voice_2
+de67613604ac47e8 HI-CON_voice_2_uni
 5ebb249b91f70ca0 HI-CON_voice_glide
 9573e13f2e4d1426 LARGE_CRYPT_about
 7b406cff888c0edf LARGE_CRYPT_about_credits
@@ -1816,7 +1816,7 @@ d1bf740f049a00cc LARGE_CRYPT_layer_scl_peek
 855c547df8451f5c LARGE_CRYPT_layer_seq_tools
 c15f7be7772a88e4 LARGE_CRYPT_layer_seq_tools_drum
 a7284cea3b688334 LARGE_CRYPT_learn
-2cde42b80198c73e LARGE_CRYPT_learn_cc
+0ecd550267702e4a LARGE_CRYPT_learn_cc
 4b7c18ce451b56c8 LARGE_CRYPT_lfo
 2f0df5c1d6779db8 LARGE_CRYPT_lfo_2
 76fa7f88d1148f30 LARGE_CRYPT_lfo_run
@@ -1945,8 +1945,8 @@ d0128ed7b39e35bc LARGE_CRYPT_undo_box
 ab95b1df5b102ed0 LARGE_CRYPT_user
 bbb43f324795cb65 LARGE_CRYPT_user_foot
 8ebe2c00e499f7dd LARGE_CRYPT_voice
-49125db6a59f95fb LARGE_CRYPT_voice_2
-49125db6a59f95fb LARGE_CRYPT_voice_2_uni
+afc2b1376b6233a6 LARGE_CRYPT_voice_2
+afc2b1376b6233a6 LARGE_CRYPT_voice_2_uni
 8d751f7f249eae4c LARGE_CRYPT_voice_glide
 a3eb95cac738aa76 LARGE_NEON_about
 19e21770e8770398 LARGE_NEON_about_credits
@@ -2094,7 +2094,7 @@ a75810c548ba675d LARGE_NEON_layer_scl_peek
 d2d03bf34a5cafb1 LARGE_NEON_layer_seq_tools
 290e279a68f8f507 LARGE_NEON_layer_seq_tools_drum
 fd67af0ed66c3866 LARGE_NEON_learn
-6448ab47715703fe LARGE_NEON_learn_cc
+42acb8ac83165d0e LARGE_NEON_learn_cc
 94aa6e88d64140ee LARGE_NEON_lfo
 d0b30854bbb0511b LARGE_NEON_lfo_2
 5c3824e41e5f79e0 LARGE_NEON_lfo_run
@@ -2223,8 +2223,8 @@ b857e6f2cd995983 LARGE_NEON_undo_box
 e1a1e6b6d712b8cc LARGE_NEON_user
 7b6ca23fb4430b89 LARGE_NEON_user_foot
 a910b8337fc0ffa7 LARGE_NEON_voice
-2998b174e4840d4c LARGE_NEON_voice_2
-2998b174e4840d4c LARGE_NEON_voice_2_uni
+f03141a44e280d88 LARGE_NEON_voice_2
+f03141a44e280d88 LARGE_NEON_voice_2_uni
 846b0e0b9d9aeb21 LARGE_NEON_voice_glide
 e30e7f66e387f2c9 LARGE_QUARK_about
 b515ea9ee4d620cf LARGE_QUARK_about_credits
@@ -2372,7 +2372,7 @@ ad92f973236cb7e3 LARGE_QUARK_layer_scl_active
 ea04649d72792068 LARGE_QUARK_layer_seq_tools
 861275cbe0f514e6 LARGE_QUARK_layer_seq_tools_drum
 0273efddc00fead2 LARGE_QUARK_learn
-549e1face41ab9a1 LARGE_QUARK_learn_cc
+c34ee0148b8b7e50 LARGE_QUARK_learn_cc
 5adf6299b27672c2 LARGE_QUARK_lfo
 9f45d60fc9951f03 LARGE_QUARK_lfo_2
 dc05b994fb63d98e LARGE_QUARK_lfo_run
@@ -2501,8 +2501,8 @@ c0e7c8c9140c7450 LARGE_QUARK_synth_a
 6495cf0856f107f3 LARGE_QUARK_user
 1ea89c97daa8d21b LARGE_QUARK_user_foot
 8be64d72a7c21d1f LARGE_QUARK_voice
-1e29aa6b18e991ff LARGE_QUARK_voice_2
-1e29aa6b18e991ff LARGE_QUARK_voice_2_uni
+db6c3c9af86ce50c LARGE_QUARK_voice_2
+db6c3c9af86ce50c LARGE_QUARK_voice_2_uni
 89528554e8da8b6b LARGE_QUARK_voice_glide
 21b45c6cb6291049 LARGE_SKIFF_about
 407e133abca45b01 LARGE_SKIFF_about_credits
@@ -2650,7 +2650,7 @@ b085672c1fa6f756 LARGE_SKIFF_layer_scl_peek
 fb173ebc34506f4a LARGE_SKIFF_layer_seq_tools
 f736c87d27c213a4 LARGE_SKIFF_layer_seq_tools_drum
 38e870d557e82f8a LARGE_SKIFF_learn
-1629101663f4ded3 LARGE_SKIFF_learn_cc
+20228fad1551cc6c LARGE_SKIFF_learn_cc
 8cdd48929e823a43 LARGE_SKIFF_lfo
 07abcbd47282eae5 LARGE_SKIFF_lfo_2
 f2d6fca2355bf822 LARGE_SKIFF_lfo_run
@@ -2779,8 +2779,8 @@ bfc35b5b19604628 LARGE_SKIFF_song_sound
 521acc0c0d84a4a6 LARGE_SKIFF_user
 fed8ac467c6c1e53 LARGE_SKIFF_user_foot
 45b9e066b87f068c LARGE_SKIFF_voice
-53c61dba0c47c135 LARGE_SKIFF_voice_2
-53c61dba0c47c135 LARGE_SKIFF_voice_2_uni
+b6798d458e0242d2 LARGE_SKIFF_voice_2
+b6798d458e0242d2 LARGE_SKIFF_voice_2_uni
 e7d38ebb0a1fb645 LARGE_SKIFF_voice_glide
 a3eb95cac738aa76 NEON_about
 19e21770e8770398 NEON_about_credits
@@ -2930,7 +2930,7 @@ f566fbd2162ca489 NEON_layer_rec_set
 2e12f359aac0b415 NEON_layer_seq_tools
 2cefe00572bb4d23 NEON_layer_seq_tools_drum
 c3e1a765942f5fa4 NEON_learn
-b0e68ad83fc84784 NEON_learn_cc
+cd4c03c9023dfdf4 NEON_learn_cc
 ce2259a3e8540526 NEON_lfo
 cea838e8e1c905ab NEON_lfo_2
 4876e2f20dd47be1 NEON_lfo_run
@@ -3059,8 +3059,8 @@ ff5db0e841cdb7a8 NEON_undo_box
 f2d2dc9b85b9ae64 NEON_user
 590304ac8a81ec13 NEON_user_foot
 86c71b5f0d37ed65 NEON_voice
-42498cf7e06a8327 NEON_voice_2
-99b0bd05b9329d2b NEON_voice_2_uni
+a274a26aad04755f NEON_voice_2
+5b800e9638decf73 NEON_voice_2_uni
 45ba71044aa24f82 NEON_voice_glide
 60d7647613902310 PAPER_about
 17c5c1fd74334b10 PAPER_about_credits
@@ -3208,7 +3208,7 @@ d4de7852b5372979 PAPER_layer_perform
 d3ac67c91316d3a6 PAPER_layer_seq_tools
 ff4e69cf044b3a9b PAPER_layer_seq_tools_drum
 4757ae213de48b85 PAPER_learn
-26caf25934e4a42b PAPER_learn_cc
+df0becaf7b924663 PAPER_learn_cc
 be449d49cfec3649 PAPER_lfo
 93e328aa92cc53f8 PAPER_lfo_2
 8726770bb2e66938 PAPER_lfo_run
@@ -3337,8 +3337,8 @@ c1125f5b99f630a9 PAPER_uboot
 58405d009a2c7e31 PAPER_user
 dd6a1721a997c1c0 PAPER_user_foot
 3dd7cdaa7edf936e PAPER_voice
-226906cba9514302 PAPER_voice_2
-fee38fef3eb3d9f5 PAPER_voice_2_uni
+9cdf8f1d79cdfc9a PAPER_voice_2
+a429034147632855 PAPER_voice_2_uni
 840a230e02d1b03a PAPER_voice_glide
 326faaa12ed70ab3 PHLINE_CRYPT_home
 724dbef702220ca6 PHLINE_CRYPT_six_home
@@ -3494,7 +3494,7 @@ b7ecee5724506f1f QUARK_layer_rec
 18fb5dda37d982c2 QUARK_layer_seq_tools
 424754698aceae04 QUARK_layer_seq_tools_drum
 80f4e7f9aed1eba2 QUARK_learn
-a6ed046cf59ddb51 QUARK_learn_cc
+b390705e12b4eb00 QUARK_learn_cc
 e11a3eeb7710496e QUARK_lfo
 6b4e5d2a7d557ea5 QUARK_lfo_2
 6ea6372e22a89fae QUARK_lfo_run
@@ -3623,8 +3623,8 @@ accdfd955ae06216 QUARK_undo_box
 65d06a7d3ab73974 QUARK_user
 de646e047d724077 QUARK_user_foot
 d776c688c2e526ab QUARK_voice
-e085a30d43ea5b20 QUARK_voice_2
-ac6aa1c3fb75443a QUARK_voice_2_uni
+042c57018b454551 QUARK_voice_2
+de3882baedc91df7 QUARK_voice_2_uni
 e4909b7c41b9f7d4 QUARK_voice_glide
 21b45c6cb6291049 SKIFF_about
 407e133abca45b01 SKIFF_about_credits
@@ -3774,7 +3774,7 @@ b6d70e9ea1d3f252 SKIFF_layer_scl_peek
 06016ea8f1f2dd5f SKIFF_layer_seq_tools
 7e7b54d291c8eba5 SKIFF_layer_seq_tools_drum
 c4e8db335f222cf6 SKIFF_learn
-61d5d7e06d7a9097 SKIFF_learn_cc
+80764ad375fb16d0 SKIFF_learn_cc
 0b29bbc00b6b8d35 SKIFF_lfo
 99917ac6cf9461d3 SKIFF_lfo_2
 17a06b134e50c740 SKIFF_lfo_run
@@ -3903,6 +3903,6 @@ c7333e963741a935 SKIFF_undo_box
 f48abd5d7c430945 SKIFF_user
 762163f135b24f07 SKIFF_user_foot
 255db33394070b65 SKIFF_voice
-96467389ceb97a9b SKIFF_voice_2
-e3b56357671831ff SKIFF_voice_2_uni
+70f18642cec35c0f SKIFF_voice_2
+58df30df3282acfb SKIFF_voice_2_uni
 44b2d6bb168a3cfb SKIFF_voice_glide

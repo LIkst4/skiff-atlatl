@@ -710,7 +710,7 @@ static int chk_mode_release(char *msg, uint32_t n)
         cases++;
         for (priority = 0; priority < 3u; priority++) {
             uint32_t lead = priority == 1u ? 72u : 80u, other = priority == 1u ? 80u : 72u;
-            uint32_t want = mode == V_UNISON ? UNI_NV : 1u;
+            uint32_t want = mode == V_UNISON ? uni_nvoice(&trk[0]) : 1u;   /* ((custom) UNI_NV 16: the budget's */
             mode_release_reset(0, V_POLY);
             trk_note_on(&trk[0], 48, 100);
             trk_note_on(&trk[0], 64, 100);

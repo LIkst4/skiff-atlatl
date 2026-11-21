@@ -667,8 +667,9 @@ when the track's engine is not the saved one).
   STRUM and DIR (parameter ids 166, 167 here); 148..154 the fork's FILTER (TYPE CUTOFF RESO CHAR DRIVE), RETRIG VEL
   and BLEND; 155..171 the engine's own: SYNTH's SUB, SUB OCT, X-MOD, DRIFT, ACCENT, ACC DEC, MUFFLE, BRIGHT,
   POSITION, POLY MOD ENV 2, OSC B, DEST, B LOW, then FILTER 2's F2, F2 OFS, BOOST, PUNCH (parameter ids 168..171) for
-  every engine but DRUM; DRUM's (and DRUM-X's) lane MODELs 1..8, then nine 0 bytes, for DRUM. n 172 (P_COUNT 180,
-  P_E0 172). A record's n tells its layout: 168, the fork 2.x's first (no FILTER 2: its defaults); 174 (the fork's
+  every engine but DRUM; DRUM's (and DRUM-X's) lane MODELs 1..8, then nine 0 bytes, for DRUM; 172 VOICE 2's STACK
+  (parameter id 172), every engine's. n 173 (P_COUNT 181, P_E0 173). A record's n tells its layout: 172, the same
+  without STACK (STD); 168, the fork 2.x's first (no FILTER 2: its defaults); 174 (the fork's
   1.x) and 176 (its first build on 2.5) have the parameter id + 8 throughout (the fork's at 146..173, STRUM DIR at
   174, 175 in the latter); fewer than 168, Skiff's (146, 147 STRUM DIR, the fork's not there: their defaults); more,
   a newer fork's. A pattern's

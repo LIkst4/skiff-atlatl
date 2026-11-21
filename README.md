@@ -150,6 +150,13 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
   (PAR LP / HP / BP), **F2 OFS** sets its cutoff from the first's (about ±3 octaves; both follow the cutoff and its
   modulation); **BOOST** lifts the low end as the Virus TI's ANALOG BOOST; **PUNCH** kicks the first milliseconds of
   each note. All off by default: presets sound as before.
+- **UNISON as a supersaw**: DETUNE spreads the voices as the JP-8000's supersaw (the middle ones close, the outer ones
+  the width), the middle voices a little louder than the edges. With both oscillators on, SYNTH sums each stereo
+  side's voices and filters them once (two filters a note, not one a voice: half the cost); with one oscillator every
+  voice keeps its own filter. UNISON takes 16 voices with two cores (8 with one). **STACK** (EDIT › VOICE 2, as
+  Vital's stack styles) puts the voices on intervals, in pairs from the middle out: STD (DETUNE alone), C-12 and C-24
+  (the middle pair an octave or two down), OCT and 2OCT, PWR and 2PWR (power chords), MAJ, MIN, HARM (harmonics 1 2 3
+  ..) and ODD (1 3 5 ..), on every engine.
 - **The FM-1 as a plugin** (CLAP, VST3, AU, standalone; Windows, macOS, Linux): the editor in the plugin window, each
   track's parameters as DAW automation (both ways), notes, MIDI clock and transport to the FM-1. Its sound comes back
   live on the DAW's input (DIRECT), or CAPTURE takes the 8 USB channels itself, each track on its own instrument track,
@@ -623,7 +630,8 @@ Felucca) first, and lists what it converted.
 - **LFO 2** (1.3): SYNC to a note value of the tempo (4 bars to 1/32), TRIG FREE (a note leaves its phase), POLARITY
   UNI (one-sided); **ENV SYNC** (1.3; LFO 2's fourth card since 2.0): ATTACK, DECAY and RELEASE as note values, 1/64T
   to 4 bars
-- **SPREAD** (EDIT › VOICE 2, 1.3): a POLY or UNISON track's voices left and right of PAN in turn
+- **SPREAD** (EDIT › VOICE 2, 1.3): a POLY or UNISON track's voices left and right of PAN in turn; **STACK** beside
+  it: UNISON's voices on intervals (above)
 - **Presets and projects:** factory presets, 32 user sounds and 4 projects, named on the device; SAVE › PROJECT
   loads, saves, renames and deletes them, and NEW on an empty slot starts a blank project (1.2.1); the music comes back at
   power-on (RESTORE LAST, an autosave of its own). (2.5) SAVE › PROJECT's KNOB 3: LOAD, NEW (on any slot), CLEAR SONG

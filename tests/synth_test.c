@@ -504,21 +504,23 @@ int main(int argc, char **argv)
            !tflt[0][0].type && a.pk > 0);
     }
 
-    {   /* (custom) UNISON as a supersaw: one filter a side, DETUNE's spread, its level, its cost */
+    {   /* (custom) UNISON as a supersaw: one filter a side with both oscillators, a filter a voice with one; DETUNE's
+         * spread, STACK's intervals, its level, its cost */
         stat_t a, b;
         static const flt_t Z;
-        uint32_t untouched = 1, j, lit = 1;
+        uint32_t untouched = 1, j, lit = 1, nu, own = 1;
         int32_t f[UNI_NV], prev = INT32_MIN, sym = 1, mono = 1, none0 = 1;
-        uint64_t t0, nu = 0, np = 0;
+        uint64_t t0, nus = 0, np = 0;
         static const uint8_t CH[8] = {36, 43, 48, 52, 55, 60, 64, 67};
         fresh(0);
         trk[0].p[P_VOICE] = V_UNISON;
         trk[0].p[P_E3] = 1 + SY_VA;
         trk[0].p[P_E7] = 64;
         trk_note_on(&trk[0], 48, 100);
+        nu = uni_nvoice(&trk[0]);
         memset(&a, 0, sizeof a);
         run(FS / 4 / CTL, &a, 0);
-        for (j = 0; j < UNI_NV; j++) {
+        for (j = 0; j < nu; j++) {
             synth_vc_t *S = synth_vc(&trk[0], &trk[0].v[j]);
             int z = !memcmp(&S->f, &Z, sizeof Z);
             if (j < 2u)
@@ -526,8 +528,15 @@ int main(int argc, char **argv)
             else
                 untouched &= z;
         }
-        ck("UNISON: the 8 voices through 2 filters (a side's, its first voice's), the others' never run",
-           voices_on(&trk[0]) == UNI_NV && lit && untouched);
+        ck("UNISON, A + B: the voices through 2 filters (a side's, its first voice's), the others' never run",
+           nu >= 2u && voices_on(&trk[0]) == nu && lit && untouched);
+        fresh(0);
+        trk[0].p[P_VOICE] = V_UNISON;                    /* OSC B OFF: a filter a voice, as POLY */
+        trk_note_on(&trk[0], 48, 100);
+        run(FS / 8 / CTL, 0, 0);
+        for (j = 0; j < nu; j++)
+            own &= !!memcmp(&synth_vc(&trk[0], &trk[0].v[j])->f, &Z, sizeof Z);
+        ck("UNISON, one oscillator: every voice its own filter", own);
         fresh(0);
         trk[0].p[P_E3] = 1 + SY_VA;
         trk[0].p[P_E7] = 64;
@@ -536,18 +545,53 @@ int main(int argc, char **argv)
         run(FS / 4 / CTL, &b, 0);
         printf("synth: UNISON A+B VA: RMS %.0f, one POLY note %.0f\n", rms(&a), rms(&b));
         ck("UNISON: about one note's level (x0.7 .. x2.5)", rms(&a) > 0.7 * rms(&b) && rms(&a) < 2.5 * rms(&b));
-        for (j = 0; j < UNI_NV; j++) {
-            f[j] = uni_fine(j, UNI_NV, 127);
+        for (j = 0; j < 8u; j++) {
+            f[j] = uni_fine(j, 8u, 127);
             mono &= f[j] > prev;
             prev = f[j];
-            none0 &= f[j] != 0 && uni_fine(j, UNI_NV, 1) != 0;
+            none0 &= f[j] != 0 && uni_fine(j, 8u, 1) != 0;
         }
-        for (j = 0; j < UNI_NV; j++)
-            sym &= f[j] == -f[UNI_NV - 1u - j];
+        for (j = 0; j < 8u; j++)
+            sym &= f[j] == -f[7u - j];
         printf("synth: UNISON DETUNE 127: %d %d %d %d (1/4096s, the upper half), at 40: %d\n", f[4], f[5], f[6], f[7],
-               uni_fine(7, UNI_NV, 40));
+               uni_fine(7, 8u, 40));
         ck("UNISON: the spread symmetric, rising, no voice in tune, the middle close (|u|^1.5), the edges as wide as before",
            mono && none0 && sym && f[7] == 7 * 127 * 56 / 889 && f[5] * 2 < f[7] && f[6] < f[7] * 3 / 4);
+        {   /* STACK: the pairs from the middle out */
+            static const int8_t PWR[8] = {0, 12, 7, 0, 0, 7, 12, 0}, C12[8] = {0, 0, 0, -12, -12, 0, 0, 0},
+                                HRM[8] = {24, 19, 12, 0, 0, 12, 19, 24};
+            int okp = 1, okc = 1, okh = 1, ok16 = 1;
+            for (j = 0; j < 8u; j++) {
+                okp &= uni_stack(j, 8u, US_PWR) == PWR[j] * 100;
+                okc &= uni_stack(j, 8u, US_C12) == C12[j] * 100;
+                okh &= (uni_stack(j, 8u, US_HARM) + 50) / 100 == HRM[j];
+            }
+            for (j = 0; j < 16u; j++)              /* 16 voices: ODD's pairs on harmonics 1 3 .. 15 */
+                ok16 &= uni_stack(j, 16u, US_ODD) == uni_stack(15u - j, 16u, US_ODD);
+            ok16 &= uni_stack(7, 16u, US_ODD) == 0 && uni_stack(0, 16u, US_ODD) == 4688;
+            ck("STACK: PWR 0 7 12 by pairs from the middle, C-12 the middle pair, HARM 1 2 3 4, ODD on 16 voices",
+               okp && okc && okh && ok16 && !uni_stack(3, 8u, US_STD));
+            fresh(0);
+            trk[0].p[P_VOICE] = V_UNISON;
+            trk[0].p[P_USTK] = US_PWR;
+            trk_note_on(&trk[0], 48, 100);
+            ck("STACK: the voices carry their intervals (PWR: the second pair a fifth up)",
+               trk[0].v[2].ust == 7 && trk[0].v[5].ust == 7 && trk[0].v[3].ust == 0 && trk[0].v[1].ust == 12);
+            trk_note_off(&trk[0], 48);
+            run(FS / CTL, 0, 0);
+            trk[0].p[P_VOICE] = V_POLY;
+            {
+                uint32_t q, ok = 1, seen = 0;
+                for (q = 0; q < 4u; q++)
+                    trk_note_on(&trk[0], 50 + q, 100);
+                for (q = 0; q < NVOICE; q++)
+                    if (trk[0].v[q].active && trk[0].v[q].gate) {
+                        seen++;
+                        ok &= trk[0].v[q].ust == 0;
+                    }
+                ck("STACK: none in POLY (the voices UNISON left an interval on play their notes)", ok && seen == 4u);
+            }
+        }
         for (j = 0; j < 2u; j++) {          /* the cost: one note UNISON (8 voices), 8 notes POLY, A + B VA */
             uint32_t q;
             fresh(0);
@@ -561,11 +605,11 @@ int main(int argc, char **argv)
                 int32_t o[2 * CTL];
                 t0 = now_ns();
                 mix_block(o, CTL);
-                *(j ? &np : &nu) += now_ns() - t0;
+                *(j ? &np : &nus) += now_ns() - t0;
             }
         }
-        printf("synth: UNISON A+B VA %.0f ns a block, 8 POLY notes %.0f\n", (double)nu / 400, (double)np / 400);
-        ck("UNISON: cheaper than 8 POLY notes (2 filters, not 8)", nu < np * 4 / 5);
+        printf("synth: UNISON A+B VA %.0f ns a block, 8 POLY notes %.0f\n", (double)nus / 400, (double)np / 400);
+        ck("UNISON: cheaper than 8 POLY notes (2 filters, not 8)", nus < np * 4 / 5);
     }
 
     /* 5 */

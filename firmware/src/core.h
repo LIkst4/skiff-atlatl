@@ -11,7 +11,8 @@
 #define NVOICE 16                /* voices per part ((2.5) 16: a chord's tails and the next chord, 8 before); the budget
                                   * shared by all parts: VOICES_1CORE, VOICES_2CORE */
 #define VOICES_1CORE 8u          /* (2.5) the shared budget with one core (NVOICE's 8 before) */
-#define UNI_NV 8u                /* (2.5) UNISON's voices at most (mono_play: its spread and level as before) */
+#define UNI_NV 16u               /* UNISON's voices at most ((2.5) 8; (custom) 16, as the budget with two cores gives:
+                                  * voice.c uni_nvoice) */
 #define NTRK 6                   /* tracks (the formats and the protocol count these): every track is a part;
                                   * (Skiff phase 6) T5 and T6 light (NHEAVY) */
 #define NPART NTRK               /* synth parts: tracks 1..NTRK */
@@ -162,6 +163,8 @@ enum {                          /* per-track parameters */
     P_SYF2, P_SYF2O, P_SYBST, P_SYPNCH,        /* (custom, the Virus's) SYNTH's FILTER 2 page: F2 (its route and type),
                                                 * F2 OFS (its cutoff from the FILTER's), BOOST (the low end, as the
                                                 * TI's ANALOG BOOST), PUNCH (the attack's kick); stored ids 168..171 */
+    P_USTK,                                    /* (custom, as Vital's stack styles) VOICE 2's STACK: UNISON's voices on
+                                                * intervals (voice.c uni_stack), every engine's; stored id 172 */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };
@@ -215,11 +218,13 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 /* (custom) the fork's (skiff-atlatl 2.x): SIDs 146, 147 are Skiff 2.5's, STRUM and DIR, as in Skiff: a project or user
  * preset loads both ways. The fork's parameters follow them: 148..154 every engine's (SID_FK), 155..167 the engine's
  * own, 168..171 too (SID_SY: SYNTH's, every engine but DRUM's; SID_LN: DRUM's lane models, DRUM and DRUM-X; never both in one
- * track, so they share the ids: sid_lanes). A record's count tells its layout: SID_COUNT, this one; SID_V1 and
+ * track, so they share the ids: sid_lanes), 172 every engine's again (SID_STK: STACK). A record's count tells its
+ * layout: SID_COUNT, this one (172: the same without STACK; never 174 or 176, below); SID_V1 and
  * SID_V1D, the fork's 1.x and its development build on 2.5 (P_* + 8 throughout: the fork's parameters at 146..173,
  * STRUM DIR at 174, 175 then); fewer, Skiff's (146 and 147 STRUM DIR, past them not the fork's: passed over); more, a
  * newer fork's (these as here, its own after them passed over; a later layout takes a count none of these is) */
-#define SID_COUNT 172u                         /* the SIDs this firmware writes: 0 .. SID_COUNT - 1 */
+#define SID_COUNT 173u                         /* the SIDs this firmware writes: 0 .. SID_COUNT - 1 */
+#define SID_STK 172u                           /* (custom) VOICE 2's STACK, every engine's: after the engine's own */
 #define SID_V2 168u                            /* the fork 2.x's first count (no FILTER 2 page: its ids passed over) */
 #define SID_FORK 146u                          /* the first past Skiff 2.4's */
 #define SID_OWN 155u                           /* the engine's own, to SID_COUNT */
@@ -233,10 +238,10 @@ _Static_assert(P_LPAN0 == SID_E0 && P_COUNT == P_E0 + 8u, "sid_p: the lane pans 
 _Static_assert(P_FNOTE + 1u == P_FTYPE && P_SDIR == SID_V1D - 9u, "the fork's 1.x layout: P_* + 8 (to P_SDIR)");
 static const uint8_t SID_FK[SID_OWN - SID_FORK] = {P_STRUM, P_SDIR, P_FTYPE, P_FCUT, P_FRES, P_FCHR, P_FDRV, P_RTVEL,
                                                    P_FBLND};
-static const uint8_t SID_SY[SID_COUNT - SID_OWN] = {P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT, P_SYACC, P_SYADEC, P_SYMUF,
+static const uint8_t SID_SY[SID_STK - SID_OWN] = {P_SYSUB, P_SYSUBO, P_SYXMOD, P_SYDRFT, P_SYACC, P_SYADEC, P_SYMUF,
                                                     P_SYMBRT, P_SYMPOS, P_SYPME, P_SYPMB, P_SYPMD, P_SYBLOW,
                                                     P_SYF2, P_SYF2O, P_SYBST, P_SYPNCH};
-static const uint8_t SID_LN[SID_COUNT - SID_OWN] = {P_LMDL0, P_LMDL1, P_LMDL2, P_LMDL3, P_LMDL4, P_LMDL5, P_LMDL6,
+static const uint8_t SID_LN[SID_STK - SID_OWN] = {P_LMDL0, P_LMDL1, P_LMDL2, P_LMDL3, P_LMDL4, P_LMDL5, P_LMDL6,
                                                     P_LMDL7, P_COUNT, P_COUNT, P_COUNT, P_COUNT, P_COUNT,
                                                     P_COUNT, P_COUNT, P_COUNT, P_COUNT};
 /* the parameter SID sid names in a record of n SIDs, of a track whose engine plays lanes or not (P_COUNT: none of ours) */
@@ -252,8 +257,10 @@ static uint32_t sid_p_of(uint32_t sid, uint32_t n, int lanes)
         return sid < SID_FORK + 2u ? SID_FK[sid - SID_FORK] : P_COUNT;   /* Skiff's: its STRUM DIR, none after */
     if (sid < SID_OWN)
         return SID_FK[sid - SID_FORK];
-    if (sid < SID_COUNT)
+    if (sid < SID_STK)
         return lanes ? SID_LN[sid - SID_OWN] : SID_SY[sid - SID_OWN];
+    if (sid == SID_STK)
+        return P_USTK;                         /* (a record of 172, before it: STACK at its default, STD) */
     return P_COUNT;
 }
 _Static_assert(G_MBMIX == GSID_SK, "the fork's globals after Skiff 2.5's");
@@ -382,6 +389,8 @@ typedef struct {
     uint8_t stage2;              /* (Skiff phase 9) ENV 2's (voice.c env2_tick): the same, its release at the gate's end */
     int8_t ek;                   /* (custom) SYNTH's DRIFT: this note's envelope a little faster or slower (ATK DEC REL's
                                   * steps x (1 + ek / 256): voice.c env_tick); 0 for every other engine */
+    int8_t ust;                  /* (custom) UNISON's STACK: this voice's interval in semitones (track_render adds it to the
+                                  * pitch; the cents past them in fine: voice.c mono_play); 0 otherwise */
     int32_t env;                 /* Q24 */
     int32_t env_out;             /* last control-rate amplitude, Q15 */
     int32_t pitch16, pitch_cur;  /* 1/16 semitone, with glide */

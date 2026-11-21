@@ -359,12 +359,37 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     }
 }
 
-/* MONO / LEGATO / UNISON: one note on one voice (eight for UNISON, UNI_NV, or the
- * engine's voice cap, spread by DETUNE over the same width) */
-static uint32_t uni_nvoice(const track_t *t)            /* ((2.5) UNISON stays at 8 with 16 voices a track) */
+/* MONO / LEGATO / UNISON: one note on one voice (for UNISON as many as the engine's cap and the budget give, UNI_NV
+ * at most: 8 with one core, (custom) 16 with two; spread by DETUNE over the same width) */
+static uint32_t uni_nvoice(const track_t *t)
 {
-    uint32_t n = trk_nvoice(t);
+    uint32_t n = trk_nvoice(t), b = VOICE_BUDGET;
+    n = n < b ? n : b;
     return n < UNI_NV ? n : UNI_NV;
+}
+/* (custom) STACK (P_USTK, as Vital's stack styles): UNISON voice i of nv's interval, cents. The voices go to the
+ * intervals in pairs from the middle out (the two nearest the note, then the next two, ..): each interval has a voice
+ * either side of it in DETUNE and in SPREAD. C-12 / C-24 the middle pair (one voice, odd) an octave / two down; OCT
+ * 2OCT PWR 2PWR MAJ MIN the pairs through 0 12 / 0 12 24 / 0 7 12 / 0 7 12 19 24 / 0 4 7 12 / 0 3 7 12; HARM the
+ * pairs on harmonics 1 2 3 .., ODD on 1 3 5 .. */
+enum { US_STD, US_C12, US_C24, US_OCT, US_OCT2, US_PWR, US_PWR2, US_MAJ, US_MIN, US_HARM, US_ODD, US_N };
+static int32_t uni_stack(uint32_t i, uint32_t nv, uint32_t st)
+{
+    static const int16_t HC[16] = {0, 1200, 1902, 2400, 2786, 3102, 3369, 3600, 3804, 3986, 4151, 4302, 4441, 4569,
+                                   4688, 4800};   /* (1200 log2 h, h 1 .. 16) */
+    static const uint8_t CYC[6][6] = {{2, 0, 12}, {3, 0, 12, 24}, {3, 0, 7, 12}, {5, 0, 7, 12, 19, 24},
+                                      {4, 0, 4, 7, 12}, {4, 0, 3, 7, 12}};   /* (OCT .. MIN: the length, semitones) */
+    int32_t k = 2 * (int32_t)i - (int32_t)(nv - 1u);
+    uint32_t q = (uint32_t)((k < 0 ? -k : k) - (int32_t)(~nv & 1u)) / 2u;   /* the pair: 0 the middle one */
+    if (nv < 2u || st == US_STD || st >= US_N)
+        return 0;
+    if (st <= US_C24)
+        return q || nv < 3u ? 0 : st == US_C12 ? -1200 : -2400;
+    if (st == US_HARM)
+        return HC[q & 15u];
+    if (st == US_ODD)
+        return HC[(2u * q) & 15u];
+    return CYC[st - US_OCT][1u + q % CYC[st - US_OCT][0]] * 100;
 }
 /* (custom) UNISON voice i of nv's fine tune, as a supersaw's: the stack's place u (-1 .. 1) as |u|^1.5 (the middle
  * voices close together, the outer ones the width: a chorus around the note, not a cluster of equal steps), DETUNE
@@ -387,12 +412,15 @@ static void mono_play(track_t *t, uint32_t note, uint32_t vel, int retrig, int g
     uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? uni_nvoice(t) : 1u, i;
     for (i = 0; i < nv; i++) {
         voice_t *v = &t->v[i];
-        v->fine = nv > 1u ? uni_fine(i, nv, t->p[P_DETUNE]) : 0;
+        int32_t c = nv > 1u ? uni_stack(i, nv, (uint32_t)t->p[P_USTK]) : 0, st = (c + (c < 0 ? -50 : 50)) / 100;
+        v->ust = (int8_t)st;                                /* (STACK: the semitones; the cents past them in fine) */
+        v->fine = (nv > 1u ? uni_fine(i, nv, t->p[P_DETUNE]) : 0) + (c - st * 100) * 2367 / 1000;
         if (retrig || !v->active || !v->gate) {
             if ((!v->active || v->stage == 4u) && !voice_room(t, i > 0))
                 continue;                                   /* no room for this extra UNISON voice */
-            /* level: about the same sum for 8 or 4 voices at random phases */
-            voice_start(t, v, note, nv >= UNI_NV ? vel * 36u / 100u : nv > 1u ? vel / 2u : vel, glide);
+            /* level: about the same sum for 16, 8 or 4 voices at random phases */
+            voice_start(t, v, note, nv >= 16u ? vel / 4u : nv >= 8u ? vel * 36u / 100u : nv > 1u ? vel / 2u : vel,
+                        glide);
             v->side = (uint8_t)(i & 1u);                    /* ((1.3) SPREAD: the detuned voices alternate) */
             if (nv > 1u && i && !ENGINES[t->engine]->sampled) {   /* random start phases: */
                 static uint32_t seed = 0x1234567u;          /* in phase they stack, evenly spread they cancel */
@@ -596,6 +624,7 @@ static void trk_sound_on(track_t *t, uint32_t note, uint32_t vel)
         t->nmono = 0;                                   /* no stale mono stack after a mode change */
         t->mono_note = 0;
         v->fine = 0;
+        v->ust = 0;
         voice_start(t, v, note, vel, t->p[P_GLIDE] != 0 && !ENGINES[t->engine]->oneshot);
         return;
     }
@@ -979,7 +1008,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         }
         if (!env && !m.amp0 && v->stage == 2 && !e->sampled)
             continue;                                   /* held at a silent sustain (SUS 0): nothing to render */
-        pitch = v->pitch_cur + tune + bend16 + lpit + ((m.envq15 * p[P_ED_PIT] * 3) >> 15);
+        pitch = v->pitch_cur + v->ust * 16 + tune + bend16 + lpit + ((m.envq15 * p[P_ED_PIT] * 3) >> 15);
         m.pitch16 = clamp(pitch, 0, 2047);
         m.inc = pitch_inc(m.pitch16);
         m.fine = v->fine + tune_fine + bend_fine + lfine;

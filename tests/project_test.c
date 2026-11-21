@@ -261,10 +261,10 @@ int main(void)
     bad += check("layout: SLICER after DETUNE, then the matrix just before P_E0 ((Skiff) DIR, the ducking after the lane levels)",
                  P_SLCR == P_DETUNE + 1 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_CHRD && P_VOIC + 1 == P_LN0 &&
                  P_LN7 + 1 == P_DIR && P_DIR + 1 == P_DKSRC && P_DKREL + 1 == P_DTYPE && P_LDECAY7 + 1 == P_LSYNC &&
-                 P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_FBLND && P_FBLND + 1 == P_STRUM && P_SDIR + 1 == P_SYF2 && P_SYPNCH + 1 == P_E0 && P_E0 == 172 &&   /* ((1.3)
+                 P_ESYNC + 1 == P_LPAN0 && P_LPAN7 + 1 == P_FOLLOW && P_FNOTE + 1 == P_FTYPE && P_FDRV + 1 == P_SYSUB && P_SYMUF + 1 == P_RTVEL && P_SYMPOS + 1 == P_LMDL0 && P_LMDL7 + 1 == P_SYPME && P_SYBLOW + 1 == P_FBLND && P_FBLND + 1 == P_STRUM && P_SDIR + 1 == P_SYF2 && P_SYPNCH + 1 == P_USTK && P_USTK + 1 == P_E0 && P_E0 == 173 &&   /* ((1.3)
                                                * LFO SYNC .. ENV SYNC: P_COUNT past 127; (2.0, #36) the lane pans; (2.1) the
-                                               * chord follow; (2.5) STRUM, DIR after the fork's; (custom) FILTER 2) */
-                 P_COUNT == PROJ_NP_V3 + 123u && PROJ_NP == 103u && PROJ_NX == 32u && PROJ_NX == PROJ_PX_MAX &&
+                                               * chord follow; (2.5) STRUM, DIR after the fork's; (custom) FILTER 2, STACK) */
+                 P_COUNT == PROJ_NP_V3 + 124u && PROJ_NP == 103u && PROJ_NX == 32u && PROJ_NX == PROJ_PX_MAX &&
                  PROJ_NP_V3 == PROJ_NP_V2 + 4u);
     bad += check("SKF1 fits one flash object, the retained cache in NOINIT", sizeof(project_store_t) <= 4096u - 256u &&
                  sizeof(project_store_t) == 3840u && 0xC8u + 4u * sizeof(project_store_t) <= 0x3D50u);
@@ -1142,8 +1142,8 @@ int main(void)
         ok &= n == 1u + 2u * GSID_COUNT && gsid_get(h, b, n) == n && !memcmp(h, g, sizeof g);
         bad += check("(2.0) stored ids: a track's parameters and the globals by number, back as they were ((custom) "
                      "SYNTH's own or DRUM's lane models: the track's engine's)", ok);
-        ok = SID_COUNT == 172u && p_sid_ok();
-        bad += check("  (custom) every parameter has its id: 146 147 STRUM DIR as Skiff's, the fork's 148..171", ok);
+        ok = SID_COUNT == 173u && p_sid_ok();
+        bad += check("  (custom) every parameter has its id: 146 147 STRUM DIR as Skiff's, the fork's 148..172", ok);
         (void)sid_put(b, p, 0);
         b[0] = (uint8_t)(SID_COUNT + 5u);                /* (a newer fork's: five more numbers, unknown here) */
         memset(b + 1u + SID_COUNT, 64u + 9u, 5);
@@ -1194,8 +1194,16 @@ int main(void)
             r[i] = 99;
         ok = sid_get(r, b, 1u + SID_V2, 0) == 1u + SID_V2;
         for (i = 0; i < P_COUNT; i++)
-            ok &= r[i] == (is_ln(i) || (i >= P_SYF2 && i <= P_SYPNCH) ? 99 : p[i]);
+            ok &= r[i] == (is_ln(i) || (i >= P_SYF2 && i <= P_SYPNCH) || i == P_USTK ? 99 : p[i]);
         bad += check("  (custom) the fork 2.x's record of 168: every value where it was, FILTER 2 at its defaults", ok);
+        (void)sid_put(b, p, 0);                          /* (custom) the fork 2.x's of 172: before STACK */
+        b[0] = 172u;
+        for (i = 0; i < P_COUNT; i++)
+            r[i] = 99;
+        ok = sid_get(r, b, 173u, 0) == 173u;
+        for (i = 0; i < P_COUNT; i++)
+            ok &= r[i] == (is_ln(i) || i == P_USTK ? 99 : p[i]);
+        bad += check("  (custom) the fork 2.x's record of 172: every value where it was, STACK at its default", ok);
         for (n = SID_V1; n <= SID_V1D; n += 2u) {
             for (i = 0; i < P_COUNT; i++)
                 w[i] = (int16_t)((int32_t)(i * 5u % 150u) - 20);
@@ -1206,7 +1214,8 @@ int main(void)
                 r[i] = 99;
             ok = sid_get(r, b, 1u + n, 1) == 1u + n;
             for (i = 0; i < P_COUNT; i++)
-                ok &= r[i] == ((n == SID_V1 && (i == P_STRUM || i == P_SDIR)) || (i >= P_SYF2 && i <= P_SYPNCH) ? 99
+                ok &= r[i] == ((n == SID_V1 && (i == P_STRUM || i == P_SDIR)) || (i >= P_SYF2 && i <= P_SYPNCH) ||
+                               i == P_USTK ? 99
                                                                                                     : w[i]);   /* (FILTER 2:
                                                                   * none then) */
             bad += check(n == SID_V1 ? "  (custom) the fork's 1.x record (174): every value where it was"
