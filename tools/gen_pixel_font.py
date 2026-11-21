@@ -172,12 +172,19 @@ def main():
     for name, scale, bold, band, rng, extras in FACES:
         codes, table, data, cy, ch, at = face(name, scale, bold, band, rng, extras, src)
         n = f"AF_{name}_PX"
-        out.append(f"static const aag_t {n}_G[{len(table)}] = {{" +
-                   ", ".join(f"{{{o}, {a}, {bx}, {by}, {bw}, {bh}}}" for o, a, bx, by, bw, bh in table) + "};")
+        if src:     # ((custom) M V L: no table of their own, gfx.c px_glyph derives each glyph from S's: 1.2 KB)
+            for (c, gl) in zip(codes, table):
+                o, a, bx, by, bw, bh = s_table[s_codes.index(c)]
+                assert gl == (o, a * scale + 16 * bold, bx, (by - s_cy) * scale + cy if bh else 0,
+                              bw * scale + bold if bw else 0, bh * scale), (name, c)
+        else:
+            out.append(f"static const aag_t {n}_G[{len(table)}] = {{" +
+                       ", ".join(f"{{{o}, {a}, {bx}, {by}, {bw}, {bh}}}" for o, a, bx, by, bw, bh in table) + "};")
+            s_codes, s_table, s_cy = codes, table, cy
         if not src:
             out.append(f"static const uint8_t {n}_DATA[{max(1, len(data))}] = {{" + ", ".join(str(b) for b in data) + "};")
         out.append(f"static const uint8_t {n}_EX[{max(1, len(extras))}] = {{" + (", ".join(str(c) for c in extras) or "0") + "};")
-        out.append(f"static const aafont_t {n} = {{{band[0]}, {cy + ch}, {rng[0]}, {rng[1]}, {len(extras)}, 0, {n}_G, "
+        out.append(f"static const aafont_t {n} = {{{band[0]}, {cy + ch}, {rng[0]}, {rng[1]}, {len(extras)}, 0, {n + "_G" if not src else 0}, "
                    f"AF_S_PX_DATA, 0, 0, {n}_EX, 0, 0, {scale | (PX_BOLD if bold else 0)}}};")
         out.append(f"#define {n}_CAP_Y {cy}   /* the capitals: rows {cy} .. {cy + ch - 1} of the line */")
         out.append(f"#define {n}_CAP_H {ch}")

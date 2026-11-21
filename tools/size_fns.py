@@ -85,6 +85,11 @@ def isr_reach(ir):
 GIANTS = ("draw_graph", "ui_input", "ed_handle", "ui_draw_page", "fm_draw", "edit_param")
 KEEP_INLINE = ("midi_pc_poll", "unit_g_poll", "graph_follow", "scr_input", "rec_clear_poll")
 IR_CALL = re.compile(r"\bcall [^@\n]*@\"?([\w.]+)\"?\(")
+# ((custom) ~5 KB) a note's start in the sound code: the engines' note-ons and -offs, DRUM's and DRUM-X's triggers, a
+# voice's and the transport's start. An interrupt runs them, but once a note, never a sample: built for size like the
+# main loop (their renders, blocks and per-sample helpers keep -Os, the sound bit for bit as before)
+NOTE_FNS = re.compile(r"_(trigger|trigger_m|note_on|note_off)$|^(hh|hat|clap|kboom|scrak|ssnap|voice|seq|perf_buf|perf|"
+                      r"slicer)_start$")
 
 
 def giant_helpers(ir):
@@ -99,7 +104,8 @@ def giant_helpers(ir):
 def main(src, dst):
     ir = Path(src).read_text()
     isr = isr_reach(ir)
-    names, hit = size_names() - isr, set()
+    notes = {m.group(2) for m in IR_DEF.finditer(ir) if NOTE_FNS.search(m.group(2))}
+    names, hit = (size_names() - isr) | notes, set()
     out = giant_helpers(ir) & names
 
     def mark(m):
@@ -110,7 +116,7 @@ def main(src, dst):
     Path(dst).write_text(IR_DEF.sub(mark, ir))
     print(f"size: {len(hit)} main-loop functions built for size ({len(names) - len(hit)} not in this build; "
           f"{len(size_names() & isr)} reached from an interrupt kept -Os; {len(out & hit)} of the giants' helpers "
-          f"out of line)")
+          f"out of line; {len(notes & hit)} note starts of the sound code)")
     return 0
 
 

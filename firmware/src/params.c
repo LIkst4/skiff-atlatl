@@ -486,7 +486,8 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         break;
     }
     case F_LFOHZ: {
-        uint32_t h = LFO_HZ_X100[v & 127];
+        uint32_t h = (uint32_t)(((uint64_t)LFO_INC[v & 127] * (FS * 100u) + (1ull << 36)) >> 37);   /* (Hz x 100: CTL
+                                                     * 32; gen_tables.py checks it against the rates) */
         if (h < 1000u)
             fmt_fix(val, (int32_t)h, 2);
         else

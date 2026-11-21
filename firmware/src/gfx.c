@@ -609,6 +609,24 @@ static uint32_t glyph(const aafont_t *f, uint32_t ch)
     return (uint32_t)k << f->psh;
 }
 
+/* ((custom) 1.2 KB) glyph i of f: its table's, or (M V L, the pixel faces with no table: gen_pixel_font.py) S's glyph
+ * of the same code at f's scale, bold a pixel wider, its rows on f's capitals; in *tmp */
+static const aag_t *glyph_g(const aafont_t *f, uint32_t i, aag_t *tmp)
+{
+    uint32_t sc = f->sc & 3u, b = f->sc >> 7, n = f->last - f->first + 1u;
+    const aag_t *s;
+    if (f->g)
+        return &f->g[i];
+    s = &AF_S_PX_G[glyph(&AF_S_PX, i < n ? f->first + i : f->ex[i - n])];
+    tmp->off = s->off;
+    tmp->adv = (uint16_t)(s->adv * sc + 16u * b);
+    tmp->bx = s->bx;
+    tmp->by = (uint8_t)(s->bh ? (s->by - (AF_S_PX.asc - 7)) * sc + f->asc - 7u * sc : 0u);
+    tmp->bw = (uint8_t)(s->bw ? s->bw * sc + b : 0u);
+    tmp->bh = (uint8_t)(s->bh * sc);
+    return tmp;
+}
+
 static int32_t kern(const aafont_t *f, uint32_t a, uint32_t b)       /* 1/16 px */
 {
     uint32_t key = (a << 8) | b, lo = 0, hi = f->nk;
@@ -632,9 +650,10 @@ static int32_t text_w(const aafont_t *f, const char *s)
     uint32_t prev = 0;
     for (; *s; s++) {
         uint32_t c = fold(f, (uint8_t)*s);
+        aag_t tmp;
         if (prev)
             pen += kern(f, prev, c);
-        pen += f->g[glyph(f, c)].adv;
+        pen += glyph_g(f, glyph(f, c), &tmp)->adv;
         prev = c;
     }
     return (pen + 8) >> 4;
@@ -648,10 +667,11 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
     for (; *s; s++) {
         uint32_t c = fold(f, (uint8_t)*s);
         const aag_t *g;
+        aag_t tmp;
         int32_t pos, d0, d1;
         if (prev)
             pen += kern(f, prev, c);
-        g = &f->g[glyph(f, c)];
+        g = glyph_g(f, glyph(f, c), &tmp);
         if (f->psh && g[1].off != g->off) {
             pos = pen - (pen & (step - 1));          /* the phase position at or left of the pen */
             d0 = pos - pen - err;                    /* .. and the one right of it: which keeps the gap truer */
