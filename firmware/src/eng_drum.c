@@ -66,10 +66,12 @@ enum { DK_STD, DK_HAND, DK_CYM, DK_HCYM, DK_80, DK_10, DK_66, DK_55, DK_77, DK_D
        DK_COUNT };   /* (stored values) */
 /* the kit a stored KIT value plays: HAND CYM H+CYM (retired after 1.0.4) -> 66 (a conga on TOM), 10 (a cymbal on
  * BELL), 77 (claves on RIM, a cymbal on BELL) */
-/* (custom) the user kits (USR1..3, a user sample slot each) only with FELUCCA_USER_KITS (off: no sampler); without it
- * their stored values are aliases of STD (named STD, played as STD, the knob steps over them) */
+/* (custom) the user kits (USR1..3, a user sample slot each: your WAVs, a lane each, from the editor's Samples tab) with
+ * FELUCCA_USER_KITS, on by default (about 2 KB; the slots and their upload are built in anyway, eng_sample.c), even
+ * without the sampler (SAMPLE, SLICE: FELUCCA_SAMPLER). FELUCCA_USER_KITS=0: their stored values are aliases of STD
+ * (named STD, played as STD, the knob steps over them), as from 0794f03 until the user kits came back */
 #ifndef FELUCCA_USER_KITS
-#define FELUCCA_USER_KITS FELUCCA_SAMPLER
+#define FELUCCA_USER_KITS 1
 #endif
 #if FELUCCA_USER_KITS
 #define DK_USR_PLAYS(k) (k)

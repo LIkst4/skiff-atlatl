@@ -60,7 +60,7 @@ ab377e73c6dfeaee CRYPT_drive_soft
 add3869502dba37a CRYPT_drum
 3cd3f1542d617cd5 CRYPT_drum_cym
 2539bd5eb45bac01 CRYPT_drum_hand
-8051d591bc81d0ff CRYPT_drum_kit_usr
+8356888a745ad8bb CRYPT_drum_kit_usr
 94c0286501075d06 CRYPT_drum_lock_held
 7bd24dc173871299 CRYPT_drum_locks
 d473adecbb4cfc27 CRYPT_dx_sound
@@ -129,7 +129,7 @@ d89e77d4ef6d73fa CRYPT_insert_flanger
 186edbaf118d3156 CRYPT_lane_mix_dx
 6f4b2fba473e4368 CRYPT_lanes
 1d6f234420c01df0 CRYPT_lanes_tune
-6f4b2fba473e4368 CRYPT_lanes_usr
+f093215cf30807de CRYPT_lanes_usr
 bba985203e1b7f9a CRYPT_layer_edit_active
 8c6359d07eab8b36 CRYPT_layer_edit_peek
 4dba14539aedb58b CRYPT_layer_edit_user
@@ -342,7 +342,7 @@ b67f21a62b075be1 CUSTOM_CRYPT_drive_fold
 2b4aea798139814a CUSTOM_CRYPT_drum
 a524159f18425d28 CUSTOM_CRYPT_drum_cym
 45e3d4323524c5a1 CUSTOM_CRYPT_drum_hand
-e595d0ddf670821a CUSTOM_CRYPT_drum_kit_usr
+88ce1ee41450a1f8 CUSTOM_CRYPT_drum_kit_usr
 52e144d7c77990d2 CUSTOM_CRYPT_drum_lock_held
 f4dee8ff8079c7f5 CUSTOM_CRYPT_drum_locks
 8aaef703b65e9f2c CUSTOM_CRYPT_dx_sound
@@ -411,7 +411,7 @@ c4e24bf7ca07b009 CUSTOM_CRYPT_insert_flanger
 e8b19e7f2421f6c6 CUSTOM_CRYPT_lane_mix_dx
 732b6ec017efe9b2 CUSTOM_CRYPT_lanes
 6af0525a902ad43a CUSTOM_CRYPT_lanes_tune
-732b6ec017efe9b2 CUSTOM_CRYPT_lanes_usr
+61f522f3e1ece3f8 CUSTOM_CRYPT_lanes_usr
 c6679d82cf267ca3 CUSTOM_CRYPT_layer_edit_active
 d284717d8318dd0f CUSTOM_CRYPT_layer_edit_peek
 d9a474a1dd849f7f CUSTOM_CRYPT_layer_edit_user
@@ -624,7 +624,7 @@ b8fafda46ea5466e CUSTOM_NEON_drive_fold
 40da64f5f1130d90 CUSTOM_NEON_drum
 6222241d1631dbde CUSTOM_NEON_drum_cym
 ad9b9e262fe99cf6 CUSTOM_NEON_drum_hand
-6758642b45da4d78 CUSTOM_NEON_drum_kit_usr
+7ca660a6a5707d9c CUSTOM_NEON_drum_kit_usr
 b1b9bc08e1aa2709 CUSTOM_NEON_drum_lock_held
 b84e3ab7fbcf7710 CUSTOM_NEON_drum_locks
 4ffd41f9b4949583 CUSTOM_NEON_dx_sound
@@ -693,7 +693,7 @@ df6d2f7ba98512ed CUSTOM_NEON_insert_fuzz
 01d4825cee792151 CUSTOM_NEON_lane_mix_dx
 33406fded8c698f3 CUSTOM_NEON_lanes
 5fb2e7ba7b04f39f CUSTOM_NEON_lanes_tune
-33406fded8c698f3 CUSTOM_NEON_lanes_usr
+12984ca565a36980 CUSTOM_NEON_lanes_usr
 d4408f8d6dc00160 CUSTOM_NEON_layer_edit_active
 a7b1f7d153589787 CUSTOM_NEON_layer_edit_peek
 881427071c1a2562 CUSTOM_NEON_layer_edit_user
@@ -906,7 +906,7 @@ aa55ef866dee972f CUSTOM_QUARK_drive_fuzz
 0a48f7c9d37af404 CUSTOM_QUARK_drum
 f7d9a081e32ec48e CUSTOM_QUARK_drum_cym
 bc4ad05e6c19f59e CUSTOM_QUARK_drum_hand
-4b86c27b3d18be4e CUSTOM_QUARK_drum_kit_usr
+9ef81241f619f8c4 CUSTOM_QUARK_drum_kit_usr
 6fada9c595430204 CUSTOM_QUARK_drum_lock_held
 24f2d2cda2dc9504 CUSTOM_QUARK_drum_locks
 90ae687dbec74877 CUSTOM_QUARK_dx_sound
@@ -975,7 +975,7 @@ d97183133570322a CUSTOM_QUARK_lane_mix
 a4012f3ce3e8d434 CUSTOM_QUARK_lane_mix_dx
 81b43e06cb3e9f92 CUSTOM_QUARK_lanes
 5b7a379e73df76e9 CUSTOM_QUARK_lanes_tune
-81b43e06cb3e9f92 CUSTOM_QUARK_lanes_usr
+6a16fbbb5cdf0f32 CUSTOM_QUARK_lanes_usr
 372904e96452bb49 CUSTOM_QUARK_layer_edit_active
 4fadeb73b10cab35 CUSTOM_QUARK_layer_edit_peek
 91967c58c3fd4b90 CUSTOM_QUARK_layer_edit_user
@@ -1188,7 +1188,7 @@ d0100ca1ab6cceb0 CUSTOM_SKIFF_drive_soft
 55a55515c755f0aa CUSTOM_SKIFF_drum
 22cbaf4fc88f4e3e CUSTOM_SKIFF_drum_cym
 14923369d4d78cb4 CUSTOM_SKIFF_drum_hand
-f3cd401a36e5d466 CUSTOM_SKIFF_drum_kit_usr
+0248c1e909e0df12 CUSTOM_SKIFF_drum_kit_usr
 f20a8081e7bab5b2 CUSTOM_SKIFF_drum_lock_held
 fc67f064d94cc6aa CUSTOM_SKIFF_drum_locks
 48029e35a5a34cb9 CUSTOM_SKIFF_dx_sound
@@ -1257,7 +1257,7 @@ ea4f325a8d886c57 CUSTOM_SKIFF_lane_mix
 b10848be22f61ad4 CUSTOM_SKIFF_lane_mix_dx
 65679b1c3f3df2da CUSTOM_SKIFF_lanes
 19dd3345227c6558 CUSTOM_SKIFF_lanes_tune
-65679b1c3f3df2da CUSTOM_SKIFF_lanes_usr
+a3cf2eced963901c CUSTOM_SKIFF_lanes_usr
 6a80c154eaad22ce CUSTOM_SKIFF_layer_edit_active
 73f205d68d35a70b CUSTOM_SKIFF_layer_edit_peek
 0d5eae2d68d516c0 CUSTOM_SKIFF_layer_edit_user
@@ -1470,7 +1470,7 @@ fe5241ffa674e758 HI-CON_drive_fuzz
 4c159d09178eaef8 HI-CON_drum
 14ebcd5bb19b07dc HI-CON_drum_cym
 8ffd5c84d211a561 HI-CON_drum_hand
-abef1285821a7db8 HI-CON_drum_kit_usr
+e933072b737ec9a7 HI-CON_drum_kit_usr
 e3d1146ed33f7650 HI-CON_drum_lock_held
 69a09cf55b9be838 HI-CON_drum_locks
 0b859faf14f19e8f HI-CON_dx_sound
@@ -1539,7 +1539,7 @@ a2b2d1aa3cc3f2f8 HI-CON_lane_mix
 274617d6dbd4449d HI-CON_lane_mix_dx
 084c99f805743f3c HI-CON_lanes
 62680cd9986e49ab HI-CON_lanes_tune
-084c99f805743f3c HI-CON_lanes_usr
+34bf9f1212ec766c HI-CON_lanes_usr
 d0377b75a9f690bd HI-CON_layer_edit_active
 eabd8c9e6faa44ac HI-CON_layer_edit_peek
 7273fd950d68b747 HI-CON_layer_edit_user
@@ -1752,7 +1752,7 @@ c64ad3ad7809f509 LARGE_CRYPT_drive_hard
 ccafe35adfdc5168 LARGE_CRYPT_drum
 836e04b8613d59f3 LARGE_CRYPT_drum_cym
 612e927923013867 LARGE_CRYPT_drum_hand
-138cc8b8101eee4f LARGE_CRYPT_drum_kit_usr
+40bc9df920eeb7b3 LARGE_CRYPT_drum_kit_usr
 20c352537d271183 LARGE_CRYPT_drum_lock_held
 d7167007fc46381f LARGE_CRYPT_drum_locks
 65f9faaf417ea46d LARGE_CRYPT_dx_sound
@@ -1821,7 +1821,7 @@ c8a89f382dfc06f1 LARGE_CRYPT_insert_fuzz
 265e78bab8b91d11 LARGE_CRYPT_lane_mix_dx
 14e518683ad1f37a LARGE_CRYPT_lanes
 0d324b674edc7917 LARGE_CRYPT_lanes_tune
-14e518683ad1f37a LARGE_CRYPT_lanes_usr
+c37191fd551628ea LARGE_CRYPT_lanes_usr
 1b54fa3023557fc1 LARGE_CRYPT_layer_edit_active
 8207daab7b9290ab LARGE_CRYPT_layer_edit_peek
 5999ab18855046aa LARGE_CRYPT_layer_edit_user
@@ -2034,7 +2034,7 @@ a0f3df1874016db0 LARGE_NEON_drive_fuzz
 fdc3b3ff1dc3b0aa LARGE_NEON_drum
 351c271448f5e54f LARGE_NEON_drum_cym
 54d322718b5d0ad0 LARGE_NEON_drum_hand
-6f23c7d7022fae22 LARGE_NEON_drum_kit_usr
+0f7218186510504d LARGE_NEON_drum_kit_usr
 3e71a0e20720b281 LARGE_NEON_drum_lock_held
 cc05126dc295686a LARGE_NEON_drum_locks
 365d110581d4add8 LARGE_NEON_dx_sound
@@ -2103,7 +2103,7 @@ b1f6be1fa8a10004 LARGE_NEON_insert_crush
 d0a31b92c34f68fa LARGE_NEON_lane_mix_dx
 2cf24541f82048c8 LARGE_NEON_lanes
 a7bde0918aba3221 LARGE_NEON_lanes_tune
-2cf24541f82048c8 LARGE_NEON_lanes_usr
+f2d5b3710206b25b LARGE_NEON_lanes_usr
 9aeea5b99be07d6f LARGE_NEON_layer_edit_active
 4e050d14058bca47 LARGE_NEON_layer_edit_peek
 eb4215143395856e LARGE_NEON_layer_edit_user
@@ -2316,7 +2316,7 @@ ac02535a602b291b LARGE_QUARK_drive_soft
 a69a1e24b7e3beed LARGE_QUARK_drum
 7594f82fc7af76a0 LARGE_QUARK_drum_cym
 0952ad67a4eb87cf LARGE_QUARK_drum_hand
-fb63bb647e84b7af LARGE_QUARK_drum_kit_usr
+a264a3438e4cbede LARGE_QUARK_drum_kit_usr
 efc0adf70462eb2f LARGE_QUARK_drum_lock_held
 6f9fce8b213bc02d LARGE_QUARK_drum_locks
 db46f9b1a4b066be LARGE_QUARK_dx_sound
@@ -2385,7 +2385,7 @@ d06844999d89e9fa LARGE_QUARK_insert_flanger
 9833714101e2047f LARGE_QUARK_lane_mix_dx
 5d1fbd0ec53d9672 LARGE_QUARK_lanes
 fb69018dbd1bf30d LARGE_QUARK_lanes_tune
-5d1fbd0ec53d9672 LARGE_QUARK_lanes_usr
+fe18a41ed5172645 LARGE_QUARK_lanes_usr
 7edc1107e2bd68ab LARGE_QUARK_layer_edit_active
 57763874b33cb9c7 LARGE_QUARK_layer_edit_peek
 e25932d600052c74 LARGE_QUARK_layer_edit_user
@@ -2598,7 +2598,7 @@ f276a71b9e4ffd05 LARGE_SKIFF_drive_soft
 1106d5f75570e531 LARGE_SKIFF_drum
 34a18d040e3e4cca LARGE_SKIFF_drum_cym
 ef21afb29336270f LARGE_SKIFF_drum_hand
-11f2f7937f4d0beb LARGE_SKIFF_drum_kit_usr
+73d6be536d087138 LARGE_SKIFF_drum_kit_usr
 d786d78e5d24dd2e LARGE_SKIFF_drum_lock_held
 8093dd9e26ff3ab1 LARGE_SKIFF_drum_locks
 70e9ba9412edbed5 LARGE_SKIFF_dx_sound
@@ -2667,7 +2667,7 @@ ba080499d7c8c8f2 LARGE_SKIFF_insert_fuzz
 3cc32f193bc70d54 LARGE_SKIFF_lane_mix_dx
 efb26909acaf28ce LARGE_SKIFF_lanes
 7726c5869ec63859 LARGE_SKIFF_lanes_tune
-efb26909acaf28ce LARGE_SKIFF_lanes_usr
+1bdcb57cba8c5b67 LARGE_SKIFF_lanes_usr
 0ea13e10a4fdc8f0 LARGE_SKIFF_layer_edit_active
 5e110d6b6fe9da89 LARGE_SKIFF_layer_edit_peek
 1394d430502256cf LARGE_SKIFF_layer_edit_user
@@ -2882,7 +2882,7 @@ ad0bd616296278ca NEON_drive_fold
 0a300c605bfc9846 NEON_drum
 b26379aab5c7855f NEON_drum_cym
 532924bc1c6f946c NEON_drum_hand
-9da8dbe80252ff17 NEON_drum_kit_usr
+d9f7eb44abdead92 NEON_drum_kit_usr
 e832db09672a8a7f NEON_drum_lock_held
 2c69c19914e57586 NEON_drum_locks
 64434b765cd7d5a4 NEON_dx_sound
@@ -2951,7 +2951,7 @@ b2d40dbb68e1f4eb NEON_insert_filter_hp
 b723dbc1c7b3daa0 NEON_lane_mix_dx
 6e2cad7f521fa63b NEON_lanes
 c46c985505f54cac NEON_lanes_tune
-6e2cad7f521fa63b NEON_lanes_usr
+4a04dc16bb571d39 NEON_lanes_usr
 5e1832e7173721f2 NEON_layer_edit_active
 fd0a1ce176de021d NEON_layer_edit_peek
 9562d8516a227c04 NEON_layer_edit_user
@@ -3164,7 +3164,7 @@ c53f75e150b5e93e PAPER_drive_soft
 bbf194fd04df1a2b PAPER_drum
 499a7a095668d74c PAPER_drum_cym
 353f927fc2a6afef PAPER_drum_hand
-ed7ae9192b64d42a PAPER_drum_kit_usr
+c66d416462fd9599 PAPER_drum_kit_usr
 c17cf77710be55db PAPER_drum_lock_held
 4e00ac0db653676b PAPER_drum_locks
 3c229996bb25a1a1 PAPER_dx_sound
@@ -3233,7 +3233,7 @@ d7c4e57ee738f736 PAPER_lane_mix
 3eaf01e246833885 PAPER_lane_mix_dx
 9695b1086e8770ae PAPER_lanes
 e70fad029668c297 PAPER_lanes_tune
-9695b1086e8770ae PAPER_lanes_usr
+c03cc331449ad29e PAPER_lanes_usr
 0750445c1002f956 PAPER_layer_edit_active
 d96ac39fc1ea4bbc PAPER_layer_edit_peek
 a4e4eb55496f7c0b PAPER_layer_edit_user
@@ -3454,7 +3454,7 @@ c7a05e9819ce6636 QUARK_drive_soft
 9df134ba82875196 QUARK_drum
 df90da9c164b2873 QUARK_drum_cym
 8bbeafba9c862dbc QUARK_drum_hand
-6d8fa2993da63853 QUARK_drum_kit_usr
+255eba123b8a2025 QUARK_drum_kit_usr
 805fbfd67d0e7c7a QUARK_drum_lock_held
 291684982a473656 QUARK_drum_locks
 dc60a3a54fabcdb2 QUARK_dx_sound
@@ -3523,7 +3523,7 @@ cbfd879d7910d764 QUARK_lane_mix
 3dc9a01e6226ffea QUARK_lane_mix_dx
 91fd49244c2e50ba QUARK_lanes
 2c7594aa858e039d QUARK_lanes_tune
-91fd49244c2e50ba QUARK_lanes_usr
+0842b2b38c3a5fd2 QUARK_lanes_usr
 30de31a47b80ee6f QUARK_layer_edit_active
 da5dba909c36bf1e QUARK_layer_edit_peek
 4f26057901cffebd QUARK_layer_edit_user
@@ -3738,7 +3738,7 @@ dd30d36304da38f6 SKIFF_drive_soft
 7515134ffccc862e SKIFF_drum
 46c2f439bc8972fd SKIFF_drum_cym
 0651a43227e9a680 SKIFF_drum_hand
-808fad6a51d8762c SKIFF_drum_kit_usr
+e4652db58fb4c8d6 SKIFF_drum_kit_usr
 66cb984c07b81029 SKIFF_drum_lock_held
 d966200e2a7e312e SKIFF_drum_locks
 def74811b732a6ad SKIFF_dx_sound
@@ -3807,7 +3807,7 @@ b60405a4cb309158 SKIFF_lane_mix
 667aa1d1d3db6976 SKIFF_lane_mix_dx
 548726535b1a1295 SKIFF_lanes
 45cf6e31c7899fbd SKIFF_lanes_tune
-548726535b1a1295 SKIFF_lanes_usr
+c262d2c1d8875d9d SKIFF_lanes_usr
 97cdc62156dd86f4 SKIFF_layer_edit_active
 cc0e4c6e93c551fc SKIFF_layer_edit_peek
 de43d424e16e8c4e SKIFF_layer_edit_user

@@ -55,8 +55,8 @@ follows further below and still applies, except where the changes listed here sa
 
 ## Changes from Skiff
 
-Everything below is in **v1.2.5**; the [skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)'s
-`atlatl-dev` build has it too, with whatever came after.
+Everything below is in **v1.2.5** except what is marked **(next)**: that is on the `atlatl-dev` build the
+[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/) installs, and comes with the next release.
 
 **SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
 - two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
@@ -116,6 +116,9 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - a **MODEL per lane** (any of the 41 on any kit's lane, lockable per step);
 - the track **FILTER** moved by its own envelope and the LFO: **ENV** is **FLT ENV** on a DRUM track, and
   **FX › FLT MOD** sets ENV>FLT and LFO>FLT.
+- **your own samples** (next): the kits **USR1–USR3** play a user sample slot, a WAV a lane (KICK, SNARE …), loaded
+  from the web editor's **Samples** tab; each lane's TUNE, DECAY, LEVEL and the hat choke apply as on any kit. (The
+  SAMPLE and SLICE engines stay out of the build, for flash.)
 
 **GRAIN** grains real FLUTE and SAX recordings.
 
@@ -175,6 +178,10 @@ beside the firmware. See [plugin/README.md](plugin/README.md).
 its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the fork's package.
 
 ## Release history
+
+**Next (on `atlatl-dev`)**
+- **DRUM's user kits are back**: USR1–USR3 play your WAVs, a lane each, uploaded from the web editor's Samples tab
+  (they were left out with the sampler before v1.0; about 2 KB of flash).
 
 **v1.2.5**, on Skiff 2.7 (identity `FM-1_74212`, as v1.2's: a vX.Y.Z keeps X.Y's)
 - **Synced with Skiff 2.7** (through 2.5.1 and 2.6): the editor's Screen tab (full screen, the FM-1 played from the

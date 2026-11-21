@@ -470,6 +470,14 @@ EOF
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumx_test" tests/drumx_test.c -lm
     mkdir -p build/drumx_demo
     run "DRUM-X: every lane sounds and ends, MORPH, TUNE, the pitch envelope, hat choke, the knobs, FOLD, FM, a drum track, demos" "$OUT/drumx_test" build/drumx_demo
+    # ((custom) DRUM's user kits USR1..3 in the standard build: a slot from two WAVs, as the editor's Samples tab makes it)
+    mkdir -p build/drumusr
+    python3 tests/drumusr_wavs.py build/drumusr
+    python3 tools/fm1_sample_upload.py build MYKIT build/drumusr/kit build/drumusr/kick.wav:36:36-36 \
+        build/drumusr/snare.wav:38:38-38 >/dev/null
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumusr_test" tests/drumusr_test.c -lm
+    run "(custom) DRUM's user kits: your WAVs on the lanes (USR1..3), TUNE, DECAY, an empty slot" "$OUT/drumusr_test" \
+        build/drumusr/kit.hdr build/drumusr/kit.bin
     # ((custom) NOISE retired (retire.c): tests/noise_test.c no longer builds; SYNTH plays its sounds, tests/synth_test.c)
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_test" tests/fm6_test.c -lm
     mkdir -p build/fm6_demo
