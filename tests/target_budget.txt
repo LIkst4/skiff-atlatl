@@ -7,7 +7,7 @@ formant_render 312
 grain_render 1726
 grain_block 133
 phys_render 61
-drum_render 160
+drum_render 401
 dx_run 368
 fm6_render 364
 fm6_op_run 72
