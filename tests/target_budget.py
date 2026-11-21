@@ -51,7 +51,8 @@ FUNCS = ["digital_render", "digital_render_legacy", "digital_render_custom", "ph
          "smx_right", "dly_mono", "dly_stereo", "cho_st", "perf_pre_st",   # ((2.5) the DELAY MODE: a user sample's right
                                                  # send, MONO's line, STEREO / PING's, the stereo chorus, THROW / DUB in stereo)
          "lpan_render", "lpan_mix",              # (2.0, #36) a kit's lane panned: its voice, the mix (voice.c, fx.c)
-         "drum_smp"]                             # (2.0, #35) a user kit's lane (eng_drum.c)
+         "drum_smp",                             # (2.0, #35) a user kit's lane (eng_drum.c)
+         "drum_out"]                             # ((custom) a DRUM lane's DRV and knee, out of drum_render: eng_drum.c)
 # built only with FELUCCA_FM4=1 (DIGITAL, src/eng_digital.c; not in the default build, so not in BUDGET): absent,
 # they are skipped; present, checked against these (their budget lines until the engine was retired in 1.0)
 OPTIONAL = {"digital_render": 12, "digital_render_legacy": 333, "digital_render_custom": 558,
