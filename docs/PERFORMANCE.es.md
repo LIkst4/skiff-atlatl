@@ -109,7 +109,25 @@ agrega un patrón de pasos al arpegiador: **perilla 1 STEPS** (1–16; corre con
 el proyecto y se edita también en el editor web (pestaña Sound, ARP STEP). Muchos presets de SYNTH traen su propio
 arpegiador y LFO.
 
-## 10. Una forma de tocar un set
+**Guarda lo que toca el arpegiador.** Arma el track (REC) y toca: las notas del arpegiador quedan en los pasos, con su
+GATE copiado al GATE de los pasos (si el arpegiador va más rápido que el DIV del track, escribe una nota por paso).
+Sin PLAY: arma el track, abre la entrada por pasos de SEQ y mantén una tecla: el arpegiador escribe un paso a la vez
+desde el cursor (un silencio por cada ARP STEP OFF) mientras la mantengas.
+
+## 10. Sonidos grandes y el master
+
+- **UNISON con STACK** (EDIT › VOICE 2): un lead o un drop con una tecla. **STD** es un supersaw (el spread de
+  DETUNE); **PWR** y **2PWR** ponen power chords bajo un dedo, **C-12** / **C-24** una octava grave bajo el centro, y
+  **OCT**, **MAJ**, **MIN**, **HARM** y **ODD** los otros apilados. Con el segundo núcleo encendido, UNISON usa 16 voces
+  (todo el presupuesto del equipo: los otros tracks ceden voces mientras suena).
+- **GLO › MULTI**, el compresor de 3 bandas del master: sube **MIX** para meterlo (0 = apagado) y **AMOUNT** en cada
+  banda (MB LOW / MB MID / MB HIGH); **UPWARD ON** también sube las partes bajas, para el sonido apretado y brillante de
+  un OTT. Su gráfica muestra cada banda trabajando mientras tocas.
+- **Con otros equipos:** MENU › MIDI › CLOCK **USB** o **TRS** para seguir, **CLOCK OUT** para mandar el tempo por USB,
+  **THRU** para pasar el clock y las notas del jack TRS a la computadora, y MENU › AUDIO › **SYNC OUT** para mandar
+  pulsos a un Pocket Operator o un Volca por un lado de la salida de línea.
+
+## 11. Una forma de tocar un set
 
 1. Arma las listas en SEQ › SONG (A intro, B parte principal, C break...), con **SONG OFF**.
 2. Guarda los momentos clave como escenas (SAVE mantenido + tecla, en PERFORM con KEYS SCENE).
@@ -118,9 +136,12 @@ arpegiador y LFO.
 4. Mantén **FX** para repeats, tape stops y barridos en las transiciones, y **GLO + F4** para los fills.
 5. Deja que **CHANCE**, las **condiciones de trig** y el **ARP STEP** muevan los loops entre tus cambios.
 
-Para ver la pantalla en grande, abre la pestaña **Screen** del editor web (o la app
-[FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror)).
+Para ver la pantalla en grande: la pestaña **Mirror** del editor muestra la pantalla del FM-1 en vivo, y **Open in a
+window** la abre en su propia ventana para un segundo monitor o un proyector (doble clic: pantalla completa). La
+pestaña **Screen** corre una copia del firmware en la página, en pantalla completa, y deja tocar el FM-1 desde la
+computadora (su Start reinicia el equipo una vez). La app [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) de
+Patrick F. Kellogg también funciona y muestra el sonido que suena.
 
 ---
 
-<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 y Devil Fish son marcas o nombres de sus respectivos dueños. Se mencionan solo para describir en qué se inspiró cada función; skiff-atlatl no está afiliado a ellos ni cuenta con su respaldo.</sub>
+<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303, Devil Fish, Vital, Pocket Operator y Volca son marcas o nombres de sus respectivos dueños. Se mencionan solo para describir en qué se inspiró cada función; skiff-atlatl no está afiliado a ellos ni cuenta con su respaldo.</sub>

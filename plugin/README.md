@@ -5,10 +5,12 @@
 The FM-1 on skiff-atlatl firmware, in your DAW. Each instance of the plugin is one FM-1 track:
 
 - **The editor inside the plugin window.** It is the web editor (`web/editor.html`), built in. Everything it does
-  works here too: sounds, the sequencer, the song, the mixer, samples, backups, the screen mirror. It needs no
-  browser and no WebMIDI; it talks through the plugin.
-- **Automatable parameters.** All of the track's parameters (about 160) are plugin parameters, grouped as on the
-  device (ENV, LFO, FX, SCL, EDIT, ARP, SEQ, DRUM). Bitwig also gets them as remote-control pages.
+  works here too: sounds, the sequencer, the song, the mixer, samples, backups, and the FM-1's screen live in the
+  **Mirror** tab. It needs no browser and no WebMIDI; it talks through the plugin. (The editor's **Screen** tab, which
+  restarts the FM-1 when it starts, is left out of the plugin, so a DAW session never restarts the unit.)
+- **Automatable parameters.** All of the track's parameters (about 160, STACK and SYNTH's FILTER 2 among them) are
+  plugin parameters, grouped as on the device (ENV, LFO, FX, SCL, EDIT, ARP, SEQ, DRUM). Bitwig also gets them as
+  remote-control pages.
   - Moving one in the DAW (by hand or by automation) sets it on the FM-1.
   - Turning a knob on the FM-1 moves it in the DAW, so the DAW can record it as automation.
   - E1–E8 are the engine's own parameters; what each one does depends on the track's engine.

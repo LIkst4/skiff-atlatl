@@ -144,7 +144,25 @@ The default is 16 steps, all ON at 0, which plays the arpeggiator as it was. The
 can also be edited in the web editor (Sound tab, ARP STEP). Many SYNTH presets now bring their own arp and LFO
 settings: one with its arp on switches it on, one without leaves yours alone.
 
-## 10. A way to play a set
+**Keep what the arp plays.** Arm the track (REC) and play: the arp's notes land on the steps, its GATE copied to the
+steps' GATE (an arp faster than the track's DIV writes one note per step). Stopped, arm the track, open SEQ's step
+entry and hold a key: the arp writes one step at a time from the cursor, a rest for each ARP STEP OFF, for as long as
+you hold it.
+
+## 10. Big sounds and the master
+
+- **UNISON with STACK** (EDIT › VOICE 2): a lead or a drop in one key. **STD** is a supersaw (DETUNE's spread); **PWR**
+  and **2PWR** put power chords under one finger, **C-12** / **C-24** a sub-octave under the middle, **OCT**, **MAJ**,
+  **MIN**, **HARM** and **ODD** the other stacks. With the second core on, UNISON has 16 voices (it takes the unit's
+  whole budget, so the other tracks give voices up while it holds).
+- **GLO › MULTI**, the master's 3-band compressor: raise **MIX** to bring it in (0 is off), **AMOUNT** per band on
+  MB LOW / MB MID / MB HIGH; **UPWARD ON** lifts the quiet parts too, for the squashed, bright sound of an OTT. Its graph
+  shows each band working while you play.
+- **With other gear:** MENU › MIDI › CLOCK **USB** or **TRS** to follow, **CLOCK OUT** to lead over USB, **THRU** to
+  pass the TRS jack's clock and notes on to the computer, and MENU › AUDIO › **SYNC OUT** for pulses to a Pocket
+  Operator or a Volca on one side of the line out.
+
+## 11. A way to play a set
 
 1. Build each track's list on SEQ › SONG: A the intro, B the main part, C the break, and so on. Leave **SONG OFF**
    so each track loops what you launch.
@@ -157,9 +175,11 @@ settings: one with its arp on switches it on, one without leaves yours alone.
 5. Hold **FX** for repeats, tape stops and filter sweeps on the transitions, and **GLO + F4** for fills.
 6. Let **CHANCE**, the **trig conditions** and the **ARP STEP** pattern keep the loops moving between your moves.
 
-To see the screen big while you play, open the editor's **Screen** tab. It also works with Patrick F. Kellogg's
-[FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) app.
+To see the screen big while you play: the editor's **Mirror** tab shows the FM-1's own screen live, and **Open in a
+window** puts it on a second monitor or a projector (double-click for full screen). The **Screen** tab runs a copy of the
+firmware in the page, full screen, and lets you play the FM-1 from the computer (its Start restarts the unit once).
+Patrick F. Kellogg's [FM-1 Mirror](https://github.com/pfkellogg/fm1-mirror) app works too, and names the sound playing.
 
 ---
 
-<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303 and Devil Fish are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>
+<sub>Prophet-5, Sequential, Oberheim, Mutable Instruments, Plaits, Rings, Roland, TR-808, TR-909, TR-626, TB-303, Devil Fish, Vital, Pocket Operator and Volca are trademarks or names of their respective owners. They are named only to describe what a feature was modelled on; skiff-atlatl is not affiliated with, endorsed or supported by them.</sub>

@@ -84,6 +84,11 @@ in `tools/build.py`: the host tests build the console in):
 `FELUCCA_USB_LAYOUT` (`0` to `3`, default `0`) picks other USB descriptor layouts for testing; see
 `firmware/src/usb.c`.
 
+**(skiff-atlatl) Where the flash goes:** `python tools/size_report.py build/felucca.elf` lists the image's sections and
+its largest functions and tables (CI prints it after every build, so it can be read without the toolchain). The fork
+fills the FM-1's flash closely: a change that grows it can check the report against the last CI run. `tools/emu_gaps.py`
+(run by CI on the emulator build) lists instructions the FM-1 emulator cannot decode, by function.
+
 ## Samples
 
 The CC0 instrument samples that the SAMPLE engine uses are in `assets/samples-cc0/`
