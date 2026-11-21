@@ -13,7 +13,7 @@ HP, classic drum models per lane, a step arpeggiator, more trig conditions, a mu
 audio, a DAW plugin and the screen on a computer or a second monitor</p>
 
 <p align="center">
-  <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><b>Download v1.1</b></a> ·
+  <a href="https://github.com/LIkst4/skiff-atlatl/releases/latest"><b>Download v1.2.5</b></a> ·
   <a href="https://likst4.github.io/skiff-atlatl/installer/">Installer</a> ·
   <a href="https://likst4.github.io/skiff-atlatl/emu/">Try it in the browser</a> ·
   <a href="https://likst4.github.io/skiff-atlatl/editor/">Web editor</a> ·
@@ -36,14 +36,14 @@ follows further below and still applies, except where the changes listed here sa
 
 | | |
 |---|---|
-| **Current release** | **v1.1**, identity `FM-1_74211` ([release notes](https://github.com/LIkst4/skiff-atlatl/releases/latest)) |
-| **Identity** | release vX.Y is `FM-1_742XY`; builds of the `atlatl-dev` branch are `FM-1_74200`. Skiff's own is `FM-1_7XY`, so the hub and the installers tell them apart |
+| **Current release** | **v1.2.5**, on Skiff 2.7, identity `FM-1_74212` ([release notes](https://github.com/LIkst4/skiff-atlatl/releases/latest)) |
+| **Identity** | release vX.Y (and vX.Y.Z) is `FM-1_742XY`; builds of the `atlatl-dev` branch are `FM-1_74200`. Skiff's own is `FM-1_7XY`, so the hub and the installers tell them apart |
 | **Hardware** | M-VAVE FM-1 (both flash chips) |
 | **Licence** | GPL-3.0-only; the third-party parts and their licences in [LICENSING.md](LICENSING.md) |
 
 ## Install
 
-- **Download** `skiff-atlatl-v1.1.fwsc` from the [latest release](https://github.com/LIkst4/skiff-atlatl/releases/latest)
+- **Download** `skiff-atlatl-v1.2.5.fwsc` from the [latest release](https://github.com/LIkst4/skiff-atlatl/releases/latest)
   and install it with a firmware installer (Chrome or Edge, the FM-1 on USB) or the FM-1's update (M-UPGRADE).
 - **Or** use the **[skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)** in Chrome or Edge: it
   installs the latest build of the `atlatl-dev` branch (`FM-1_74200`), the newest changes before the next release.
@@ -55,8 +55,8 @@ follows further below and still applies, except where the changes listed here sa
 
 ## Changes from Skiff
 
-Everything below is on the `atlatl-dev` branch, which the [skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)
-installs. Items marked **(next)** are newer than v1.1 and come with the next release.
+Everything below is in **v1.2.5**; the [skiff-atlatl installer](https://likst4.github.io/skiff-atlatl/installer/)'s
+`atlatl-dev` build has it too, with whatever came after.
 
 **SYNTH**, one editable engine in place of ANALOG, TRIO, WHEEL and NOISE (their sounds load as SYNTH presets):
 - two oscillators, each VA, WAVE (wavetable), ADD (additive), NOISE, ORGAN (drawbars), MODAL (struck modes after
@@ -75,18 +75,18 @@ installs. Items marked **(next)** are newer than v1.1 and come with the next rel
   high-pass, CHAR = **FB HP**, ~150 Hz at 63); **ANLG** is ANALOG's own filter (its drive and 2-pole low-pass, CHAR
   blends the band-pass in). ACID LINE and DEVIL ACID play the 303; ANALOG's sounds (SAW LEAD, SQR BASS, PWM STR …)
   are back on its oscillators and filter;
-- **DRIFT, voice cards** (next): each voice is a little off in pitch, cutoff, pulse width, level and envelope speed,
+- **DRIFT, voice cards**: each voice is a little off in pitch, cutoff, pulse width, level and envelope speed,
   always the same for that voice (as a polysynth's voice boards), plus a smaller part that changes every note; notes
   from silence start anywhere in the oscillators' cycles (free-running, as analog VCOs). Default 40; 0 is the old,
   exact sound. VA's saw stays a saw: DRIFT moves its pulse width only in VA's square half;
-- **EDIT › FILTER 2**, a Virus-style page (next): **F2** a second filter after the first (SER LP / HP / BP) or beside
+- **EDIT › FILTER 2**, a Virus-style page: **F2** a second filter after the first (SER LP / HP / BP) or beside
   it (PAR LP / HP / BP), **F2 OFS** its cutoff from the first's (about ±3 octaves, both following the cutoff and its
   modulation), **BOOST** the low end (as the Virus TI's ANALOG BOOST), **PUNCH** a kick on each note's first
   milliseconds. All off by default;
 - 127 presets: 63 after OberVave's factory programs, with their LFO and arpeggiator. A preset with its arp on brings
   it; one without leaves yours.
 
-**UNISON** (next), on every engine:
+**UNISON**, on every engine:
 - **as a supersaw**: DETUNE spreads the voices as the JP-8000's (the middle ones close, the outer ones the width, no
   two in tune), the middle voices a little louder than the edges; the first half of DETUNE finer;
 - **16 voices** with the FM-1's second core on (8 with one), as many as the budget leaves (a 16-voice unison takes the
@@ -120,7 +120,7 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 **GRAIN** grains real FLUTE and SAX recordings.
 
 **Effects**:
-- **GLO › MULTI** (next), a 3-band compressor on the master: Linkwitz-Riley crossovers (**LOW** 130 Hz–1 kHz, **HIGH**
+- **GLO › MULTI**, a 3-band compressor on the master: Linkwitz-Riley crossovers (**LOW** 130 Hz–1 kHz, **HIGH**
   1.6–10 kHz); per band (**MB LOW / MB MID / MB HIGH**) AMOUNT (threshold and ratio together), ATTACK, RELEASE and
   GAIN (±12 dB); **UPWARD** also brings quiet bands up, OTT style; **MIX** blends it in parallel (0 is off, the master
   exactly as before). Its graph shows each band's gain as it plays;
@@ -136,7 +136,7 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - the arp's RATE adds **4T** and **32T** triplets;
 - **ARP › ARP STEP**, a step pattern for the arp: 1–16 steps, each ON, OFF or STACC, each note ±24 semitones; the ARP
   page's graph shows the pattern and the step playing;
-- **recording the arp into the sequencer** (next): REC + PLAY records what the arp plays, on the steps, its GATE
+- **recording the arp into the sequencer**: REC + PLAY records what the arp plays, on the steps, its GATE
   copied to the steps' GATE; an arp faster than the track's DIV writes one arp note per step. **Stopped:** arm the
   track (REC), open SEQ's step entry and hold a key: what the arp plays is written one step at a time from the cursor
   (an ARP STEP OFF as a rest) for as long as you hold it.
@@ -144,7 +144,7 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 **USB audio, 8 channels** (after Kitten Synths' fix-17): 1–2 the master, 3–8 the six tracks, each on its own channel
 (before the shared effects), to record every track apart in a DAW.
 
-**The screen on a computer** (next: two ways):
+**The screen on a computer**, two ways:
 - the web editor's **Screen** tab (Skiff 2.7's): a copy of the firmware running in the page, in step with the unit;
   full screen, and the FM-1 played from the page with the mouse, touch or keyboard. Its Start restarts the FM-1 once
   (the music is kept);
@@ -162,7 +162,7 @@ Minimoog's, its contours and its factory sounds (MOOG BASS, MOOG FLUTE, MOOG BRA
 - **SYNC OUT** (MENU › AUDIO, Skiff 2.7): analog sync pulses on one side of the line out (Pocket Operators, Volcas),
   the music in mono on the other.
 
-**The FM-1 as a plugin** (next; CLAP, VST3, AU, standalone; Windows, macOS, Linux): the editor in the plugin window,
+**The FM-1 as a plugin** (CLAP, VST3, AU, standalone; Windows, macOS, Linux): the editor in the plugin window,
 each track's parameters as DAW automation both ways, notes, MIDI clock and transport to the FM-1; the sound back live on
 the DAW's input (DIRECT), or CAPTURE takes the 8 USB channels itself, each track on its own instrument track, its
 latency measured so the sound lands on the beat. In the plugin the screen is the **Mirror** tab (the Screen tab
@@ -175,6 +175,41 @@ its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the f
 
 ## Release history
 
+**v1.2.5**, on Skiff 2.7 (identity `FM-1_74212`, as v1.2's: a vX.Y.Z keeps X.Y's)
+- **Synced with Skiff 2.7** (through 2.5.1 and 2.6): the editor's Screen tab (full screen, the FM-1 played from the
+  page), the editor's Sequencer as a piano roll, **SYNC OUT** for Pocket Operators, and fixes: CRUSH's crack on
+  chords, the phaser's squeal, the INSERT's FILTR on spread voices.
+- **GLO › MULTI**, a 3-band compressor on the master (UPWARD for an OTT sound, MIX in parallel).
+- **The FM-1 as a plugin** (CLAP, VST3, AU, standalone): the editor in the DAW, parameters as automation, notes and
+  clock to the FM-1, the sound back live (DIRECT) or the 8 USB channels with latency compensation (CAPTURE).
+- **UNISON reworked**: a supersaw spread; SYNTH with two oscillators filters each stereo side once (about half the CPU,
+  no slowdown with two VA oscillators), with one oscillator a filter a voice; **16 voices** with the second core;
+  **STACK** puts the voices on intervals (center drop, octaves, power chords, major, minor, harmonics).
+- **SYNTH**: DRIFT as voice cards (VA's saw stays a saw under it), the Virus-style **FILTER 2** page (F2, F2 OFS,
+  BOOST, PUNCH).
+- **The arp recorded into the sequencer without PLAY**: arm the track, open SEQ's step entry and hold a key; with
+  PLAY its GATE is copied, an arp faster than the track's DIV writes a note per step, and an arp already running when
+  PLAY starts begins again on step 0.
+- **Two screens on a computer**: Skiff 2.7's Screen tab and the fork's **Mirror** tab, its **Open in a window** for a
+  second monitor or a projector; FM-1 Mirror shows the sound playing.
+- **ATLATL** branding on the web editor, the installer and the plugin.
+- **Flash**: about 6 KB freed with nothing heard or seen changed, for 2.7's features; FLUTE and SAX are 0.56 s; builds
+  leave out the USB serial console (`FELUCCA_CDC=1` keeps it).
+- **Install the firmware and the editor (or the plugin) of the same build**: the editor's ARP STEP command moved
+  (Skiff 2.7 took its number). Projects and presets from earlier versions load as before (STACK at STD).
+- The FM-1 emulator runs the whole firmware again (a 64-bit shift it does not decode, now done in two halves: the
+  same values).
+
+**v1.2**, on Skiff 2.5
+- **Synced with Skiff 2.5**: 16 voices a track, a true-stereo delay and chorus (MODE: MONO, STEREO, PING), takes
+  played while stopped, a song you can follow, the INSERT's **FILTR** and the chord keys' **STRUM**.
+- The arpeggiator recorded into the sequencer stays on the steps however long it is held (each arp step was rounded up
+  to the audio block: it drifted late, then a step late); an arp started while the sequencer plays starts on its grid.
+- **FX › FILTER** draws the filter (BLEND's curve, COMB's teeth, VOWEL's formants); the **ARP** page's graph shows the
+  **ARP STEP** pattern.
+- Projects and user presets store **STRUM** and **DIR** where Skiff 2.5 does, so sounds and projects move between
+  Skiff and skiff-atlatl both ways. Projects and presets saved with v1.0 / v1.1 load as before.
+
 **v1.1**
 - **BLEND** on every filter: low-pass → band-pass → high-pass, as Vital's filters.
 - Envelope times start at 0 with no jump: 0, 0.1, 0.2 … 1.1 ms (value 10) … 10 s; ATTACK, DECAY and RELEASE at 0 are
@@ -183,30 +218,8 @@ its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the f
   one reply: "short reply").
 - The FM-1 emulator runs the whole firmware again (two instruction forms it does not decode, rewritten bit for bit).
 
-**Next (on `atlatl-dev`)**, beside the features marked (next) above:
-- **On Skiff 2.7** (from 2.5, through 2.5.1 and 2.6): the editor's Screen tab (full screen, the FM-1 played from the
-  page), the editor's Sequencer as a piano roll, **SYNC OUT** for Pocket Operators, and fixes: CRUSH's crack on
-  chords, the phaser's squeal, the INSERT's FILTR on spread voices.
-- **On Skiff 2.5**: 16 voices a track, a true-stereo delay and chorus (MODE: MONO, STEREO, PING), takes played while
-  stopped, a song you can follow, the INSERT's **FILTR** and the chord keys' **STRUM**.
-- **Recording the arp**, fixed:
-  - a held arp stays on the steps however long it is held (each arp step was rounded up to the audio block: it drifted
-    late, then a step late); an arp started while the sequencer plays starts on its grid;
-  - an arp already running when PLAY starts (a key held before REC, the count-in, HOLD) starts again from its first
-    note on step 0 (before, it recorded a step early);
-  - held past the end of the pattern it writes its steps again instead of stacking chords (POLY).
-- Projects and user presets store **STRUM** and **DIR** where Skiff 2.5 does, so sounds and projects move between
-  Skiff and skiff-atlatl both ways; STACK has its own stored id. Projects and presets saved with v1.0 / v1.1 load as
-  before (STACK at STD).
-- **The editor and the firmware go together**: the editor's ARP STEP command moved (Skiff 2.7 took its number), so
-  install the firmware and the editor (or the plugin) of the same build.
-- **Flash**: about 6 KB freed with nothing heard or seen changed (the pixel faces' glyphs and the LFO's rates worked
-  out instead of stored, the note-start code built for size), for Skiff 2.7's features. FLUTE and SAX are 0.56 s.
-- Builds leave out the USB serial console (a developer tool, `FELUCCA_CDC=1` keeps it).
-- The FM-1 emulator runs the whole firmware again (a 64-bit shift it does not decode, in the take's tempo guess and
-  the MD kits, now done in two halves: the same values).
-
-**v1.0**, the first release: everything listed under *Changes from Skiff*, on Skiff 2.2.
+**v1.0**, the first release: SYNTH, FMINI, the drum models per lane, the trig conditions, ARP STEP, 8-channel USB
+audio, the screen mirror and the web editor, on Skiff 2.2.
 
 ## Credits
 
