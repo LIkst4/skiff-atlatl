@@ -49,6 +49,7 @@ jobs:
           FELUCCA_BUILTIN_SAMPLES=0 FELUCCA_EXTRA_CFLAGS="-fno-optimize-sibling-calls -DFELUCCA_ONE_CORE=1" ./build.sh
           cp build/felucca.fwsc "$RUNNER_TEMP/skiff-atlatl-emu.fwsc"
           python tools/emu_gaps.py build/felucca.dis || true
+          python tools/size_report.py build/felucca.elf 3000 || true   # (DIAG: temporary)
       - name: Build
         run: ./build.sh
       - name: "(custom) Where the flash goes (sections, the largest symbols)"
