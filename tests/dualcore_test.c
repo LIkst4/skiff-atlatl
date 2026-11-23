@@ -166,6 +166,51 @@ static int voice_budget(void)
         if (!(u[0] == VOICES_1CORE && u[1] == (VOICES_2CORE < UNI_NV ? VOICES_2CORE : UNI_NV)))
             return 1;
     }
+    {   /* (custom) with two cores, 16 only where a voice is light and while the audio has room (voice.c uni_want):
+         * SYNTH with one oscillator (a filter a voice) 8, FM6 8, A + B 16; the room low (audio.c uni_load) 8 from the
+         * next note, the note on keeping its own; a note of 8 after one of 16 fades the 8 above it */
+        uint32_t one, fm6, ab, low, held, next, back, i8;
+        static const struct { uint32_t e, b; } C[3] = {{ENGI_SYNTH, 0}, {ENGI_FM6, 0}, {ENGI_SYNTH, 1}};
+        uint32_t r[3], c;
+        for (c = 0; c < 3u; c++) {
+            host_tracks_init();
+            for (k = 0; k < NPART; k++)
+                memset(trk[k].v, 0, sizeof trk[k].v);
+            memset(eng_mem, 0, sizeof eng_mem);
+            c1h_off = 0;
+            host_preset(&trk[0], C[c].e, 0u);
+            trk[0].p[P_VOICE] = V_UNISON;
+            trk[0].p[P_E3] = (int16_t)C[c].b;
+            trk[0].p[P_E7] = 64;
+            mix_block(o, CTL);
+            trk_note_on(&trk[0], 48u, 100);
+            mix_block(o, CTL);
+            r[c] = voices_busy();
+        }
+        one = r[0], fm6 = r[1] == (ENGINES[ENGI_FM6]->poly < UNI_NV_LO ? ENGINES[ENGI_FM6]->poly : UNI_NV_LO), ab = r[2];
+        uni_room = UNI_NV_LO;                           /* (the audio busy) */
+        held = voices_busy();                           /* (the A + B note on: its 16 kept) */
+        trk_note_off(&trk[0], 48u);
+        trk_note_on(&trk[0], 50u, 100);
+        mix_block(o, CTL);
+        mix_block(o, CTL);
+        low = voices_busy();
+        for (i8 = 0, i = UNI_NV_LO; i < NVOICE; i++)
+            i8 += trk[0].v[i].active;
+        uni_room = UNI_NV;
+        trk_note_off(&trk[0], 50u);
+        trk_note_on(&trk[0], 52u, 100);
+        mix_block(o, CTL);
+        next = voices_busy();
+        back = trk[0].uni_n;
+        printf("dualcore: UNISON 16 only light and with room: one oscillator %u, FM6 its cap or 8 %u, A + B %u; busy: the note on %u, "
+               "the next %u (above 8: %u), room again %u   %s\n", one, fm6, ab, held, low, i8, next,
+               one == UNI_NV_LO && fm6 && ab == UNI_NV && held == UNI_NV && low == UNI_NV_LO && !i8 &&
+               next == UNI_NV && back == UNI_NV ? "ok" : "FAIL");
+        if (!(one == UNI_NV_LO && fm6 && ab == UNI_NV && held == UNI_NV && low == UNI_NV_LO && !i8 &&
+              next == UNI_NV && back == UNI_NV))
+            return 1;
+    }
     return !(n[0] == VOICES_1CORE && n[1] == want);
 }
 

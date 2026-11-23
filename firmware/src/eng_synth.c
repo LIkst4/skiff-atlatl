@@ -759,6 +759,12 @@ static __attribute__((noinline)) void sy_oscs(track_t *t, voice_t *v, const vmod
  * two oscillators, slowed the unit down). With one, each voice its own filter, as POLY (their DRIFT, their keys).
  * Either way the stack's middle voices louder than its edges (sy_place). 0 not UNISON, 1 the side's sum, 2 none (the
  * side's first renders it), 3 the voice alone */
+/* (custom) one oscillator sounds (OSC B OFF, or nothing of it heard: no MIX, X-MOD or POLY MOD from it): UNISON keeps a
+ * filter per voice (sy_uni 3), so at most UNI_NV_LO voices (voice.c uni_want) */
+static int sy_alone(const int16_t *p)
+{
+    return sy_bmodel(clamp(p[P_E3], 0, SYB_N - 1)) == SY_BOFF || !(p[P_E7] || p[P_SYXMOD] || p[P_SYPMB]);
+}
 static uint32_t sy_uni(track_t *t, voice_t *v, uint32_t *nv)
 {
     const int16_t *p = t->p;
@@ -766,7 +772,7 @@ static uint32_t sy_uni(track_t *t, voice_t *v, uint32_t *nv)
     *nv = uni_nvoice(t);
     if (p[P_VOICE] != V_UNISON || *nv < 2u || i >= *nv)
         return 0;
-    if (sy_bmodel(clamp(p[P_E3], 0, SYB_N - 1)) == SY_BOFF || !(p[P_E7] || p[P_SYXMOD] || p[P_SYPMB]))
+    if (sy_alone(p))
         return 3;
     for (j = i & 1u; j < i; j += 2u)
         if (t->v[j].active)

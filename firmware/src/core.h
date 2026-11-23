@@ -13,6 +13,8 @@
 #define VOICES_1CORE 8u          /* (2.5) the shared budget with one core (NVOICE's 8 before) */
 #define UNI_NV 16u               /* UNISON's voices at most ((2.5) 8; (custom) 16, as the budget with two cores gives:
                                   * voice.c uni_nvoice) */
+#define UNI_NV_LO 8u             /* (custom) .. and where a voice costs more (a filter each: SYNTH with one oscillator,
+                                  * the other engines) or the audio is busy (voice.c uni_want, audio.c uni_load) */
 #define NTRK 6                   /* tracks (the formats and the protocol count these): every track is a part;
                                   * (Skiff phase 6) T5 and T6 light (NHEAVY) */
 #define NPART NTRK               /* synth parts: tracks 1..NTRK */
@@ -652,6 +654,7 @@ typedef struct track {
     uint8_t nmono;
     uint8_t mono_note;           /* note the MONO / LEGATO / UNISON voice(s) play, 0 = none */
     uint8_t rr;                  /* POLY ROTATE: next voice to try */
+    uint8_t uni_n;               /* (custom) UNISON: the voices its note started with (voice.c uni_want), 0 = none yet */
     /* mix runtime */
     int32_t peak;
     int32_t dist_hp, dist_lp1, dist_lp2;   /* DIST insert state (fx.c) */

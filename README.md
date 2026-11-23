@@ -89,8 +89,9 @@ Everything below is in **v1.2.5** except what is marked **(next)**: that is on t
 **UNISON**, on every engine:
 - **as a supersaw**: DETUNE spreads the voices as the JP-8000's (the middle ones close, the outer ones the width, no
   two in tune), the middle voices a little louder than the edges; the first half of DETUNE finer;
-- **16 voices** with the FM-1's second core on (8 with one), as many as the budget leaves (a 16-voice unison takes the
-  whole unit's voices);
+- **16 voices** with the FM-1's second core on and both oscillators (a filter a side), as many as the budget leaves (a
+  16-voice unison takes the whole unit's voices); 8 with one oscillator (a filter a voice), on the other engines, with
+  one core, and while the FM-1 runs busy (from the next note: no slowdown under a full song);
 - **STACK** (EDIT › VOICE 2, beside SPREAD; as Vital's stack styles): the voices on intervals, in pairs from the middle
   out, so each interval has a voice on either side in pitch and in stereo:
 
@@ -187,6 +188,10 @@ its own [installer](https://likst4.github.io/skiff-atlatl/installer/) with the f
   (they were left out with the sampler before v1.0; about 2 KB of flash).
 - **DRUM's lanes in the web editor**: the Sound tab draws every lane as the unit plays it (any kit, rendered on the
   FM-1), redrawn as the knobs turn, with a cursor on each hit; in the plugin too.
+- **UNISON keeps the FM-1 in time** (next): a track renders on one core, so 16 voices of one track were one core's
+  load. Now 16 only with both SYNTH oscillators (a filter a side) and while there is room: with one oscillator (a
+  filter a voice) and on the other engines 8, as before the 16; and when the audio runs over 75 % the next notes take 8
+  until it has stayed under 45 % for a second (an ARP of 16-voice notes over five busy tracks no longer slows the unit).
 - **The editor's Sound tab grouped again** (ENV, LFO, MOD, EDIT, VOICE, FX, SCALE, ARP): with this firmware's
   parameter count it had fallen back to a plain list. FX now has DLY MODE and GLO › MULTI with its three bands.
 

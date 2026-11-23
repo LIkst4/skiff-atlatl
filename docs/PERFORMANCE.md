@@ -153,8 +153,9 @@ you hold it.
 
 - **UNISON with STACK** (EDIT › VOICE 2): a lead or a drop in one key. **STD** is a supersaw (DETUNE's spread); **PWR**
   and **2PWR** put power chords under one finger, **C-12** / **C-24** a sub-octave under the middle, **OCT**, **MAJ**,
-  **MIN**, **HARM** and **ODD** the other stacks. With the second core on, UNISON has 16 voices (it takes the unit's
-  whole budget, so the other tracks give voices up while it holds).
+  **MIN**, **HARM** and **ODD** the other stacks. With the second core on and both SYNTH oscillators, UNISON has 16 voices
+  (it takes the unit's whole budget, so the other tracks give voices up while it holds); with one oscillator or another
+  engine 8, and when the unit runs busy the next notes take 8 until it calms down (a second under 45 %).
 - **GLO › MULTI**, the master's 3-band compressor: raise **MIX** to bring it in (0 is off), **AMOUNT** per band on
   MB LOW / MB MID / MB HIGH; **UPWARD ON** lifts the quiet parts too, for the squashed, bright sound of an OTT. Its graph
   shows each band working while you play.

@@ -118,8 +118,10 @@ desde el cursor (un silencio por cada ARP STEP OFF) mientras la mantengas.
 
 - **UNISON con STACK** (EDIT › VOICE 2): un lead o un drop con una tecla. **STD** es un supersaw (el spread de
   DETUNE); **PWR** y **2PWR** ponen power chords bajo un dedo, **C-12** / **C-24** una octava grave bajo el centro, y
-  **OCT**, **MAJ**, **MIN**, **HARM** y **ODD** los otros apilados. Con el segundo núcleo encendido, UNISON usa 16 voces
-  (todo el presupuesto del equipo: los otros tracks ceden voces mientras suena).
+  **OCT**, **MAJ**, **MIN**, **HARM** y **ODD** los otros apilados. Con el segundo núcleo encendido y los dos osciladores
+  de SYNTH, UNISON usa 16 voces (todo el presupuesto del equipo: los otros tracks ceden voces mientras suena); con un
+  oscilador u otro motor 8, y cuando el equipo va cargado las notas siguientes toman 8 hasta que baja (un segundo bajo
+  el 45 %).
 - **GLO › MULTI**, el compresor de 3 bandas del master: sube **MIX** para meterlo (0 = apagado) y **AMOUNT** en cada
   banda (MB LOW / MB MID / MB HIGH); **UPWARD ON** también sube las partes bajas, para el sonido apretado y brillante de
   un OTT. Su gráfica muestra cada banda trabajando mientras tocas.

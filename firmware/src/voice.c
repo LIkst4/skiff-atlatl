@@ -360,12 +360,23 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
 }
 
 /* MONO / LEGATO / UNISON: one note on one voice (for UNISON as many as the engine's cap and the budget give, UNI_NV
- * at most: 8 with one core, (custom) 16 with two; spread by DETUNE over the same width) */
-static uint32_t uni_nvoice(const track_t *t)
+ * at most: 8 with one core, (custom) 16 with two; spread by DETUNE over the same width).
+ * (custom) A track renders on one core whatever its voices (fx.c mix_split splits whole tracks), so 16 voices of one
+ * track are one core's: UNI_NV only where a voice is light, SYNTH with both oscillators (a filter a side, not a voice:
+ * eng_synth.c sy_uni), and only while the audio has room (uni_room: audio.c uni_load, the load's peak); else UNI_NV_LO,
+ * as before the 16 (a filter a voice, the other engines). Counted when a note starts its voices (mono_play: uni_n),
+ * kept for the note: its render places the voices by it (sy_place, uni_fine) */
+static uint8_t uni_room = UNI_NV;                       /* audio.c uni_load: UNI_NV_LO while the load runs high */
+static uint32_t uni_want(const track_t *t)
 {
     uint32_t n = trk_nvoice(t), b = VOICE_BUDGET;
+    uint32_t c = t->engine == ENGI_SYNTH && !sy_alone(t->p) ? uni_room : UNI_NV_LO;
     n = n < b ? n : b;
-    return n < UNI_NV ? n : UNI_NV;
+    return n < c ? n : c;
+}
+static uint32_t uni_nvoice(const track_t *t)
+{
+    return t->uni_n ? t->uni_n : uni_want(t);
 }
 /* (custom) STACK (P_USTK, as Vital's stack styles): UNISON voice i of nv's interval, cents. The voices go to the
  * intervals in pairs from the middle out (the two nearest the note, then the next two, ..): each interval has a voice
@@ -409,7 +420,14 @@ static int32_t uni_fine(uint32_t i, uint32_t nv, int32_t dt)
 
 static void mono_play(track_t *t, uint32_t note, uint32_t vel, int retrig, int glide)
 {
-    uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? uni_nvoice(t) : 1u, i;
+    uint32_t mode = (uint32_t)t->p[P_VOICE], nv, i;
+    if (mode == V_UNISON && (retrig || !t->v[0].active || !t->v[0].gate)) {   /* (custom) a fresh note: its voices now */
+        t->uni_n = (uint8_t)uni_want(t);
+        for (i = t->uni_n; i < NVOICE; i++)             /* (a note of more voices before, or POLY's: their fade) */
+            if (t->v[i].active && t->v[i].stage != 4u)
+                voice_kill(&t->v[i]);
+    }
+    nv = mode == V_UNISON ? uni_nvoice(t) : 1u;
     for (i = 0; i < nv; i++) {
         voice_t *v = &t->v[i];
         int32_t c = nv > 1u ? uni_stack(i, nv, (uint32_t)t->p[P_USTK]) : 0, st = (c + (c < 0 ? -50 : 50)) / 100;
