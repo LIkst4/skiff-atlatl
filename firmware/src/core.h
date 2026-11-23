@@ -654,7 +654,6 @@ typedef struct track {
     uint8_t nmono;
     uint8_t mono_note;           /* note the MONO / LEGATO / UNISON voice(s) play, 0 = none */
     uint8_t rr;                  /* POLY ROTATE: next voice to try */
-    uint8_t uni_n;               /* (custom) UNISON: the voices its note started with (voice.c uni_want), 0 = none yet */
     /* mix runtime */
     int32_t peak;
     int32_t dist_hp, dist_lp1, dist_lp2;   /* DIST insert state (fx.c) */

@@ -364,9 +364,11 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
  * (custom) A track renders on one core whatever its voices (fx.c mix_split splits whole tracks), so 16 voices of one
  * track are one core's: UNI_NV only where a voice is light, SYNTH with both oscillators (a filter a side, not a voice:
  * eng_synth.c sy_uni), and only while the audio has room (uni_tight: audio.c uni_load, the load's peak); else UNI_NV_LO,
- * as before the 16 (a filter a voice, the other engines). Counted when a note starts its voices (mono_play: uni_n),
+ * as before the 16 (a filter a voice, the other engines). Counted when a note starts its voices (mono_play: uni_n[]),
  * kept for the note: its render places the voices by it (sy_place, uni_fine) */
 static uint8_t uni_tight;                               /* audio.c uni_load: 1 while the load runs high (UNI_NV_LO) */
+static uint8_t uni_n[NPART];                            /* a track's UNISON note: the voices it started with, 0 none yet
+                                                         * (apart from track_t: its layout as the code knows it) */
 static __attribute__((noinline)) uint32_t uni_want(const track_t *t)
 {
     uint32_t n = trk_nvoice(t), b = VOICE_BUDGET;
@@ -376,14 +378,15 @@ static __attribute__((noinline)) uint32_t uni_want(const track_t *t)
 }
 static uint32_t uni_nvoice(const track_t *t)
 {
-    return t->uni_n ? t->uni_n : uni_want(t);
+    uint32_t k = uni_n[(uint32_t)(t - trk) % NPART];
+    return k ? k : uni_want(t);
 }
 /* a fresh UNISON note: its voices counted now; the voices above them (a note of more before, or POLY's) fade */
 static __attribute__((noinline)) void uni_start(track_t *t)
 {
-    uint32_t i;
-    t->uni_n = (uint8_t)uni_want(t);
-    for (i = t->uni_n; i < NVOICE; i++)
+    uint32_t i = uni_want(t);
+    uni_n[(uint32_t)(t - trk) % NPART] = (uint8_t)i;
+    for (; i < NVOICE; i++)
         if (t->v[i].active && t->v[i].stage != 4u)
             voice_kill(&t->v[i]);
 }

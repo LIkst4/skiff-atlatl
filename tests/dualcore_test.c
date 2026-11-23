@@ -202,7 +202,7 @@ static int voice_budget(void)
         trk_note_on(&trk[0], 52u, 100);
         mix_block(o, CTL);
         next = voices_busy();
-        back = trk[0].uni_n;
+        back = uni_n[0];
         printf("dualcore: UNISON 16 only light and with room: one oscillator %u, FM6 its cap or 8 %u, A + B %u; busy: the note on %u, "
                "the next %u (above 8: %u), room again %u   %s\n", one, fm6, ab, held, low, i8, next,
                one == UNI_NV_LO && fm6 && ab == UNI_NV && held == UNI_NV && low == UNI_NV_LO && !i8 &&
