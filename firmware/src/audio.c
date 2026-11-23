@@ -63,7 +63,7 @@ static __attribute__((noinline)) uint32_t shed_check(uint32_t all)
     return (all - t5_nested_ticks) / FM1_TICKS_PER_US;
 }
 
-/* (custom) UNISON's room (voice.c uni_room, read when a note starts its voices): UNI_NV_LO from two halves in a row
+/* (custom) UNISON's room (voice.c uni_tight, read when a note starts its voices): UNI_NV_LO from two halves in a row
  * over UNI_HI, back to UNI_NV once the load stayed under UNI_LO for a second. Before the shedding's 85 %: an ARP of
  * 16-voice notes restarts them every note, faster than the shedding fades them (one a half), and the halves ran late */
 #define UNI_HI 192u                                     /* 75 % (Q8 of a half) */
@@ -75,12 +75,12 @@ static __attribute__((noinline)) void uni_load(uint32_t us)
     uint32_t q = us * 256u / (HALF_FRAMES * 1000000u / FS);
     uni_over = (uint8_t)(uni_over << 1 | (q > UNI_HI));
     if ((uni_over & 3u) == 3u) {
-        uni_room = UNI_NV_LO;
+        uni_tight = 1;
         uni_calm = 0;
     } else if (q >= UNI_LO)
         uni_calm = 0;
-    else if (uni_room != UNI_NV && ++uni_calm >= FS / HALF_FRAMES)
-        uni_room = UNI_NV;
+    else if (uni_tight && ++uni_calm >= FS / HALF_FRAMES)
+        uni_tight = 0;
 }
 
 static void shed_voice(void)

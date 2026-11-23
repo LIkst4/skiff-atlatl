@@ -363,14 +363,14 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
  * at most: 8 with one core, (custom) 16 with two; spread by DETUNE over the same width).
  * (custom) A track renders on one core whatever its voices (fx.c mix_split splits whole tracks), so 16 voices of one
  * track are one core's: UNI_NV only where a voice is light, SYNTH with both oscillators (a filter a side, not a voice:
- * eng_synth.c sy_uni), and only while the audio has room (uni_room: audio.c uni_load, the load's peak); else UNI_NV_LO,
+ * eng_synth.c sy_uni), and only while the audio has room (uni_tight: audio.c uni_load, the load's peak); else UNI_NV_LO,
  * as before the 16 (a filter a voice, the other engines). Counted when a note starts its voices (mono_play: uni_n),
  * kept for the note: its render places the voices by it (sy_place, uni_fine) */
-static uint8_t uni_room = UNI_NV;                       /* audio.c uni_load: UNI_NV_LO while the load runs high */
+static uint8_t uni_tight;                               /* audio.c uni_load: 1 while the load runs high (UNI_NV_LO) */
 static __attribute__((noinline)) uint32_t uni_want(const track_t *t)
 {
     uint32_t n = trk_nvoice(t), b = VOICE_BUDGET;
-    uint32_t c = t->engine == ENGI_SYNTH && !sy_alone(t->p) ? uni_room : UNI_NV_LO;
+    uint32_t c = t->engine == ENGI_SYNTH && !sy_alone(t->p) && !uni_tight ? UNI_NV : UNI_NV_LO;
     n = n < b ? n : b;
     return n < c ? n : c;
 }

@@ -188,7 +188,7 @@ static int voice_budget(void)
             r[c] = voices_busy();
         }
         one = r[0], fm6 = r[1] == (ENGINES[ENGI_FM6]->poly < UNI_NV_LO ? ENGINES[ENGI_FM6]->poly : UNI_NV_LO), ab = r[2];
-        uni_room = UNI_NV_LO;                           /* (the audio busy) */
+        uni_tight = 1;                                  /* (the audio busy) */
         held = voices_busy();                           /* (the A + B note on: its 16 kept) */
         trk_note_off(&trk[0], 48u);
         trk_note_on(&trk[0], 50u, 100);
@@ -197,7 +197,7 @@ static int voice_budget(void)
         low = voices_busy();
         for (i8 = 0, i = UNI_NV_LO; i < NVOICE; i++)
             i8 += trk[0].v[i].active;
-        uni_room = UNI_NV;
+        uni_tight = 0;
         trk_note_off(&trk[0], 50u);
         trk_note_on(&trk[0], 52u, 100);
         mix_block(o, CTL);

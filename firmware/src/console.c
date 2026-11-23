@@ -211,7 +211,7 @@ static void con_status(void)
     con_kv("audio_max_us", (int32_t)felucca_dbg.max_us);
     con_kv("audio_late", (int32_t)felucca_dbg.late);
     con_kv("voices_shed", (int32_t)shed_count);
-    con_kv("unison_room", (int32_t)uni_room);           /* ((custom) UNISON's voices for a note now: voice.c) */
+    con_kv("unison_tight", (int32_t)uni_tight);         /* ((custom) 1: UNISON's notes take 8 now (voice.c) */
 #if FELUCCA_CPU2
     con_kv("cpu2_set", CPU2_SET);                       /* (Skiff 1.3) MENU > CPU: 1 = 2 CORES (from power-on) */
     con_kv("cpu2", fm1_c1_on);                          /* the second core renders tracks (hal/fm1_cpu1.h) */
